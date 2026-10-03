@@ -1,0 +1,17 @@
+# Local-only reference material (never commit)
+_reference/
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# OS files
+.DS_Store
+Thumbs.db
