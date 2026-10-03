@@ -417,9 +417,16 @@ One EXP transaction may cross several level boundaries. The domain engine must r
 
 *Example:* a fresh player (T = 0) receiving the 500 EXP weekly bonus lands at T = 500 → Level 4 (cumulative(4) = 418), 82 / 238 into the level, with levels 2, 3, 4 crossed.
 
-### 8.4 After Level 100 **[OPEN: OD-02]**
+### 8.4 Levels after 100 **[APPROVED]**
 
-The formula is defined for all `L ≥ 1`, but whether progression caps at Level 100, continues, or prestiges is undecided. The engine must isolate this behind a single decision point.
+**Player Level has no maximum in V1.** Level 100 is a major progression milestone, not a level cap.
+
+- Progression continues to Level 101, 102, 103, and onward.
+- The same `XP_TO_NEXT(L)` formula (§8) applies at every level `L ≥ 1`, including above 100.
+- Total EXP remains permanent (NR-4). EXP earned at or above Level 100 is an ordinary ledger transaction like any other.
+- There is **no prestige mechanic**, no reset, no EXP reset, and no level reset.
+- The level engine is total over all non-negative total-EXP inputs: there is no clamp, no cap branch, and no special-case path past Level 100.
+- Rank behavior at and above Level 100 is defined in §9.
 
 ---
 
@@ -435,9 +442,11 @@ Rank derives **only from Player Level** in V1.
 | B-Rank | 35 – 49 |
 | A-Rank | 50 – 74 |
 | S-Rank | 75 – 99 |
-| **Level 100** | special final rank milestone — name **`???`** (placeholder) **[OPEN: OD-01]** |
+| **Level 100 and above** | one special rank tier, semantic identifier **`special_100_plus`**; display name **`???`** (placeholder) **[OPEN: OD-01]** |
 
-Rank-ups (at Levels 10, 20, 35, 50, 75, 100) are rarer and visually far more significant than level-ups. Rank calculation belongs to domain logic. The Level-100 rank **name** must not be invented in code or copy.
+Levels 1–99 use the bands above. Every level from 100 upward (100, 101, 102, …) belongs to the single `special_100_plus` tier; there are no further rank bands above it in V1, so reaching Level 100 is the last rank-up.
+
+Rank-ups (at Levels 10, 20, 35, 50, 75, 100) are rarer and visually far more significant than level-ups. Rank calculation belongs to domain logic. The special tier's **display name** is unresolved (OD-01) and must not be invented in code or copy; the identifier `special_100_plus` is opaque and carries no display meaning, and the UI shows `???` until the name is chosen.
 
 ---
 

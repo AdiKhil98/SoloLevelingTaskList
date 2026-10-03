@@ -9,15 +9,14 @@ For each item: **Question** · **Why it matters** · **Needed by** (the latest p
 
 **Foundational blockers:** none. Every item below can be deferred to its "needed by" phase without blocking Phase 01.
 
-**Stable IDs:** decision IDs are never renumbered. **OD-11, OD-12, OD-13, OD-14, and OD-17 are retired** — they were resolved in the post-Phase-00 review and now live as approved rules in `MASTER_SPEC.md` (zero-eligible days §7.5, completion finality §5.6, streak finalization §7.4, no streak freezes §7.4, Perfect Week §11). They are intentionally absent below.
+**Stable IDs:** decision IDs are never renumbered. **OD-02, OD-11, OD-12, OD-13, OD-14, and OD-17 are retired** — they were resolved after Phase 00 and now live as approved rules in `MASTER_SPEC.md` (levels after 100 §8.4, zero-eligible days §7.5, completion finality §5.6, streak finalization §7.4, no streak freezes §7.4, Perfect Week §11). They are intentionally absent below.
 
 ## Index
 
 | ID | Topic | Needed by |
 |----|-------|-----------|
 | **A. Items required by the Phase 00 brief** | | |
-| OD-01 | Final Level-100 rank name | Phase 08 |
-| OD-02 | Behavior after Level 100 | Phase 02 (engine boundary) |
+| OD-01 | Final display name of the Level 100+ special rank | Phase 08 |
 | OD-03 | Final seeded achievement catalog | Phase 08 |
 | OD-04 | Final Daily Message catalog and selection algorithm | Phase 04 (starter) / Phase 14 (final) |
 | OD-05 | Will quest EXP overrides ever exist? | Phase 05 |
@@ -39,17 +38,11 @@ For each item: **Question** · **Why it matters** · **Needed by** (the latest p
 
 ## A. Items required by the Phase 00 brief
 
-### OD-01 — Final Level-100 rank name
-- **Question:** What is the name of the special rank awarded at Level 100? (Spec uses the placeholder `???`.)
+### OD-01 — Final display name of the Level 100+ special rank
+- **Question:** What is the display name of the special rank tier that applies from Level 100 upward? (Spec uses the placeholder `???`.) Only the *name* is open: the tier itself (identifier `special_100_plus`, covering every level ≥ 100, no level cap) is approved in MASTER_SPEC §8.4 and §9.
 - **Why it matters:** Rank presentation (Status screen, HolographicCard, RankUpOverlay) and the "Reach … Rank" achievement.
 - **Needed by:** Phase 08.
-- **Until then:** Use the neutral placeholder `???`; do **not** invent a name in code, copy, or assets. The rank identifier in code is an opaque value (e.g., `FINAL_100`) whose display label comes from one place.
-
-### OD-02 — Behavior after Level 100
-- **Question:** Does progression cap at Level 100, continue past it, or become a prestige-style system? What happens to EXP earned after reaching Level 100?
-- **Why it matters:** The level engine must be total over all inputs; the level/EXP bar, rank logic, achievements, and the long-term product shape all depend on it. (Reaching Level 100 needs 485,351 total EXP — a long road, but the engine contract needs an answer sooner.)
-- **Needed by:** Phase 02 for the engine boundary (a temporary, clearly isolated behavior may be approved to unblock Phase 02); full product decision by Phase 08.
-- **Until then:** Implement the level function for all levels via the approved formula **without** committing to cap/prestige semantics beyond Level 100. Isolate the post-100 behavior behind one function and flag it in the Phase 02 report. Do not choose.
+- **Until then:** Use the neutral placeholder `???`; do **not** invent a name in code, copy, or assets. The rank identifier in code is the opaque value `special_100_plus`, whose display label comes from one place.
 
 ### OD-03 — Final seeded achievement catalog
 - **Question:** Which achievements ship, with what exact conditions, titles, descriptions, and rarity tiers?

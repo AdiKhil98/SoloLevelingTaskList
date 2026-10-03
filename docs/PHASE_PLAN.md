@@ -23,7 +23,7 @@
 |------:|------|----------------|---------------|
 | 00 | Master Product / Architecture Specification | docs only | — |
 | 01 | Project Foundation | tooling, shell | — |
-| 02 | Domain / Game Engine | A | OD-02 (boundary) |
+| 02 | Domain / Game Engine | A | — |
 | 03 | Persistence and Recovery | B | — |
 | 04 | Core Mobile Application Shell | C | OD-04 (starter), OD-15 |
 | 05 | Quest Management | A/B/C | OD-05, OD-16 |
@@ -70,7 +70,7 @@
 - **Owns:** `src/domain/`: the **centralized date-key module** (date keys, week keys, day arithmetic, weekday math — MASTER_SPEC I-13); domain entity types from DATA_MODEL (all of them, so later phases share one vocabulary); economy configuration (`DIFFICULTY_EXP`, level curve, rank bands, daily thresholds, weekly bonus table as constants); quest recurrence and eligibility; occurrence materialization (pure); completion command producing `{writes, events}`; XP transaction creation and idempotency-key rules; level derivation incl. multi-level gains; rank derivation; daily completion percentage and day quality; streak fold; domain event types. (Weekly scoring logic arrives in Phase 07; achievement engine in Phase 08.)
 - **May modify:** `src/domain/`, shared test utilities, docs notes.
 - **Must not implement:** persistence, React, finished UI, animations, a clock/rollover *service* (Phase 06), weekly or achievement logic (Phases 07/08).
-- **Prerequisites:** Phases 00–01 approved. An interim **OD-02** boundary behavior (post-Level-100) approved by the owner. The completion-finality (MASTER_SPEC §5.6), streak-finalization (§7.4), and No-Active-Quests (§7.5) rules are already approved and are implemented as specified.
+- **Prerequisites:** Phases 00–01 approved. Levels after 100 are approved (MASTER_SPEC §8.4: no level cap, no prestige) and are implemented as specified. The completion-finality (MASTER_SPEC §5.6), streak-finalization (§7.4), and No-Active-Quests (§7.5) rules are already approved and are implemented as specified.
 - **Outputs:** pure, dependency-free domain modules + extensive tests.
 - **Acceptance criteria:**
   - Level golden table (MASTER_SPEC §8.1) reproduced exactly; XP→level round-trips; multi-level gain example (T=500 → L4) correct.

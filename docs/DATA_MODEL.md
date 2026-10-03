@@ -21,7 +21,7 @@ type IsoWeekday = 1|2|3|4|5|6|7;       // 1 = Monday … 7 = Sunday
 
 type Difficulty = 'E'|'D'|'C'|'B'|'A'|'S';
 type Category   = 'discipline'|'fitness'|'business'|'knowledge'|'trading';
-type RankId     = 'E'|'D'|'C'|'B'|'A'|'S'|'FINAL_100';   // FINAL_100 name is OPEN (OD-01)
+type RankId     = 'E'|'D'|'C'|'B'|'A'|'S'|'special_100_plus';   // Level 100+ tier; display name is OPEN (OD-01)
 type DayQuality = 'incomplete'|'completed'|'strong'|'perfect'
                 | 'no_active_quests';          // zero eligible quests: neutral for streaks (MASTER_SPEC §7.5)
 type StreakEffect = 'increment'|'reset'|'neutral';
@@ -107,7 +107,7 @@ interface PlayerProgress {           // singleton CACHE, id = 'progress'; rebuil
 }
 ```
 
-*Not stored:* `level`, `rank`. A `LevelState { level, expIntoLevel, expToNext, rank }` view is computed by a pure function from `totalExp`.
+*Not stored:* `level`, `rank`. A `LevelState { level, expIntoLevel, expToNext, rank }` view is computed by a pure function from `totalExp`. `level` is an unbounded integer ≥ 1 (MASTER_SPEC §8.4: no maximum, no prestige, no reset); levels at or above 100 all map to rank `special_100_plus`.
 
 ---
 

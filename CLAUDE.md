@@ -370,7 +370,7 @@ Do not duplicate approved values here; read them from `docs/MASTER_SPEC.md`. If 
 ### Approved (see `docs/MASTER_SPEC.md` for the exact values)
 
 - difficulty EXP values
-- the player level formula
+- the player level formula (no maximum level; progression continues past Level 100)
 - rank thresholds
 - daily completion thresholds and day-quality rules (exact-ratio classification)
 - streak behavior (persisted only at day finalization)
@@ -380,6 +380,6 @@ These approved values must live in centralized configuration/domain code when im
 
 ### Still open
 
-Some explicitly listed product decisions remain open (for example the Level-100 rank name, behavior after Level 100, the achievement catalog, the Daily Message catalog, quest EXP overrides, sounds/haptics/animation timings, typography, and some Weekly Goal Crusher lifecycle details). They are tracked in `docs/OPEN_DECISIONS.md`.
+Some explicitly listed product decisions remain open (for example the display name of the Level-100+ special rank, the achievement catalog, the Daily Message catalog, quest EXP overrides, sounds/haptics/animation timings, typography, and some Weekly Goal Crusher lifecycle details). They are tracked in `docs/OPEN_DECISIONS.md`.
 
 Do not invent answers to open decisions. Keep each behind an isolated decision point until the owner decides.
