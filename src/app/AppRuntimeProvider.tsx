@@ -1,25 +1,40 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   archiveQuest,
+  claimWeeklyReward,
   classifyFailure,
   completeTodayQuest,
   createQuest,
   listQuestTemplates,
   loadQuestForEdit,
+  loadWeeklyEditor,
+  loadWeeklyHistory,
+  loadWeeklyScreen,
   restoreQuest,
+  saveWeeklyBoard,
+  setWeeklyGoalProgress,
   startApplication,
   updateQuest,
   type ApplicationContext,
   type Clock,
   type CompleteTodayQuestResult,
   type FailureReason,
+  type FinalizedWeekReport,
   type HomeSnapshot,
   type IdSource,
   type QuestFormValues,
   type SynchronizedHome,
+  type WeeklyBoardFormValues,
 } from '@/application'
+import type { WeekKey } from '@/domain'
 import { openDatabase, type OpenDatabaseOptions, type PersistenceDatabase } from '@/persistence'
-import { AppRuntimeContext, type AppRuntimeValue, type LifecycleNotice, type QuestActions } from './runtimeContext'
+import {
+  AppRuntimeContext,
+  type AppRuntimeValue,
+  type LifecycleNotice,
+  type QuestActions,
+  type WeeklyActions,
+} from './runtimeContext'
 import { LoadingScreen, StartupErrorScreen } from './StartupScreens'
 import { useDaySync } from './useDaySync'
 
@@ -63,6 +78,16 @@ const UNAVAILABLE_QUEST_ACTIONS: QuestActions = {
   restore: async () => UNAVAILABLE,
 }
 
+/** Weekly actions before the database is ready: every one fails visibly without touching anything. */
+const UNAVAILABLE_WEEKLY_ACTIONS: WeeklyActions = {
+  loadScreen: async () => UNAVAILABLE,
+  loadEditor: async () => UNAVAILABLE,
+  loadHistory: async () => UNAVAILABLE,
+  save: async () => UNAVAILABLE,
+  setProgress: async () => UNAVAILABLE,
+  claim: async () => UNAVAILABLE,
+}
+
 /** One finalized day is the normal overnight case and needs no words; a longer absence gets one notice. */
 const CATCH_UP_NOTICE_MIN_DAYS = 2
 /**
@@ -84,8 +109,16 @@ export function AppRuntimeProvider({ options, children }: AppRuntimeProviderProp
   const [state, setState] = useState<RuntimeState>({ status: 'loading' })
   const [lifecycleNotice, setLifecycleNotice] = useState<LifecycleNotice | null>(null)
 
-  const noticeFor = useCallback((finalizedCount: number) => {
-    if (finalizedCount >= CATCH_UP_NOTICE_MIN_DAYS) setLifecycleNotice({ daysReconciled: finalizedCount })
+  // At most ONE notice per reconciliation: the days it caught up and/or the weekly boards it finalized.
+  // A finalized week is always mentioned, even overnight, because it paid EXP the player did not just earn.
+  const noticeFor = useCallback((finalizedDays: number, finalizedWeeks: readonly FinalizedWeekReport[]) => {
+    const days = finalizedDays >= CATCH_UP_NOTICE_MIN_DAYS ? finalizedDays : 0
+    if (days === 0 && finalizedWeeks.length === 0) return
+    setLifecycleNotice({
+      daysReconciled: days,
+      weeklyBoardsFinalized: finalizedWeeks.length,
+      weeklyBonusExp: finalizedWeeks.reduce((sum, week) => sum + week.bonusExp, 0),
+    })
   }, [])
 
   useEffect(() => {
@@ -101,10 +134,10 @@ export function AppRuntimeProvider({ options, children }: AppRuntimeProviderProp
         }
         database = opened
         const context: ApplicationContext = { database: opened, clock: options.clock, ids: options.ids }
-        const { home, finalized } = await startApplication(context)
+        const { home, finalized, finalizedWeeks } = await startApplication(context)
         if (disposed) return
         setState({ status: 'ready', context, snapshot: home })
-        noticeFor(finalized.length)
+        noticeFor(finalized.length, finalizedWeeks)
       } catch (error) {
         if (disposed) return
         console.error('Application startup failed', error)
@@ -127,9 +160,9 @@ export function AppRuntimeProvider({ options, children }: AppRuntimeProviderProp
   const snapshot = state.status === 'ready' ? state.snapshot : null
 
   const onSynchronized = useCallback(
-    (synced: ApplicationContext, { home, finalized }: SynchronizedHome) => {
+    (synced: ApplicationContext, { home, finalized, finalizedWeeks }: SynchronizedHome) => {
       setState({ status: 'ready', context: synced, snapshot: home })
-      noticeFor(finalized.length)
+      noticeFor(finalized.length, finalizedWeeks)
     },
     [noticeFor],
   )
@@ -221,12 +254,49 @@ export function AppRuntimeProvider({ options, children }: AppRuntimeProviderProp
     }
   }, [context, reload, syncDay])
 
+  const weekly = useMemo<WeeklyActions>(() => {
+    if (context === null) return UNAVAILABLE_WEEKLY_ACTIONS
+
+    // A saved weekly change also refreshed Home (its weekly card): adopt that state, or reload if it
+    // could not be re-read (never show stale state).
+    const adopt = async (result: MaybeRefreshed): Promise<void> => {
+      if (result.home !== null) {
+        setState({ status: 'ready', context, snapshot: result.home })
+      } else {
+        console.error('Refreshing after a saved weekly change failed', result.refreshCause)
+        await reload()
+      }
+    }
+
+    return {
+      loadScreen: () => loadWeeklyScreen(context),
+      loadEditor: () => loadWeeklyEditor(context),
+      loadHistory: () => loadWeeklyHistory(context),
+      save: async (values: WeeklyBoardFormValues) => {
+        await syncDay('resume')
+        const result = await saveWeeklyBoard(context, values)
+        if (result.status === 'created' || result.status === 'updated') await adopt(result)
+        return result
+      },
+      setProgress: async (goalId: string, progress: number) => {
+        await syncDay('resume')
+        const result = await setWeeklyGoalProgress(context, goalId, progress)
+        if (result.status === 'updated') await adopt(result)
+        return result
+      },
+      claim: async (weekKey: WeekKey) => {
+        await syncDay('resume')
+        return claimWeeklyReward(context, weekKey)
+      },
+    }
+  }, [context, reload, syncDay])
+
   const value = useMemo<AppRuntimeValue | null>(
     () =>
       snapshot === null
         ? null
-        : { snapshot, completeQuest, quests, reload, lifecycleNotice, dismissLifecycleNotice },
-    [snapshot, completeQuest, quests, reload, lifecycleNotice, dismissLifecycleNotice],
+        : { snapshot, completeQuest, quests, weekly, reload, lifecycleNotice, dismissLifecycleNotice },
+    [snapshot, completeQuest, quests, weekly, reload, lifecycleNotice, dismissLifecycleNotice],
   )
 
   if (state.status === 'error') return <StartupErrorScreen reason={state.reason} onRetry={retry} />

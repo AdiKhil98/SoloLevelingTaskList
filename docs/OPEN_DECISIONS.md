@@ -9,7 +9,7 @@ For each item: **Question** · **Why it matters** · **Needed by** (the latest p
 
 **Foundational blockers:** none. Every item below can be deferred to its "needed by" phase without blocking Phase 01.
 
-**Stable IDs:** decision IDs are never renumbered. **OD-02, OD-05, OD-11, OD-12, OD-13, OD-14, OD-16, OD-17, OD-21, and OD-22 are retired** — they were resolved after Phase 00 and now live as approved rules in `MASTER_SPEC.md` (levels after 100 §8.4, normal-quest EXP derived from difficulty only §5.3, zero-eligible days §7.5, completion finality §5.6, same-day quest create/edit/archive/restore semantics §5.7, streak finalization §7.4, no streak freezes §7.4, Perfect Week §11). OD-05 and OD-16 were resolved in Phase 05; the implementation is recorded in [QUEST_MANAGEMENT.md](QUEST_MANAGEMENT.md). OD-21 (multi-day catch-up shows one restrained "N days reconciled." notice, no replayed events) and OD-22 (backward device clock enters a safe paused state, history never rewritten) were resolved in Phase 06; see [DAILY_LIFECYCLE.md](DAILY_LIFECYCLE.md) and MASTER_SPEC §4.4–4.5. They are intentionally absent below.
+**Stable IDs:** decision IDs are never renumbered. **OD-02, OD-05, OD-10, OD-11, OD-12, OD-13, OD-14, OD-16, OD-17, OD-19, OD-21, and OD-22 are retired** — they were resolved after Phase 00 and now live as approved rules in `MASTER_SPEC.md` (levels after 100 §8.4, normal-quest EXP derived from difficulty only §5.3, zero-eligible days §7.5, completion finality §5.6, same-day quest create/edit/archive/restore semantics §5.7, streak finalization §7.4, no streak freezes §7.4, Perfect Week §11). OD-05 and OD-16 were resolved in Phase 05; the implementation is recorded in [QUEST_MANAGEMENT.md](QUEST_MANAGEMENT.md). OD-21 (multi-day catch-up shows one restrained "N days reconciled." notice, no replayed events) and OD-22 (backward device clock enters a safe paused state, history never rewritten) were resolved in Phase 06; see [DAILY_LIFECYCLE.md](DAILY_LIFECYCLE.md) and MASTER_SPEC §4.4–4.5. OD-10 (Goal Crusher progress modes: manual numeric progress and linked quest completion count only) and OD-19 (weekly board lifecycle: current week only, editable until finalization with derived score, linked goals count from Monday, a week without a board is simply absent, finalization snapshots the exact progress used, claims never expire) were resolved in Phase 07; the rules and their implementation are recorded in [WEEKLY_GOAL_CRUSHER.md](WEEKLY_GOAL_CRUSHER.md) and MASTER_SPEC §12. They are intentionally absent below.
 
 ## Index
 
@@ -23,11 +23,9 @@ For each item: **Question** · **Why it matters** · **Needed by** (the latest p
 | OD-07 | Exact haptic patterns | Phase 10 |
 | OD-08 | Final animation timings / effect-intensity levels | Phase 10 (tuned in 14) |
 | OD-09 | Final typography / font | Phase 09 |
-| OD-10 | Additional Goal Crusher progress-tracking modes | Phase 07 |
 | **B. Items discovered while writing the specification** | | |
 | OD-15 | Seeded quest catalog beyond prayers and Sleep (the six approved seeds are implemented; editability was settled in Phase 05) | Before any further default is seeded |
 | OD-18 | Reliable semantic identification for achievements (e.g., "Gym Sessions") | Phase 08 |
-| OD-19 | Weekly board lifecycle and linked-progress rules | Phase 07 |
 | OD-20 | Which moment is the "Goal Crusher completion" spectacle | Phase 10 |
 
 ---
@@ -75,12 +73,6 @@ For each item: **Question** · **Why it matters** · **Needed by** (the latest p
 - **Needed by:** Phase 09.
 - **Until then:** Use system fonts / a neutral stack; no font dependency installed.
 
-### OD-10 — Additional Goal Crusher tracking modes
-- **Question:** Beyond **manual** and **linked quest completions**, are other modes needed (e.g., a numeric sum like "40 backtests", time totals, streak-within-week)?
-- **Why it matters:** Shape of `WeeklyGoal.tracking` and scope of Phase 07; risk of over-engineering analytics.
-- **Needed by:** Phase 07.
-- **Until then:** Support only `manual` and `linked_quests`; keep `tracking` a discriminated union so a mode can be added later without a breaking change.
-
 ---
 
 ## B. Items discovered while writing the specification
@@ -101,15 +93,8 @@ These are gaps or tensions found while turning the brief into a contract. None w
 - **Needed by:** Phase 08 (a tag/activity field, if wanted, must be decided before Phase 05 ships the quest form — otherwise added later as an additive extension).
 - **Until then:** Achievements may use only quest-agnostic conditions (totals, streaks, ranks, Perfect Days, Perfect Weeks). Do not infer "Gym" from category.
 
-### OD-19 — Weekly board lifecycle and linked-progress rules
-- **Question:** (a) What if a week has no board — nothing to finalize, or finalize an empty/0 board? (b) Can a board be created for a future week (planning ahead) or only the current one? (c) Can weights/targets be edited after progress exists mid-week? (d) For linked goals created mid-week, do completions earlier in that week count? (e) Is there a template/"repeat last week" mechanism? (f) Does a finalized week's reward claim ever expire?
-- **Already resolved (not open):** a reward is claimable only *after* the board is finalized (MASTER_SPEC §12.6); a Perfect Week is a finalized 10/10 board (§11).
-- **Why it matters:** Exactly-once bonus logic, historical honesty, and Phase 07 scope.
-- **Needed by:** Phase 07.
-- **Until then:** Only approved rules apply: boards total exactly 10 points; finalization once; bonus once; reward claimed only after finalization.
-
 ### OD-20 — Spectacle / event presentation timing: which moment is the "Goal Crusher completion"?
 - **Question:** `CLAUDE.md` and the spec list "Goal Crusher completion" as a heavy-effect event. Is it an individual weekly goal being satisfied, the board reaching 10/10, or the finalization/bonus moment?
 - **Why it matters:** Determines which domain events carry heavy presentation and whether a live 10/10 moment is celebrated before the bonus is actually awarded at finalization.
 - **Needed by:** Phase 10 (events exist from Phase 07).
-- **Until then:** Domain emits `WeeklyGoalCompleted` and `WeeklyBoardFinalized`; presentation mapping is deferred.
+- **Until then:** Domain emits `WeeklyGoalCompleted` (Phase 07: from a manual progress update only; a linked goal reaching its target through a quest completion is not wired to an event yet, Phase 10 decides) and `WeeklyBoardFinalized` (at finalization); presentation mapping is deferred.

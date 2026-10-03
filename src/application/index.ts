@@ -6,7 +6,7 @@
 
 export { readClock, type Clock } from './clock'
 export type { ApplicationContext } from './context'
-export { newTemplateId, USER_TEMPLATE_ID_PREFIX, type IdSource } from './ids'
+export { newTemplateId, newWeeklyGoalId, USER_TEMPLATE_ID_PREFIX, type IdSource } from './ids'
 export {
   ApplicationError,
   classifyFailure,
@@ -25,6 +25,7 @@ export {
   type ReconcileTrigger,
 } from './lifecycle/synchronization'
 export { msUntilMidnight } from './lifecycle/midnight'
+export { finalizeDueWeeks, type FinalizedWeekReport } from './lifecycle/finalizeWeeks'
 export { buildDailyReport, type DailyReport } from './report/buildDailyReport'
 export { loadStreakStats, type StreakStats } from './player/loadStreakStats'
 
@@ -58,6 +59,56 @@ export {
   type ListQuestTemplatesResult,
   type QuestListItem,
 } from './quests/listQuestTemplates'
+
+export {
+  emptyRewards,
+  parseWeeklyBoardForm,
+  type ParseWeeklyBoardFormContext,
+  type WeeklyBoardErrorCode,
+  type WeeklyBoardFormErrors,
+  type WeeklyBoardFormValues,
+  type WeeklyGoalErrorCode,
+  type WeeklyGoalField,
+  type WeeklyGoalFormValues,
+} from './weekly/weeklyBoardForm'
+export {
+  buildActiveBoardView,
+  buildFinalizedWeekView,
+  type ActiveWeeklyBoardView,
+  type FinalizedWeekView,
+  type FinalizedWeeklyGoalView,
+  type WeeklyGoalView,
+  type WeeklyRewardTierView,
+} from './weekly/views'
+export { loadWeeklyHomeSummary, type WeeklyHomeSummary } from './weekly/summary'
+export {
+  loadWeeklyScreen,
+  type LoadWeeklyScreenResult,
+  type WeeklyCurrent,
+  type WeeklyScreen,
+} from './weekly/loadWeeklyScreen'
+export {
+  blankGoalFormValues,
+  loadWeeklyEditor,
+  type LinkableQuest,
+  type LoadWeeklyEditorResult,
+} from './weekly/loadWeeklyEditor'
+export { loadWeeklyHistory, type LoadWeeklyHistoryResult } from './weekly/loadWeeklyHistory'
+export {
+  saveWeeklyBoard,
+  type SaveWeeklyBoardRejectionReason,
+  type SaveWeeklyBoardUseCaseResult,
+} from './weekly/saveWeeklyBoard'
+export {
+  setWeeklyGoalProgress,
+  type SetWeeklyGoalProgressRejectionReason,
+  type SetWeeklyGoalProgressUseCaseResult,
+} from './weekly/setWeeklyGoalProgress'
+export {
+  claimWeeklyReward,
+  type ClaimWeeklyRewardRejectionReason,
+  type ClaimWeeklyRewardUseCaseResult,
+} from './weekly/claimWeeklyReward'
 
 export { DEFAULT_QUEST_SEEDS, type DefaultQuestSeed } from './seeds/defaultQuests'
 export {

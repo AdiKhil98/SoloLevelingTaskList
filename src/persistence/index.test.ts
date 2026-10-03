@@ -18,11 +18,14 @@ describe('public persistence API', () => {
       'PersistenceDatabase',
       'PersistenceError',
       'archiveTemplate',
+      'claimWeeklyRewardAtomically',
       'completeQuestAtomically',
+      'countCompletionsByTemplate',
       'createTemplate',
       'ensureOccurrence',
       'exportBackup',
       'finalizeDayAtomically',
+      'finalizeWeekAtomically',
       'getCompletion',
       'getDailySummary',
       'getLatestDailySummary',
@@ -30,6 +33,8 @@ describe('public persistence API', () => {
       'getOccurrenceFor',
       'getTemplate',
       'getTemplateBySeedKey',
+      'getWeeklyBoard',
+      'getWeeklyRewardClaim',
       'getXpTransaction',
       'getXpTransactionByIdempotencyKey',
       'importBackup',
@@ -37,9 +42,12 @@ describe('public persistence API', () => {
       'listCompletionsByDate',
       'listCompletionsByTemplate',
       'listDailySummaries',
+      'listDueWeeklyBoardKeys',
       'listOccurrencesByDate',
       'listOccurrencesByTemplate',
       'listTemplates',
+      'listWeeklyBoards',
+      'listWeeklyRewardClaims',
       'listXpTransactions',
       'listXpTransactionsByEffectiveDate',
       'openDatabase',
@@ -48,12 +56,16 @@ describe('public persistence API', () => {
       'parseDailySummary',
       'parseOccurrence',
       'parseTemplate',
+      'parseWeeklyBoard',
+      'parseWeeklyRewardClaim',
       'parseXpTransaction',
       'readDailyChainTip',
       'readFinalizationCursor',
       'readProgression',
       'reconstructProgression',
+      'saveWeeklyBoardAtomically',
       'serializeBackup',
+      'setWeeklyGoalProgressAtomically',
       'updateTemplate',
       'validateLedger',
       'verifyDatabaseIntegrity',
@@ -69,6 +81,8 @@ describe('public persistence API', () => {
     )
     expect(writesToInsertOnlyStores).toEqual([])
     expect(names.filter((name) => /^(deleteDatabase|resetAll|clearAll|wipe)/i.test(name))).toEqual([])
+    // Weekly boards have no generic write path either: only the commands that each refuse a finalized board.
+    expect(names.filter((name) => /^(update|delete|remove|put|clear|reset)/i.test(name) && /weekly/i.test(name))).toEqual([])
     // Templates are only ever soft-archived.
     expect(names.filter((name) => /^(delete|remove)Template/i.test(name))).toEqual([])
   })

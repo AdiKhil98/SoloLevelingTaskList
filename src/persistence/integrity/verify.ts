@@ -12,6 +12,8 @@ const ALL_STORES = [
   STORE.completions,
   STORE.xpTransactions,
   STORE.dailySummaries,
+  STORE.weeklyBoards,
+  STORE.weeklyRewardClaims,
 ] as const
 
 /**
@@ -23,15 +25,37 @@ const ALL_STORES = [
  */
 export async function readRawDataset(database: PersistenceDatabase): Promise<Record<string, unknown[]>> {
   return runTransaction(database, ALL_STORES, 'readonly', async (transaction) => {
-    const [questTemplates, questOccurrences, questCompletions, xpTransactions, dailySummaries] = (await allRequests(
-      ALL_STORES.map((name) => () => transaction.objectStore(name).getAll()),
-    )) as [unknown[], unknown[], unknown[], unknown[], unknown[]]
+    const [
+      questTemplates,
+      questOccurrences,
+      questCompletions,
+      xpTransactions,
+      dailySummaries,
+      weeklyBoards,
+      weeklyRewardClaims,
+    ] = (await allRequests(ALL_STORES.map((name) => () => transaction.objectStore(name).getAll()))) as [
+      unknown[],
+      unknown[],
+      unknown[],
+      unknown[],
+      unknown[],
+      unknown[],
+      unknown[],
+    ]
     const seqOf = (row: unknown): number => {
       const seq = typeof row === 'object' && row !== null ? (row as { seq?: unknown }).seq : undefined
       return typeof seq === 'number' ? seq : Number.POSITIVE_INFINITY
     }
     xpTransactions.sort((a: unknown, b: unknown) => seqOf(a) - seqOf(b))
-    return { questTemplates, questOccurrences, questCompletions, xpTransactions, dailySummaries }
+    return {
+      questTemplates,
+      questOccurrences,
+      questCompletions,
+      xpTransactions,
+      dailySummaries,
+      weeklyBoards,
+      weeklyRewardClaims,
+    }
   })
 }
 
@@ -49,6 +73,8 @@ export interface IntegrityReport {
     readonly questCompletions: number
     readonly xpTransactions: number
     readonly dailySummaries: number
+    readonly weeklyBoards: number
+    readonly weeklyRewardClaims: number
   }
   /** Progression derived from the verified ledger (nothing is read from a cache). */
   readonly progression: PlayerProgression
@@ -61,6 +87,8 @@ export function summarizeRecords(records: DatasetRecords): IntegrityReport['coun
     questCompletions: records.questCompletions.length,
     xpTransactions: records.xpTransactions.length,
     dailySummaries: records.dailySummaries.length,
+    weeklyBoards: records.weeklyBoards.length,
+    weeklyRewardClaims: records.weeklyRewardClaims.length,
   }
 }
 

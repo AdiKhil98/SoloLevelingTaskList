@@ -14,14 +14,19 @@ export type BackupDataMigrationMap = Readonly<Record<number, BackupDataMigration
  *  - 2 (Phase 06): adds `dailySummaries`. A schema-1 backup predates day
  *    finalization, so it has none; the next reconciliation after restoring it
  *    finalizes its past days from its own occurrences and completions.
+ *  - 3 (Phase 07): adds `weeklyBoards` and `weeklyRewardClaims`. Earlier backups
+ *    predate the Weekly Goal Crusher, so they carry none; nothing is invented.
  */
+function asRecord(data: unknown): Record<string, unknown> {
+  if (typeof data !== 'object' || data === null || Array.isArray(data)) {
+    throw new Error('Backup data must be an object')
+  }
+  return data as Record<string, unknown>
+}
+
 export const BACKUP_DATA_MIGRATIONS: BackupDataMigrationMap = {
-  2: (data) => {
-    if (typeof data !== 'object' || data === null || Array.isArray(data)) {
-      throw new Error('Backup data must be an object')
-    }
-    return { ...(data as Record<string, unknown>), dailySummaries: [] }
-  },
+  2: (data) => ({ ...asRecord(data), dailySummaries: [] }),
+  3: (data) => ({ ...asRecord(data), weeklyBoards: [], weeklyRewardClaims: [] }),
 }
 
 export type BackupUpgrade =

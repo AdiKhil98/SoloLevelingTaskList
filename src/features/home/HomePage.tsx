@@ -11,6 +11,7 @@ import { LifecycleNoticeBanner } from './LifecycleNoticeBanner'
 import { PlayerSummary } from './PlayerSummary'
 import { QuestCard } from './QuestCard'
 import { StreakCard } from './StreakCard'
+import { WeeklyCard } from './WeeklyCard'
 
 /**
  * Home: SYSTEM header, player, Daily Message, today's progress and today's
@@ -22,7 +23,7 @@ import { StreakCard } from './StreakCard'
  */
 export function HomePage() {
   const { snapshot, completeQuest, reload, lifecycleNotice, dismissLifecycleNotice } = useAppRuntime()
-  const { today, player, streaks, clock, dailyMessage } = snapshot
+  const { today, player, streaks, clock, dailyMessage, weekly } = snapshot
   const navigate = useNavigate()
 
   const [pendingIds, setPendingIds] = useState<ReadonlySet<string>>(() => new Set())
@@ -82,6 +83,7 @@ export function HomePage() {
           <DailyMessageCard text={dailyMessage.text} />
           <DailyProgressCard progress={today.progress} />
           <StreakCard streaks={streaks} quality={today.progress.quality} />
+          <WeeklyCard weekly={weekly} />
 
           <section aria-labelledby="quests-heading" className="flex flex-col">
             <h2 id="quests-heading" className="mb-3 text-xs tracking-[0.3em] text-muted">

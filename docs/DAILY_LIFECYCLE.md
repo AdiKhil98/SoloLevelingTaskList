@@ -35,7 +35,7 @@ Best streak = max finalized daily streak. Persisted values change only at finali
 
 ## Reconciliation (`application/lifecycle/synchronization.ts`)
 
-`reconcileDays`: from the cursor to **yesterday**, in chronological order, one atomic `finalizeDayAtomically` per date, then today is materialized by the normal loader. An interrupted catch-up resumes from the cursor. Idempotent and race-safe (a second tab or timer finalizes nothing twice).
+`reconcileDays`: from the cursor to **yesterday**, in chronological order, one atomic `finalizeDayAtomically` per date, then today is materialized by the normal loader. An interrupted catch-up resumes from the cursor. Idempotent and race-safe (a second tab or timer finalizes nothing twice). **Since Phase 07**, after the days it also finalizes every active Weekly Goal Crusher board whose Sunday has passed (`finalizeDueWeeks`, oldest week first, one atomic transaction per board; the weekly bonus is paid exactly once); see [WEEKLY_GOAL_CRUSHER.md](WEEKLY_GOAL_CRUSHER.md).
 
 `finalizedLate` is **false only** when the in-app midnight timer finalizes the immediately previous date; startup, resume and any older date are catch-up (`true`).
 
@@ -67,7 +67,7 @@ A time-zone change is handled identically: only `DateKey`s are compared, finaliz
 
 ## Multi-day catch-up events — OD-21 (resolved)
 
-Reconciliation returns the finalized summaries (retained for future history/debug use) and emits **no domain events** and no EXP. No per-day celebration, failure animation or Level-Up queue is replayed. The UI shows at most one dismissible notice, "N days reconciled.", only when N ≥ 2 (a single overnight day is the normal case). Nothing is persisted for the notice. (Phase 06 finalization awards no EXP, so it can cause no level-up; a weekly bonus applied during catch-up in Phase 07 must still be applied atomically and its Level/Rank result not lost or duplicated.)
+Reconciliation returns the finalized summaries (retained for future history/debug use) and emits **no domain events** and no EXP. No per-day celebration, failure animation or Level-Up queue is replayed. The UI shows at most one dismissible notice, "N days reconciled.", only when N ≥ 2 (a single overnight day is the normal case). Nothing is persisted for the notice. (Phase 06 finalization awards no EXP, so it can cause no level-up. Phase 07 weekly bonuses are applied atomically during catch-up, never lost or duplicated; their level/rank effect shows in the derived player status, the domain events are returned but not presented, and the same single notice also mentions finalized weekly boards: "N days reconciled. 1 weekly board finalized (+EXP)." — shown for any finalized week, even overnight.)
 
 ## Schema migration
 

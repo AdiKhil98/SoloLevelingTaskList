@@ -6,6 +6,8 @@ import { assessDay, synchronizeDay, type ClockStatus, type ReconcileTrigger } fr
 import { loadPlayerStatus, type PlayerStatus } from './player/loadPlayerStatus'
 import { loadStreakStats, type StreakStats } from './player/loadStreakStats'
 import { loadToday, type TodayView } from './today/loadToday'
+import type { FinalizedWeekReport } from './lifecycle/finalizeWeeks'
+import { loadWeeklyHomeSummary, type WeeklyHomeSummary } from './weekly/summary'
 
 /** Everything the Home and Status screens render, read from stored truth. */
 export interface HomeSnapshot {
@@ -21,6 +23,8 @@ export interface HomeSnapshot {
   readonly clock: ClockStatus
   /** Chosen from today's `DateKey`, so it always matches the quests shown. */
   readonly dailyMessage: DailyMessage
+  /** The current week's Goal Crusher, as the small Home card shows it. */
+  readonly weekly: WeeklyHomeSummary
 }
 
 /**
@@ -39,13 +43,16 @@ export async function loadHome(
   const today = await loadToday(context, reading, { materialize: clock.status === 'ok' })
   const player = await loadPlayerStatus(context)
   const streaks = await loadStreakStats(context)
-  return { today, player, streaks, clock, dailyMessage: selectDailyMessage(today.dateKey) }
+  const weekly = await loadWeeklyHomeSummary(context, reading)
+  return { today, player, streaks, clock, dailyMessage: selectDailyMessage(today.dateKey), weekly }
 }
 
 export interface SynchronizedHome {
   readonly home: HomeSnapshot
   /** The days this call finalized, oldest first (empty when nothing was missing). */
   readonly finalized: readonly DailySummary[]
+  /** The weekly boards this call finalized, oldest first (empty when none was due). */
+  readonly finalizedWeeks: readonly FinalizedWeekReport[]
 }
 
 /**
@@ -57,6 +64,6 @@ export async function synchronizeAndLoadHome(
   context: ApplicationContext,
   trigger: ReconcileTrigger,
 ): Promise<SynchronizedHome> {
-  const { reading, finalized } = await synchronizeDay(context, trigger)
-  return { home: await loadHome(context, reading), finalized }
+  const { reading, finalized, finalizedWeeks } = await synchronizeDay(context, trigger)
+  return { home: await loadHome(context, reading), finalized, finalizedWeeks }
 }

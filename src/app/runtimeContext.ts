@@ -1,15 +1,23 @@
 import { createContext, useContext } from 'react'
 import type {
   ArchiveQuestResult,
+  ClaimWeeklyRewardUseCaseResult,
   CompleteTodayQuestResult,
   CreateQuestResult,
   HomeSnapshot,
   ListQuestTemplatesResult,
   LoadQuestForEditResult,
+  LoadWeeklyEditorResult,
+  LoadWeeklyHistoryResult,
+  LoadWeeklyScreenResult,
   QuestFormValues,
   RestoreQuestResult,
+  SaveWeeklyBoardUseCaseResult,
+  SetWeeklyGoalProgressUseCaseResult,
   UpdateQuestResult,
+  WeeklyBoardFormValues,
 } from '@/application'
+import type { WeekKey } from '@/domain'
 
 /**
  * Quest management, through the application layer. The reads never change
@@ -26,12 +34,31 @@ export interface QuestActions {
 }
 
 /**
- * The one restrained notice a multi-day catch-up may leave (OD-21): how many
- * old days were finalized. Informational; it carries no events and never
- * replays per-day celebrations.
+ * The Weekly Goal Crusher, through the application layer. Loads never change
+ * `snapshot`; every saved change also refreshes it from storage (so the Home
+ * card is current the moment the player returns). A finalized week can only be
+ * read or claimed, never edited.
+ */
+export interface WeeklyActions {
+  loadScreen(): Promise<LoadWeeklyScreenResult>
+  loadEditor(): Promise<LoadWeeklyEditorResult>
+  loadHistory(): Promise<LoadWeeklyHistoryResult>
+  save(values: WeeklyBoardFormValues): Promise<SaveWeeklyBoardUseCaseResult>
+  setProgress(goalId: string, progress: number): Promise<SetWeeklyGoalProgressUseCaseResult>
+  claim(weekKey: WeekKey): Promise<ClaimWeeklyRewardUseCaseResult>
+}
+
+/**
+ * The one restrained notice a catch-up may leave (OD-21): how many old days
+ * and how many weekly boards were finalized, and the bonus EXP those boards
+ * paid. Informational; it carries no events and never replays celebrations.
  */
 export interface LifecycleNotice {
+  /** Days caught up (0 when the catch-up was too short to mention). */
   readonly daysReconciled: number
+  readonly weeklyBoardsFinalized: number
+  /** Total weekly bonus EXP paid by the boards finalized in this catch-up. */
+  readonly weeklyBonusExp: number
 }
 
 /**
@@ -46,6 +73,8 @@ export interface AppRuntimeValue {
   completeQuest(occurrenceId: string): Promise<CompleteTodayQuestResult>
   /** Creates, edits, archives and restores quests. */
   readonly quests: QuestActions
+  /** The Weekly Goal Crusher: board, progress, reward claim, history. */
+  readonly weekly: WeeklyActions
   /** The catch-up notice to show, or null. */
   readonly lifecycleNotice: LifecycleNotice | null
   dismissLifecycleNotice(): void

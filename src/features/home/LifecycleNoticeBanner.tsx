@@ -1,13 +1,14 @@
 import type { LifecycleNotice } from '@/app/runtimeContext'
+import { lifecycleNoticeText } from './lifecycleNoticeText'
 
 /**
- * The single, restrained notice after a multi-day catch-up (OD-21): no popups
- * per old day, no celebrations. Plain information the player can dismiss.
+ * The single, restrained notice after a catch-up (OD-21): no popups per old
+ * day or week, no celebrations. Plain information the player can dismiss.
  */
 export function LifecycleNoticeBanner({ notice, onDismiss }: { notice: LifecycleNotice; onDismiss: () => void }) {
   return (
     <div role="status" className="flex items-center justify-between gap-3 rounded-xl border border-border bg-surface px-4 py-2 text-sm">
-      <p>{notice.daysReconciled} days reconciled.</p>
+      <p>{lifecycleNoticeText(notice)}</p>
       <button
         type="button"
         onClick={onDismiss}

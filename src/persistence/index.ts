@@ -47,6 +47,14 @@ export {
   listXpTransactions,
   listXpTransactionsByEffectiveDate,
 } from './repositories/xpLedger'
+export {
+  countCompletionsByTemplate,
+  getWeeklyBoard,
+  getWeeklyRewardClaim,
+  listDueWeeklyBoardKeys,
+  listWeeklyBoards,
+  listWeeklyRewardClaims,
+} from './repositories/weeklyBoards'
 
 // Commands
 export {
@@ -63,6 +71,31 @@ export {
   type FinalizeDayResult,
 } from './commands/finalizeDay'
 
+export {
+  saveWeeklyBoardAtomically,
+  type SaveWeeklyBoardInput,
+  type SaveWeeklyBoardRejection,
+  type SaveWeeklyBoardResult,
+} from './commands/saveWeeklyBoard'
+export {
+  setWeeklyGoalProgressAtomically,
+  type SetWeeklyGoalProgressInput,
+  type SetWeeklyGoalProgressRejection,
+  type SetWeeklyGoalProgressResult,
+} from './commands/setWeeklyGoalProgress'
+export {
+  finalizeWeekAtomically,
+  type FinalizeWeekInput,
+  type FinalizeWeekRejection,
+  type FinalizeWeekResult,
+} from './commands/finalizeWeek'
+export {
+  claimWeeklyRewardAtomically,
+  type ClaimWeeklyRewardInput,
+  type ClaimWeeklyRewardRejection,
+  type ClaimWeeklyRewardResult,
+} from './commands/claimWeeklyReward'
+
 // Ledger and progression
 export { validateLedger, type LedgerSummary } from './ledger/validateLedger'
 export { readProgression, reconstructProgression, type PlayerProgression } from './ledger/ledgerTip'
@@ -72,6 +105,7 @@ export { parseCompletion } from './records/completion'
 export { parseDailySummary } from './records/dailySummary'
 export { parseOccurrence } from './records/occurrence'
 export { parseTemplate } from './records/template'
+export { parseWeeklyBoard, parseWeeklyRewardClaim } from './records/weeklyBoard'
 export { parseXpTransaction } from './records/xpTransaction'
 
 // Integrity

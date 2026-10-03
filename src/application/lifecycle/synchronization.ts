@@ -10,6 +10,7 @@ import { finalizeDayAtomically, readFinalizationCursor } from '@/persistence'
 import { readClock } from '../clock'
 import type { ApplicationContext } from '../context'
 import { ApplicationError } from '../errors'
+import { finalizeDueWeeks, type FinalizedWeekReport } from './finalizeWeeks'
 
 /** What started a reconciliation. Only the in-app midnight timer counts as "on time". */
 export type ReconcileTrigger = 'startup' | 'resume' | 'midnight_tick'
@@ -79,6 +80,11 @@ export interface ReconcileResult {
    * a long absence never replays old celebrations (OD-21).
    */
   readonly finalized: readonly DailySummary[]
+  /**
+   * The weekly boards THIS call finalized (oldest week first), each with the
+   * bonus it paid. Like `finalized`, informational: no event is presented or replayed.
+   */
+  readonly finalizedWeeks: readonly FinalizedWeekReport[]
 }
 
 /**
@@ -93,6 +99,10 @@ export interface ReconcileResult {
  * `finalizedLate` is false only for a date finalized by the in-app midnight
  * timer on the very next day; startup, resume and any older date are catch-up.
  * If the device date is behind the recorded history nothing is finalized.
+ *
+ * After the days, every Goal Crusher board whose Sunday has passed is finalized
+ * (`finalizeDueWeeks`), oldest week first, exactly once; the week's last day is
+ * always closed before its board.
  */
 export async function reconcileDays(
   context: ApplicationContext,
@@ -100,12 +110,12 @@ export async function reconcileDays(
   trigger: ReconcileTrigger,
 ): Promise<ReconcileResult> {
   const { clock, cursor } = await assessDay(context, reading)
-  if (clock.status === 'behind' || cursor === null) return { clock, finalized: [] }
+  if (clock.status === 'behind') return { clock, finalized: [], finalizedWeeks: [] }
 
   const today = reading.dateKey
   const yesterday = previousDate(today)
   const finalized: DailySummary[] = []
-  for (let date = cursor; compareDateKeys(date, today) < 0; date = nextDate(date)) {
+  for (let date = cursor ?? today; compareDateKeys(date, today) < 0; date = nextDate(date)) {
     const result = await finalizeDayAtomically(context.database, {
       dateKey: date,
       today,
@@ -117,7 +127,7 @@ export async function reconcileDays(
     }
     if (result.status === 'finalized') finalized.push(result.summary)
   }
-  return { clock, finalized }
+  return { clock, finalized, finalizedWeeks: await finalizeDueWeeks(context, reading) }
 }
 
 /** Reads the clock and reconciles (the lifecycle step shared by startup, resume and the midnight timer). */

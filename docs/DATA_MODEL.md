@@ -346,8 +346,8 @@ Occurrences for a date are created (idempotently, by deterministic id) when that
 ```ts
 type WeeklyGoalTracking =
   | { mode: 'manual' }
-  | { mode: 'linked_quests'; templateIds: string[] };   // progress = # completions of these templates in the week
-                                                        // further modes: [OPEN: OD-10]; start-of-counting rule: [OPEN: OD-19]
+  | { mode: 'linked_quests'; templateIds: string[] };   // DESIGN SKETCH. Implemented as { mode: 'linked_quest'; templateId } (one quest) — see the note below §10.
+                                                        // OD-10 resolved: manual + linked only. OD-19 resolved: completions count from the week's Monday.
 
 interface WeeklyGoal {
   id: string;                         // wg_<uuid>
@@ -398,10 +398,12 @@ Rules:
 - **Bonus** = `WEEKLY_BONUS_EXP[score]` — a lookup (0 for ≤ 5); never cumulative.
 - **Reward tier** = highest tier `minScore ≤ score`; `null` when score < 6. Tier *text* is snapshotted into `finalization.rewardTier` so editing settings later does not change history.
 - **Finalization** happens during reconcile, *after* the week's Sunday is finalized: compute results → freeze board → append the single `weekly_goal_crusher:{weekKey}` XPTransaction (if bonus > 0) → all in one IDB transaction. The unique idempotency key makes a second attempt a no-op.
-- **Linked progress** counts `QuestCompletion` rows (by `templateId`, `dateKey ∈ [startDate, endDate]`) — never awards quest EXP again. Which completions count when a goal is created mid-week: **[OPEN: OD-19]**.
-- A week with no board has nothing to finalize — **[OPEN: OD-19]** confirms.
+- **Linked progress** counts `QuestCompletion` rows (by `templateId`, `dateKey ∈ [startDate, endDate]`) — never awards quest EXP again. A goal created mid-week counts completions from the Monday (OD-19 resolved).
+- A week with no board has nothing to finalize and leaves no record (OD-19 resolved).
 - Claiming requires `status === 'finalized'` and a non-null `rewardTier`; one claim per week.
 - **Perfect Week** is derived, not stored: a board with `status === 'finalized'` and `finalization.score === 10`. "N Perfect Weeks" = count of such boards.
+
+> **Implemented in Phase 07 (schema v3)** — see [WEEKLY_GOAL_CRUSHER.md](WEEKLY_GOAL_CRUSHER.md). Differences from the sketch above: (1) linked tracking is `{ mode: 'linked_quest'; templateId }`, one quest; (2) the five reward texts are stored on the board as `rewardTiers` (no settings store exists) and snapshotted in `finalization.rewardTier`; (3) `WeeklyGoal.completedAt` and `description` are omitted (completion is derived while active and frozen in `goalResults`); (4) `goalResults` also freezes `unit`, `trackingMode`, `templateId` and `completed`; (5) week finalization is its own transaction after the Sunday's daily finalization (an interrupted catch-up finds the due board again). A claim requires non-blank tier text.
 
 ---
 
@@ -500,8 +502,8 @@ interface DailyMessageAssignment {    // primary key = dateKey  ⇒ ≤ 1 per lo
 | `questCompletions` | `occurrenceId` | `dateKey`; `templateId`; `category`; `completedAt` | insert-only | ✔ v1 |
 | `xpTransactions` | `id` | **unique** `idempotencyKey`; **unique** `seq`; `effectiveDate`; `sourceWeekKey`; `createdAt`; `category`; `source.type` | insert-only | ✔ v1 |
 | `dailySummaries` | `dateKey` | `quality` (counts Perfect Days; an `isPerfect` index is impossible because booleans are not valid IndexedDB keys) | insert-only | ✔ v2 |
-| `weeklyBoards` | `weekKey` | `status` | mutable until finalized, then immutable | future migration |
-| `weeklyRewardClaims` | `weekKey` | — | insert-only | future migration |
+| `weeklyBoards` | `weekKey` | `status` | mutable until finalized, then immutable | ✔ v3 |
+| `weeklyRewardClaims` | `weekKey` | — | insert-only | ✔ v3 |
 | `achievementUnlocks` | `achievementId` | `unlockedOn` | insert-only | future migration |
 | `dailyMessageAssignments` | `dateKey` | — | insert-only | future migration |
 

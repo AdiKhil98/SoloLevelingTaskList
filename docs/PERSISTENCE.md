@@ -9,12 +9,14 @@ Everything is imported from `src/persistence/index.ts`. The layer uses **native 
 | | |
 |---|---|
 | Name | `solo-leveling-task-list` (`DATABASE_NAME`) |
-| Version | `1` (`DATABASE_VERSION`) |
-| Backup format | `solo-leveling-task-list-backup`, `formatVersion 1`, `schemaVersion 1` |
+| Version | `3` (`DATABASE_VERSION`): v1 = the four stores below; v2 = `dailySummaries` (Phase 06); v3 = `weeklyBoards` and `weeklyRewardClaims` (Phase 07) |
+| Backup format | `solo-leveling-task-list-backup`, `formatVersion 1`, `schemaVersion 3` |
 
-`DATABASE_VERSION` and the backup `schemaVersion` are independent numbers that both happen to start at 1. They are not required to stay equal.
+`DATABASE_VERSION` and the backup `schemaVersion` are independent numbers that both started at 1. They are not required to stay equal (today both are 3).
 
 ## Schema map
+
+> **Later schema versions.** v2 (Phase 06) added `dailySummaries` (insert-only, key `dateKey`, index `quality`); see [DAILY_LIFECYCLE.md](DAILY_LIFECYCLE.md). v3 (Phase 07) added `weeklyBoards` (key `weekKey`, index `status`; mutable only while the board is `active`, written only by the commands in `commands/`, each of which refuses a finalized board) and `weeklyRewardClaims` (key `weekKey`, insert-only); see [WEEKLY_GOAL_CRUSHER.md](WEEKLY_GOAL_CRUSHER.md). Backup `schemaVersion` 3 carries both new collections; the registered upgrades `1 → 2` and `2 → 3` add them empty, so older backups still import. The table below is the original four-store map.
 
 Four stores. Every other entity in DATA_MODEL §14 (player profile, progress cache, daily summaries, weekly boards and claims, achievements, daily messages, settings) is **not** created yet; the phase that first writes it adds it through a migration (see *What Phase 03 does not implement*).
 
@@ -209,7 +211,7 @@ Expected outcomes (a duplicate completion, a rejected completion, a bad backup f
 - Seeding of default quests. The six approved seeds (five prayers + Sleep) depend on `PlayerProfile.startedOn` and belong to Phase 04; `getTemplateBySeedKey` and the unique `seedKey` index exist so seeding can be idempotent.
 - The `player` store (`PlayerProfile`) — the phase that first needs it (Phase 04). No `PlayerProgress` cache is planned unless a performance need appears.
 - `dailySummaries` and streak persistence — **implemented in Phase 06** (schema v2, backup schema 2); see [DAILY_LIFECYCLE.md](DAILY_LIFECYCLE.md).
-- `weeklyBoards`, `weeklyRewardClaims` and the Weekly Goal Crusher engine — Phase 07 (OD-10, OD-19). The ledger *accepts* well-formed `weekly_goal_crusher` rows because the domain declares that source type, but nothing produces or interprets them.
+- `weeklyBoards`, `weeklyRewardClaims` and the Weekly Goal Crusher engine — **implemented in Phase 07** (schema v3, backup schema 3); see [WEEKLY_GOAL_CRUSHER.md](WEEKLY_GOAL_CRUSHER.md). The weekly bonus is the only producer of `weekly_goal_crusher` ledger rows.
 - `achievementUnlocks`, `dailyMessageAssignments`, `AppSettings` — their phases (settings depend on OD-08 and others).
 - A "reset all data" function. Restore is the only whole-store replacement and it has its own deliberate path.
 - Cross-tab UI synchronization (correctness does not depend on it).

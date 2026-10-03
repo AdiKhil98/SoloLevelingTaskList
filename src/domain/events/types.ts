@@ -2,7 +2,7 @@ import type { Category } from '../config/categories'
 import type { Difficulty } from '../config/difficulty'
 import type { RankId } from '../config/ranks'
 import type { XPSource } from '../progression/ledger'
-import type { DateKey } from '../types/scalars'
+import type { DateKey, WeekKey } from '../types/scalars'
 
 /**
  * Facts the engine reports about something that already happened. Events
@@ -49,8 +49,30 @@ export interface RankUpEvent {
   readonly atLevel: number
 }
 
+/** A weekly goal reached its target (a manual update; see DATA_MODEL §11). */
+export interface WeeklyGoalCompletedEvent {
+  readonly type: 'WeeklyGoalCompleted'
+  readonly weekKey: WeekKey
+  readonly goalId: string
+  readonly earnedPoints: number
+  /** The board's score once this goal counted. */
+  readonly scoreNow: number
+}
+
+/** A week's board became final. Emitted before the bonus's own XPAwarded. */
+export interface WeeklyBoardFinalizedEvent {
+  readonly type: 'WeeklyBoardFinalized'
+  readonly weekKey: WeekKey
+  readonly score: number
+  readonly bonusExp: number
+  /** The reward tier the score earned (6–10), or null. */
+  readonly rewardTierMinScore: number | null
+}
+
 export type DomainEvent =
   | QuestCompletedEvent
   | XPAwardedEvent
   | LevelUpEvent
   | RankUpEvent
+  | WeeklyGoalCompletedEvent
+  | WeeklyBoardFinalizedEvent

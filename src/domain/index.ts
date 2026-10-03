@@ -144,11 +144,76 @@ export {
   type StreakState,
 } from './daily/dailySummary'
 
+// Weekly Goal Crusher
+export {
+  WEEKLY_BONUS_EXP,
+  WEEKLY_BOARD_TOTAL_POINTS,
+  WEEKLY_LIMITS,
+  WEEKLY_REWARD_TIER_SCORES,
+  isWeeklyRewardTierScore,
+  weeklyBonusExpForScore,
+  type WeeklyRewardTierScore,
+} from './config/weekly'
+export {
+  asWeekKey,
+  isDateInWeek,
+  isWeekKey,
+  nextWeekKey,
+  previousWeekKey,
+  weekEndOf,
+  weekKeyOf,
+} from './time/weekKey'
+export type {
+  WeeklyBoardDefinition,
+  WeeklyBoardStatus,
+  WeeklyFinalization,
+  WeeklyGoal,
+  WeeklyGoalBoard,
+  WeeklyGoalResult,
+  WeeklyGoalTracking,
+  WeeklyGoalTrackingMode,
+  WeeklyRewardClaim,
+  WeeklyRewardTier,
+} from './weekly/types'
+export {
+  validateWeeklyBoardDefinition,
+  type WeeklyBoardProblem,
+} from './weekly/validation'
+export {
+  evaluateWeeklyGoals,
+  goalProgressOf,
+  isGoalComplete,
+  rewardTierForScore,
+  type LinkedCompletionCounts,
+  type WeeklyEvaluation,
+} from './weekly/scoring'
+export {
+  buildNewWeeklyBoard,
+  editWeeklyBoard,
+  withManualProgress,
+  type WeeklyBoardEditRejection,
+} from './weekly/board'
+export {
+  finalizeWeeklyBoard,
+  type FinalizeWeeklyBoardInput,
+  type FinalizeWeeklyBoardRejection,
+  type FinalizeWeeklyBoardResult,
+  type WeeklyFinalizationOutcome,
+} from './weekly/finalize'
+export { buildWeeklyGoalCompletedEvents } from './weekly/events'
+export {
+  WEEKLY_GOAL_ID_PREFIX,
+  weeklyBonusIdempotencyKey,
+  weeklyBonusTransactionId,
+} from './weekly/keys'
+
 // Events
 export type {
   DomainEvent,
   LevelUpEvent,
   QuestCompletedEvent,
   RankUpEvent,
+  WeeklyBoardFinalizedEvent,
+  WeeklyGoalCompletedEvent,
   XPAwardedEvent,
 } from './events/types'

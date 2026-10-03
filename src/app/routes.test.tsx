@@ -46,12 +46,12 @@ describe('application routes', () => {
 })
 
 describe('bottom navigation', () => {
-  it('offers exactly Home, Quests and Status, with accessible labels', async () => {
+  it('offers exactly Home, Quests, Weekly and Status, with accessible labels', async () => {
     renderApp()
     await screen.findByRole('heading', { name: 'SYSTEM' })
 
     const nav = screen.getByRole('navigation', { name: 'Primary' })
-    expect(within(nav).getAllByRole('link').map((link) => link.textContent)).toEqual(['Home', 'Quests', 'Status'])
+    expect(within(nav).getAllByRole('link').map((link) => link.textContent)).toEqual(['Home', 'Quests', 'Weekly', 'Status'])
   })
 
   it('marks the active destination with aria-current', async () => {

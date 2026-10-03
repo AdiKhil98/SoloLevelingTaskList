@@ -228,7 +228,15 @@ export async function importBackup(
   try {
     await runTransaction(
       database,
-      [STORE.templates, STORE.occurrences, STORE.completions, STORE.xpTransactions, STORE.dailySummaries],
+      [
+        STORE.templates,
+        STORE.occurrences,
+        STORE.completions,
+        STORE.xpTransactions,
+        STORE.dailySummaries,
+        STORE.weeklyBoards,
+        STORE.weeklyRewardClaims,
+      ],
       'readwrite',
       async (transaction) => {
         const templates = transaction.objectStore(STORE.templates)
@@ -236,8 +244,10 @@ export async function importBackup(
         const completions = transaction.objectStore(STORE.completions)
         const ledger = transaction.objectStore(STORE.xpTransactions)
         const summaries = transaction.objectStore(STORE.dailySummaries)
+        const boards = transaction.objectStore(STORE.weeklyBoards)
+        const claims = transaction.objectStore(STORE.weeklyRewardClaims)
 
-        const stores = [templates, occurrences, completions, ledger, summaries]
+        const stores = [templates, occurrences, completions, ledger, summaries, boards, claims]
         await allRequests(stores.map((store) => () => store.clear()))
         await allRequests([
           ...data.questTemplates.map((record) => () => templates.add(record)),
@@ -245,6 +255,8 @@ export async function importBackup(
           ...data.questCompletions.map((record) => () => completions.add(record)),
           ...data.xpTransactions.map((record) => () => ledger.add(record)),
           ...data.dailySummaries.map((record) => () => summaries.add(record)),
+          ...data.weeklyBoards.map((record) => () => boards.add(record)),
+          ...data.weeklyRewardClaims.map((record) => () => claims.add(record)),
         ])
 
         // Read back before commit: a mismatch aborts and rolls everything back.
@@ -255,6 +267,8 @@ export async function importBackup(
           expected.counts.questCompletions,
           expected.counts.xpTransactions,
           expected.counts.dailySummaries,
+          expected.counts.weeklyBoards,
+          expected.counts.weeklyRewardClaims,
         ]
         if (counts.some((count, index) => count !== wanted[index])) {
           throw new PersistenceError('ledger_integrity_failed', 'Restored record counts do not match the backup')

@@ -7,6 +7,8 @@ import {
   type Result,
   verifySummaryChain,
   type DailySummary,
+  type WeeklyGoalBoard,
+  type WeeklyRewardClaim,
   type XPTransaction,
 } from '@/domain'
 import { PersistenceError, type ValidationIssue } from '../errors'
@@ -21,6 +23,7 @@ import {
   type RecordReader,
 } from '../records/readers'
 import { readTemplate } from '../records/template'
+import { readWeeklyBoard, readWeeklyRewardClaim } from '../records/weeklyBoard'
 import { readXpTransaction } from '../records/xpTransaction'
 
 /** Every durable collection, keyed by store name (the `data` of a backup). */
@@ -32,6 +35,10 @@ export interface DatasetRecords {
   readonly xpTransactions: readonly XPTransaction[]
   /** Oldest first: contiguous dates, one per finalized day. */
   readonly dailySummaries: readonly DailySummary[]
+  /** Oldest week first; at most one per week. */
+  readonly weeklyBoards: readonly WeeklyGoalBoard[]
+  /** At most one per week, each for a finalized board. */
+  readonly weeklyRewardClaims: readonly WeeklyRewardClaim[]
 }
 
 export interface ValidatedDataset {
@@ -39,7 +46,15 @@ export interface ValidatedDataset {
   readonly ledger: LedgerSummary
 }
 
-const COLLECTIONS = ['questTemplates', 'questOccurrences', 'questCompletions', 'xpTransactions', 'dailySummaries'] as const
+const COLLECTIONS = [
+  'questTemplates',
+  'questOccurrences',
+  'questCompletions',
+  'xpTransactions',
+  'dailySummaries',
+  'weeklyBoards',
+  'weeklyRewardClaims',
+] as const
 
 function readCollection<T>(
   collector: IssueCollector,
@@ -122,13 +137,17 @@ export function validateDataset(
   const completions = readCollection(collector, raw, 'questCompletions', path, readCompletion)
   const transactions = readCollection(collector, raw, 'xpTransactions', path, readXpTransaction)
   const summaries = readCollection(collector, raw, 'dailySummaries', path, readDailySummary)
+  const boards = readCollection(collector, raw, 'weeklyBoards', path, readWeeklyBoard)
+  const claims = readCollection(collector, raw, 'weeklyRewardClaims', path, readWeeklyRewardClaim)
   if (
     !collector.isClean ||
     templates === undefined ||
     occurrences === undefined ||
     completions === undefined ||
     transactions === undefined ||
-    summaries === undefined
+    summaries === undefined ||
+    boards === undefined ||
+    claims === undefined
   ) {
     return err(collector.issues)
   }
@@ -141,6 +160,8 @@ export function validateDataset(
   findDuplicates(collector, occurrences, (o) => `${o.templateId}@${o.dateKey}`, at('questOccurrences'), 'dateKey', 'duplicate_occurrence_for_date')
   findDuplicates(collector, completions, (c) => c.occurrenceId, at('questCompletions'), 'occurrenceId', 'duplicate_completion')
   findDuplicates(collector, summaries, (s) => s.dateKey, at('dailySummaries'), 'dateKey', 'duplicate_summary')
+  findDuplicates(collector, boards, (b) => b.weekKey, at('weeklyBoards'), 'weekKey', 'duplicate_weekly_board')
+  findDuplicates(collector, claims, (c) => c.weekKey, at('weeklyRewardClaims'), 'weekKey', 'duplicate_weekly_claim')
 
   const ledger = validateLedger(transactions, at('xpTransactions'))
   if (!ledger.ok) ledger.error.forEach((issue) => collector.add(issue.path, issue.code, issue.message))
@@ -196,8 +217,11 @@ export function validateDataset(
   })
 
   validateSummaries(collector, summaries, occurrences, completions, at('dailySummaries'))
+  validateWeekly(collector, boards, claims, transactions, at('weeklyBoards'), at('weeklyRewardClaims'), at('xpTransactions'))
 
   if (!collector.isClean || !ledger.ok) return err(collector.issues)
+  const byWeek = <T extends { readonly weekKey: string }>(items: readonly T[]): T[] =>
+    [...items].sort((a, b) => (a.weekKey < b.weekKey ? -1 : a.weekKey > b.weekKey ? 1 : 0))
   return ok({
     records: {
       questTemplates: templates,
@@ -205,8 +229,75 @@ export function validateDataset(
       questCompletions: completions,
       xpTransactions: transactions,
       dailySummaries: summaries,
+      weeklyBoards: byWeek(boards),
+      weeklyRewardClaims: byWeek(claims),
     },
     ledger: ledger.value,
+  })
+}
+
+/**
+ * Rules that span the weekly records and the ledger (DATA_MODEL INV-4, 25):
+ *  - a finalized board that paid a bonus has exactly that ledger row (same
+ *    week, score and amount), and a board that paid none has no weekly row;
+ *  - every weekly ledger row belongs to a finalized board that points back at it;
+ *  - a reward claim belongs to a finalized board that earned a tier, and agrees
+ *    with that board's frozen tier and text.
+ * Completions are deliberately NOT re-counted: a finalized board's snapshot is
+ * authoritative and later data never changes it.
+ */
+function validateWeekly(
+  collector: IssueCollector,
+  boards: readonly WeeklyGoalBoard[],
+  claims: readonly WeeklyRewardClaim[],
+  transactions: readonly XPTransaction[],
+  boardsPath: string,
+  claimsPath: string,
+  ledgerPath: string,
+): void {
+  const boardByWeek = new Map(boards.map((board) => [board.weekKey, board]))
+  const transactionById = new Map(transactions.map((transaction) => [transaction.id, transaction]))
+
+  boards.forEach((board, index) => {
+    const finalization = board.finalization
+    if (finalization === null || finalization.xpTransactionId === null) return
+    const here = joinPath(joinPath(joinPath(boardsPath, index), 'finalization'), 'xpTransactionId')
+    const transaction = transactionById.get(finalization.xpTransactionId)
+    if (transaction === undefined) {
+      collector.add(here, 'missing_xp_transaction', `No XP transaction "${finalization.xpTransactionId}"`)
+    } else if (
+      transaction.source.type !== 'weekly_goal_crusher' ||
+      transaction.source.weekKey !== board.weekKey ||
+      transaction.source.score !== finalization.score ||
+      transaction.amount !== finalization.bonusExp
+    ) {
+      collector.add(here, 'xp_transaction_mismatch', 'The XP transaction disagrees with this board’s finalization')
+    }
+  })
+
+  transactions.forEach((transaction, index) => {
+    if (transaction.source.type !== 'weekly_goal_crusher') return
+    const board = boardByWeek.get(transaction.source.weekKey)
+    if (board === undefined || board.finalization === null || board.finalization.xpTransactionId !== transaction.id) {
+      collector.add(
+        joinPath(joinPath(ledgerPath, index), 'source'),
+        'missing_weekly_board',
+        `No finalized board for week ${transaction.source.weekKey} points at this bonus`,
+      )
+    }
+  })
+
+  claims.forEach((claim, index) => {
+    const here = joinPath(claimsPath, index)
+    const finalization = boardByWeek.get(claim.weekKey)?.finalization ?? null
+    if (finalization === null) {
+      collector.add(joinPath(here, 'weekKey'), 'claim_board_not_finalized', `Week ${claim.weekKey} has no finalized board`)
+      return
+    }
+    const tier = finalization.rewardTier
+    if (tier === null || tier.minScore !== claim.tierMinScore || tier.text !== claim.rewardTextSnapshot) {
+      collector.add(here, 'weekly_claim_mismatch', 'Differs from the reward tier the board froze at finalization')
+    }
   })
 }
 

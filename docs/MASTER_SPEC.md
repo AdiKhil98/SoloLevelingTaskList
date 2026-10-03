@@ -503,7 +503,7 @@ One Weekly Goal Crusher **board** per week (Monday → Sunday, local dates) hold
 
 Weekly goals may relate to Daily/Scheduled quests but are not the same thing. Example: Daily/Scheduled quest "Gym" awards normal quest EXP on each completion; Weekly goal "Complete 2 gym sessions" shows 0/2 → 1/2 → 2/2 from eligible Gym completions, and when the target is met the goal's weighted points are earned. **The normal quest EXP is never awarded twice.**
 
-Progress modes supported in V1: **manually tracked** or **derived from linked quest completions.** Further modes are **[OPEN: OD-10]**. Do not build arbitrary analytics.
+Progress modes supported in V1: **manually tracked** or **derived from linked quest completions** (one linked quest template per goal; the count of its completions whose date lies in the week). **[APPROVED — OD-10 resolved in Phase 07]** No other mode exists in V1. Do not build arbitrary analytics.
 
 ### 12.4 Scoring **[APPROVED]**
 
@@ -530,13 +530,13 @@ Progress modes supported in V1: **manually tracked** or **derived from linked qu
 - Reward **text is user-configurable**. Illustrative examples only (not hardcoded product rules): 6+ 45 min guilt-free gaming/anime · 7+ favorite dessert · 8+ movie night · 9+ budgeted purchase · 10 full evening off / larger reward.
 - At week end, **only the highest achieved tier** applies.
 - The app provides **CLAIM REWARD**; claiming records that it was claimed and has **no EXP effect**.
-- **A reward becomes claimable only after that week's Goal Crusher board has been finalized** (the tier is only fixed at finalization). **[APPROVED V1 rule]** Claim-expiry and related lifecycle questions: **[OPEN: OD-19]**.
+- **A reward becomes claimable only after that week's Goal Crusher board has been finalized** (the tier is only fixed at finalization). **[APPROVED V1 rule]** A claim never expires and is possible at any time after finalization; a tier with no reward text has nothing to claim.
 
 ### 12.7 Finalization **[APPROVED]**
 
 At the end of Sunday / beginning of Monday the board becomes historical. Weekly bonus EXP is never awarded twice. If the app was closed at rollover, the next reconcile finalizes it (after finalizing the week's final day, §4.4). Finalized boards never silently change when quest templates are later edited — the board stores a snapshot of what it needs (goals, progress, tier text).
 
-Weeks without a board, board creation timing, mid-week edits, and linked-progress start rules: **[OPEN: OD-19]**.
+**Board lifecycle [APPROVED — OD-19 resolved in Phase 07]:** a week without a board is not finalized and leaves no record, bonus or penalty; a board is created for the current week only; it may be edited any time before finalization (score and completion are derived, so edits take effect at once) as long as it totals exactly 10; a linked goal counts completions from the week's Monday whenever it was created; finalization freezes the exact progress used for scoring and the reward tier text, after which the board is immutable. Details: [WEEKLY_GOAL_CRUSHER.md](WEEKLY_GOAL_CRUSHER.md).
 
 ---
 
