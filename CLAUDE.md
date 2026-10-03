@@ -354,13 +354,14 @@ Do not push destructive changes without explicit instruction.
 
 ## Current status
 
-**Phases 00, 01 and 02 are complete and approved.**
+**Phases 00, 01, 02 and 03 are complete and approved.**
 
 - **Phase 00** — the master product / architecture specification is complete and authoritative.
 - **Phase 01** — the application foundation is complete (React/Vite/TypeScript/Tailwind scaffold, placeholder UI, lint-enforced layer boundaries). See `docs/FOUNDATION.md`.
 - **Phase 02** — the pure domain/game engine is complete. `src/domain/` now exists and covers: DateKey/calendar primitives, quest recurrence and eligibility, occurrence snapshots, completion/idempotency, XP transactions, levels and ranks, daily progress classification, and typed domain events. 250 tests pass as of Phase 02. See `docs/DOMAIN_ENGINE.md`.
+- **Phase 03** — local persistence is complete. `src/persistence/` implements native IndexedDB persistence (no wrapper library). DB schema v1 currently contains four stores: `questTemplates`, `questOccurrences`, `questCompletions` and `xpTransactions`. Atomic quest completion with XP ledger persistence, backup export/import (full-replace restore) and integrity validation are implemented. The XP ledger is authoritative; total EXP, level and rank are derived from it. 421 tests pass as of Phase 03. See `docs/PERSISTENCE.md`.
 
-**Phase 03 (persistence) has NOT started** and must not start until the owner approves it. IndexedDB is not implemented, and no game UI features exist yet (the UI is still the Phase 01 placeholder). The `_reference/solo-leveling-effects-pack/` directory remains local, read-only, and git-ignored.
+**Phase 04 has NOT started** and must not start until the owner approves it. Real game UI has not been implemented: the UI is still the Phase 01 placeholder and persistence is not yet wired into the application. The streak lifecycle, Weekly Goal Crusher and achievements are still later phases. Stores for later features are added through versioned database migrations in their owning phases. The `_reference/solo-leveling-effects-pack/` directory remains local, read-only, and git-ignored.
 
 ### Specification documents
 
@@ -369,6 +370,7 @@ Do not push destructive changes without explicit instruction.
 - `docs/PHASE_PLAN.md` defines phase ownership, boundaries, and acceptance criteria.
 - `docs/OPEN_DECISIONS.md` lists the decisions that are deliberately still undecided.
 - `docs/FOUNDATION.md` and `docs/DOMAIN_ENGINE.md` record implementation facts for Phases 01 and 02.
+- `docs/PERSISTENCE.md` records the implemented storage contract (Phase 03): database, stores, indexes, transactions, backup and errors.
 
 Do not duplicate approved values here; read them from `docs/MASTER_SPEC.md`. If this file and the specification documents appear to conflict, stop and report the conflict instead of guessing.
 

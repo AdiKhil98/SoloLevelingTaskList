@@ -1,11 +1,13 @@
 # SoloLevelingTaskList — Data Model
 
-**Document status:** Phase 00 deliverable. Conceptual contract guiding **Phase 02 (domain)** and **Phase 03 (persistence)**.
+**Document status:** Phase 00 deliverable. Conceptual contract guiding **Phase 02 (domain)** and **Phase 03 (persistence)**. Reconciled after Phase 03: see *Storage status* below and [PERSISTENCE.md](PERSISTENCE.md) for what is actually implemented.
 **Companions:** [MASTER_SPEC.md](MASTER_SPEC.md) · [PHASE_PLAN.md](PHASE_PLAN.md) · [OPEN_DECISIONS.md](OPEN_DECISIONS.md)
 
 > **These TypeScript snippets are specification, not source files.** They illustrate shapes and constraints. No `.ts` file is created in Phase 00. Names may be refined in Phase 02/03, but once a phase ships, public shape renames require an explicit breaking-change report (`CLAUDE.md` architecture-stability rule).
 
 Items tagged **[OPEN: OD-nn]** depend on an undecided product question (`OPEN_DECISIONS.md`); the shape shown is provisional only at that point.
+
+> **Storage status (reconciled after Phase 03).** The entity and store lists in this document describe the *expected eventual* application data model. **IndexedDB schema v1 intentionally implements only the four entities that were mature enough at Phase 03:** `questTemplates`, `questOccurrences`, `questCompletions` and `xpTransactions`. `PlayerProfile`, `DailySummary`, `WeeklyGoalBoard` / `WeeklyRewardClaim`, `AchievementUnlock`, `DailyMessageAssignment`, `AppSettings` and any other later-feature store are introduced through explicit, versioned database migrations when their owning phases define them. Their absence from schema v1 is intentional and is not missing Phase 03 work. The future entities below are kept as the conceptual direction only; this document does not fix their stored schema until their phases do. What is implemented (stores, indexes, transactions, backup, errors) is recorded in [PERSISTENCE.md](PERSISTENCE.md).
 
 ---
 
@@ -63,35 +65,35 @@ A retried or racing write therefore collides on the key instead of creating a se
 
 | Datum | Source of truth | Derived / cache | Notes |
 |-------|-----------------|-----------------|-------|
-| Total EXP | **XPTransaction ledger** | `PlayerProgress.totalExp` (cache, verified) | cache updated in the *same* IDB transaction as the ledger append |
+| Total EXP | **XPTransaction ledger** | reconstructed from the ledger on read; **no stored cache in schema v1** | the ledger is authoritative; any cache introduced later never is |
 | Player Level / expIntoLevel / expToNext | derived from total EXP via `XP_TO_NEXT` | never stored as mutable state | prevents level duplication |
 | Rank | derived from Level via `RANK_BANDS` | never stored | |
-| Category EXP totals | ledger rows with `category != null` | `PlayerProgress.categoryExp` (cache, verified) | weekly bonus has `category: null` |
+| Category EXP totals | ledger rows with `category != null` | derived from the ledger; no stored cache in schema v1 | weekly bonus has `category: null` |
 | Quest "is completed" | existence of a `QuestCompletion` for the occurrence | — | no separate boolean to drift |
 | Today's completion %, live quality | occurrences + completions for `today` | derived view `DailyProgress` | recomputed, not stored |
 | Final day result | **DailySummary** (immutable once written) | — | |
-| Current/best streak, perfect-day totals | **DailySummary chain** | `PlayerProgress` (cache, verified) | each summary stores streak-after values (§7) |
+| Current/best streak, perfect-day totals | **DailySummary chain** | any further persisted copy is a verifiable cache of the chain; its storage form is decided in Phase 06 (not in schema v1) | each summary stores streak-after values (§7) |
 | Weekly score (live) | goals' completion state | derived | persisted only in the finalization snapshot |
 | Weekly bonus | **XPTransaction** `weekly_goal_crusher:{weekKey}` | board finalization snapshot references it | |
 | Achievements earned | **AchievementUnlock** rows | — | definitions are static code |
 | Daily message of a day | **DailyMessageAssignment** | — | bank is static code |
 | Level-up / rank-up history | derivable by replaying the ledger | not stored | events exist only at action time (see OD-21) |
 
-**Principle:** every cache can be recomputed from source-of-truth records; Phase 03/13 provides a *verify/rebuild* routine, and backup import rebuilds caches instead of trusting them.
+**Principle:** every derived value can be recomputed from source-of-truth records. IndexedDB schema v1 stores **no derived progression cache**: total EXP, level and rank are reconstructed from the ledger, an integrity routine verifies the ledger chain and the cross-record rules, and a backup carries no derived values. A derived cache may be introduced later only if a performance need justifies it; it must then be rebuildable from, and verifiable against, source-of-truth records, and it must never become the authoritative source for XP, level or rank.
 
 ---
 
 ## 3. Player entities
 
 ```ts
-interface PlayerProfile {            // singleton, id = 'player'
+interface PlayerProfile {            // singleton, id = 'player'; FUTURE store, not in schema v1
   id: 'player';
   createdAt: EpochMs;
   startedOn: DateKey;                // first local date the player existed; no occurrences exist before it
   awakenedAt: EpochMs | null;        // set when Player Awakening is accepted (Phase 11)
 }
 
-interface PlayerProgress {           // singleton CACHE, id = 'progress'; rebuildable
+interface PlayerProgress {           // CONCEPTUAL derived cache; NOT in schema v1; never authoritative
   id: 'progress';
   totalExp: number;                  // Σ ledger amounts
   categoryExp: Record<Category, number>;
@@ -106,6 +108,8 @@ interface PlayerProgress {           // singleton CACHE, id = 'progress'; rebuil
   updatedAt: EpochMs;
 }
 ```
+
+**Status of these two shapes.** Neither store exists in IndexedDB schema v1. `PlayerProfile` is introduced by a future migration in the phase that first needs it. **`PlayerProgress` is not required and does not exist in schema v1:** the XP ledger is authoritative, total EXP is reconstructed from it, level is derived from total EXP, and rank is derived from level. A derived cache of this kind may be introduced later only if a performance need justifies it; it must then be rebuildable from and verifiable against source-of-truth records, and must never become the authoritative source for XP, level or rank. The fields shown are illustrative: the ledger-derived ones (`totalExp`, `categoryExp`, `ledgerSeq`, `totalQuestCompletions`) are not stored as state in schema v1, and how persisted streak state is held is decided by Phase 06.
 
 *Not stored:* `level`, `rank`. A `LevelState { level, expIntoLevel, expToNext, rank }` view is computed by a pure function from `totalExp`. `level` is an unbounded integer ≥ 1 (MASTER_SPEC §8.4: no maximum, no prestige, no reset); levels at or above 100 all map to rank `special_100_plus`.
 
@@ -231,7 +235,7 @@ interface XPTransaction {
 *Invariant:* for `quest_completion`, `effectiveDate` equals the completion's `dateKey`; for `weekly_goal_crusher`, `effectiveDate = weekKey + 6 days` and `sourceWeekKey = source.weekKey`. `createdAt` is never derived from `effectiveDate`.
 
 - **Append-only.** No update or delete path exists in repositories for this store.
-- **Chain invariant:** for consecutive `seq`, `totalExpAfter(n) = totalExpAfter(n−1) + amount(n)`; the last `totalExpAfter` equals `PlayerProgress.totalExp`.
+- **Chain invariant:** for consecutive `seq`, `totalExpAfter(n) = totalExpAfter(n−1) + amount(n)`; the last `totalExpAfter` is the player's total EXP (and would equal any derived cache, should one ever exist).
 - **Source types in V1:** `quest_completion`, `weekly_goal_crusher`. `achievement` is deliberately **not** a source (0 EXP). Any future source (e.g., a manual adjustment) requires an explicit product decision and a documented schema migration.
 - Level changes are computed by comparing `levelOf(totalExpBefore)` and `levelOf(totalExpAfter)`; a multi-level gain falls out naturally.
 
@@ -261,7 +265,7 @@ interface DailySummary {              // primary key = dateKey  ⇒ one per cale
 ```
 
 - Completion percent is **not stored as a float**; derive from counts. Quality uses exact integer comparison (`completed × 100 ≥ 70 × eligible`, `completed × 100 ≥ 85 × eligible`, `completed === eligible`) — never a rounded percentage (MASTER_SPEC §7.2). The whole-number UI percentage is `floor(completed × 100 / eligible)` via integer floor division and is a *display-only* derivation that never feeds back into classification.
-- **Streaks change only at finalization** (MASTER_SPEC §7.4). `PlayerProgress` streak fields and the `*After` fields are updated *only* when a DailySummary is written; a live in-progress day never mutates them. Live "STREAK SECURED" and the projected next value are derived view data (`persisted + 1`), not stored.
+- **Streaks change only at finalization** (MASTER_SPEC §7.4). Persisted streak values (the §3 `PlayerProgress` streak fields, if Phase 06 caches them, and the `*After` fields) are updated *only* when a DailySummary is written; a live in-progress day never mutates them. Live "STREAK SECURED" and the projected next value are derived view data (`persisted + 1`), not stored.
 - Streak transition for a finalized day (applied in order of dates):
 
   | Quality | `dailyStreakEffect` | `perfectStreakEffect` | `currentStreak` | `perfectStreak` | `totalPerfectDays` |
@@ -272,7 +276,7 @@ interface DailySummary {              // primary key = dateKey  ⇒ one per cale
   | `no_active_quests` | neutral | neutral | unchanged | unchanged | unchanged |
 
   `bestStreak = max(bestStreak, currentStreak)` after each transition. (A `no_active_quests` day is neutral for both streak systems — MASTER_SPEC §7.5 / I-14.)
-- Streaks are a pure fold over the ordered DailySummary chain; `PlayerProgress` caches the result and is verifiable against it.
+- Streaks are a pure fold over the ordered DailySummary chain; any persisted copy of the result (such as the §3 `PlayerProgress` fields, should Phase 06 cache them) is a cache and must be verifiable against the chain.
 - A Daily Summary is written for `no_active_quests` days too (`eligibleCount 0`, empty `occurrenceIds`), so every finalized date is reconstructable and the contiguous-finalization invariant (INV-13) holds. No division by zero occurs anywhere because the ratio is never evaluated when `eligibleCount === 0`.
 - `finalizedLate` distinguishes "closed at midnight with the app open" from "closed on next launch".
 - Days before `PlayerProfile.startedOn` have no summary.
@@ -482,23 +486,25 @@ interface DailyMessageAssignment {    // primary key = dateKey  ⇒ ≤ 1 per lo
 
 ---
 
-## 14. Persistence layout (guidance for Phase 03)
+## 14. Persistence layout (eventual layout; schema v1 implements part of it)
 
-| IDB object store | Key | Notable indexes | Mutability |
-|------------------|-----|-----------------|-----------|
-| `meta` | `key` | — | schema version, ledger sequence counter, install id |
-| `player` | `id` (`player`,`progress`,`settings`) | — | profile/settings mutable; progress is a verified cache |
-| `questTemplates` | `id` | `status`, `seedKey` (unique, sparse), `recurrence.kind` | mutable (versioned) |
-| `questOccurrences` | `id` | `dateKey`; `templateId`; **unique** `[templateId, dateKey]` | insert-only |
-| `questCompletions` | `occurrenceId` | `dateKey`; `templateId`; `category`; `completedAt` | insert-only |
-| `xpTransactions` | `id` | **unique** `idempotencyKey`; **unique** `seq`; `effectiveDate`; `sourceWeekKey`; `createdAt`; `category`; `source.type` | insert-only |
-| `dailySummaries` | `dateKey` | `quality`; `isPerfect` | insert-only |
-| `weeklyBoards` | `weekKey` | `status` | mutable until finalized, then immutable |
-| `weeklyRewardClaims` | `weekKey` | — | insert-only |
-| `achievementUnlocks` | `achievementId` | `unlockedOn` | insert-only |
-| `dailyMessageAssignments` | `dateKey` | — | insert-only |
+> **Implemented in IndexedDB schema v1:** only the four stores marked ✔. The other rows are the eventual layout and are added by versioned migrations in their owning phases; that is intentional, not missing Phase 03 work. The index lists below are guidance. The indexes actually created are listed in [PERSISTENCE.md](PERSISTENCE.md); schema v1 deliberately omits a few speculative ones (`recurrence.kind` on templates, `category` on completions, `createdAt` on the ledger).
 
-- **Transaction boundaries:** one `readwrite` transaction spanning all stores touched by a command (e.g., completion = `questOccurrences`(read) + `questCompletions` + `xpTransactions` + `player`(progress) + `achievementUnlocks`). Uniqueness is re-checked **inside** the transaction.
+| IDB object store | Key | Notable indexes | Mutability | Schema |
+|------------------|-----|-----------------|-----------|--------|
+| `meta` | `key` | — | schema version, ledger sequence counter, install id | not created in v1: the ledger tip is read from the unique `seq` index and the database version is IndexedDB's own |
+| `player` | `id` (`player`,`progress`,`settings`) | — | profile/settings mutable; `progress`, if ever introduced, is a verifiable, non-authoritative cache | future migration |
+| `questTemplates` | `id` | `status`, `seedKey` (unique, sparse), `recurrence.kind` | mutable (versioned) | ✔ v1 |
+| `questOccurrences` | `id` | `dateKey`; `templateId`; **unique** `[templateId, dateKey]` | insert-only | ✔ v1 |
+| `questCompletions` | `occurrenceId` | `dateKey`; `templateId`; `category`; `completedAt` | insert-only | ✔ v1 |
+| `xpTransactions` | `id` | **unique** `idempotencyKey`; **unique** `seq`; `effectiveDate`; `sourceWeekKey`; `createdAt`; `category`; `source.type` | insert-only | ✔ v1 |
+| `dailySummaries` | `dateKey` | `quality`; `isPerfect` | insert-only | future migration |
+| `weeklyBoards` | `weekKey` | `status` | mutable until finalized, then immutable | future migration |
+| `weeklyRewardClaims` | `weekKey` | — | insert-only | future migration |
+| `achievementUnlocks` | `achievementId` | `unlockedOn` | insert-only | future migration |
+| `dailyMessageAssignments` | `dateKey` | — | insert-only | future migration |
+
+- **Transaction boundaries:** one `readwrite` transaction spanning all stores touched by a command (e.g., in schema v1 a completion = `questOccurrences`(read) + `questCompletions` + `xpTransactions`; later phases add the stores they own to the same transaction, such as `achievementUnlocks`). Uniqueness is re-checked **inside** the transaction.
 - **Concurrency:** two tabs, double-taps, and retries are serialized by IndexedDB transactions + unique keys; losing writers resolve to idempotent no-ops.
 - **Reconcile unit:** each finalized date (and its week finalization when applicable) commits atomically so an interrupted catch-up resumes from `finalizedThrough`.
 - **Insert-only stores expose no update/delete repository methods.**
@@ -515,7 +521,7 @@ interface BackupEnvelope {
   appVersion: string;
   exportedAt: EpochMs;
   exportedFromTimeZone: string;
-  checksum: { algorithm: 'SHA-256'; value: string };   // over canonical payload JSON; Web Crypto, no dependency
+  checksum: { algorithm: 'SHA-256'; value: string };   // over the canonical envelope EXCLUDING this field; Web Crypto, no dependency
   data: {
     player: PlayerProfile;
     settings: AppSettings;
@@ -528,22 +534,27 @@ interface BackupEnvelope {
     weeklyRewardClaims: WeeklyRewardClaim[];
     achievementUnlocks: AchievementUnlock[];
     dailyMessageAssignments: DailyMessageAssignment[];
-    // PlayerProgress is intentionally ABSENT: it is a cache rebuilt on import.
+    // Derived values (total EXP, level, rank, and any future derived cache such as PlayerProgress)
+    // are intentionally ABSENT: they are rebuilt from the ledger on import.
   };
 }
 ```
+
+**Schema v1 payload.** The `data` shown is the eventual envelope. Backup `schemaVersion` 1 (implemented in Phase 03) carries only `questTemplates`, `questOccurrences`, `questCompletions` and `xpTransactions`, matching the four stores of IndexedDB schema v1. Collections for later stores are added when their stores are, by raising `schemaVersion` and registering an upgrade so older backups still import.
+
+**Checksum.** The SHA-256 digest covers the canonical serialized backup envelope (object keys in sorted order, no insignificant whitespace) **excluding the `checksum` field itself**, so it covers the rest of the envelope: the metadata (`format`, versions, `appVersion`, `exportedAt`, `exportedFromTimeZone`) as well as `data`. It exists to detect accidental corruption or truncation. It is **not** authentication, encryption or a signature, and it gives no protection against malicious modification: anyone able to edit a backup can recompute it.
 
 **Export:** consistent snapshot read in one read transaction; deterministic key order for stable checksums.
 
 **Import (V1 = full replace, not merge — MASTER_SPEC I-5):**
 1. Parse JSON safely; reject non-objects/oversized/garbled input with a specific error.
 2. Check `format`; reject unknown. Compare `schemaVersion`: **older → run migrations in order; newer than app → reject** with a clear message; never silently downgrade.
-3. Verify checksum (mismatch → reject or require explicit override).
+3. Verify the checksum over the envelope excluding the `checksum` field (mismatch → reject; the implemented import offers no override).
 4. Validate every record against its schema and cross-check invariants (§16): unique keys, ledger chain, completion↔occurrence dates, weekly sums, etc.
-5. Require explicit user confirmation that current data will be replaced; take an automatic safety snapshot of current data first.
-6. Write all stores in one transaction, **rebuild `PlayerProgress`** from the ledger/summaries, then run the verify routine. Any failure aborts with the previous data intact.
+5. Require explicit user confirmation that current data will be replaced; take an automatic safety snapshot of current data first. (These are application-layer responsibilities; persistence guarantees only that the replacement itself is atomic.)
+6. Write all stores in one transaction and verify the result before committing: record counts and the ledger tip must match what was validated, and progression is derived from the restored ledger. Nothing derived is imported or cached in schema v1 (a future derived cache would be rebuilt at this point). Any failure aborts with the previous data intact.
 
-**Migrations:** integer `schemaVersion` mirrored in the IndexedDB database version; each migration is a pure, tested function `vN → vN+1`; migrations never delete progression data; fixtures for every historical version are kept for tests (Phase 13 exercises "import older schema").
+**Migrations:** the backup `schemaVersion` and the IndexedDB database version are independent integers (both start at 1 and need not stay equal; a database migration does not by itself change the backup schema, and old backups stay identifiable); each migration is a pure, tested function `vN → vN+1`; migrations never delete progression data; fixtures for every historical version are kept for tests (Phase 13 exercises "import older schema").
 
 ---
 
@@ -559,10 +570,10 @@ Violation of any invariant is a bug (and a reason for import rejection). Phase 0
 
 **EXP & progression**
 - INV-5 Every ledger `amount` is a positive integer; `totalExp` never decreases.
-- INV-6 Ledger `seq` is gap-free and strictly increasing; `totalExpAfter` chain holds; last value equals `PlayerProgress.totalExp`.
+- INV-6 Ledger `seq` is gap-free and strictly increasing; `totalExpAfter` chain holds; the last `totalExpAfter` is the player's total EXP (and equals any derived cache, should one ever exist).
 - INV-7 `QuestCompletion.expAwarded === occurrence.snapshot.expReward === its XPTransaction.amount`.
 - INV-8 A quest-completion transaction's `category` equals the occurrence's category; weekly transactions have `category: null`.
-- INV-9 Σ `categoryExp` equals Σ quest-completion ledger amounts; `totalExp` = that sum + Σ weekly bonuses.
+- INV-9 Σ category EXP (derived from ledger rows that carry a category) equals Σ quest-completion ledger amounts; total EXP = that sum + Σ weekly bonuses.
 - INV-10 Achievements never create ledger rows.
 
 **Time**

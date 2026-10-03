@@ -16,6 +16,7 @@
 7. **Open decisions** (see `OPEN_DECISIONS.md`) must be settled by the phase listed there; a phase may not silently decide one.
 8. **`_reference/` is read-only and git-ignored.** Anything used from it is *copied/adapted* into app source in its designated phase, with attribution preserved.
 9. **Tests accompany logic** in the phase that writes it; they are not deferred to Phase 13.
+10. **Schema grows by migration.** IndexedDB schema v1 starts with the four stores mature at Phase 03 (`questTemplates`, `questOccurrences`, `questCompletions`, `xpTransactions`). Stores for later features are not pre-created; each is introduced by a versioned database migration in its owning phase.
 
 ### Phase overview
 
@@ -88,17 +89,17 @@
 ## PHASE 03 — Persistence and Recovery
 
 - **Objective:** A durable, versioned, atomic IndexedDB layer plus safe backup/restore.
-- **Owns:** `src/persistence/`: database open/versioning, object stores and indexes (DATA_MODEL §14), repositories, atomic application of domain `writes` (single transaction with in-transaction uniqueness re-checks), `PlayerProgress` cache maintenance, **verify/rebuild** routine, migration framework (+ fixtures), JSON **export/import** (DATA_MODEL §15), validation, recovery from malformed data.
+- **Owns:** `src/persistence/`: database open/versioning, object stores and indexes (DATA_MODEL §14; schema v1 starts with the four mature stores `questTemplates`, `questOccurrences`, `questCompletions` and `xpTransactions`, and later stores arrive by versioned migrations in their owning phases), repositories, atomic application of domain results (single transaction with in-transaction uniqueness re-checks), derivation of total EXP, level and rank from the XP ledger (no `PlayerProgress` cache), an integrity **verify** routine, migration framework, JSON **export/import** (DATA_MODEL §15), validation, recovery from malformed data.
 - **May modify:** `src/persistence/`, minimal additive changes to domain *types* if a genuine gap is found (reported first), tests, docs notes.
 - **Must not implement:** UI screens, presentation logic, business rules duplicated from the domain, cloud sync.
-- **Prerequisites:** Phase 02 approved. Dependency choices (thin IndexedDB wrapper, schema validation approach, fake-IndexedDB for tests) proposed and justified in the kickoff.
-- **Outputs:** repositories + command-application service usable by UI; backup module.
+- **Prerequisites:** Phase 02 approved. Dependency choices proposed and justified in the kickoff. Outcome: native IndexedDB with no wrapper library, hand-written validation, and `fake-indexeddb` as a test-only devDependency.
+- **Outputs:** repositories + the atomic quest-completion command usable by the application layer; backup module. Implementation record: [PERSISTENCE.md](PERSISTENCE.md).
 - **Acceptance criteria:**
   - Duplicate completion attempts (sequential and concurrent) yield exactly one completion and one ledger row.
   - An injected mid-transaction failure rolls back everything.
   - Insert-only stores expose no update/delete.
-  - Ledger chain verified; rebuilt `PlayerProgress` equals cache.
-  - Import: valid backup round-trips; corrupted JSON, wrong format, bad checksum, newer schema are rejected with specific errors and **leave existing data intact**; older schema migrates; caches rebuilt rather than trusted.
+  - Ledger chain verified; total EXP, level and rank reconstructed from the ledger (no stored `PlayerProgress` cache exists in schema v1).
+  - Import: valid backup round-trips; corrupted JSON, wrong format, bad checksum, newer schema are rejected with specific errors and **leave existing data intact**; older schema migrates (schema 1 is the first schema, so that path is exercised with synthetic migrations until a real second schema exists); derived values are rebuilt from the ledger rather than trusted.
 
 ---
 

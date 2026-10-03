@@ -54,7 +54,7 @@ The XP ledger is the source of truth for EXP. **Nothing else about progression i
 - `reconstructProgression(db)` — full: reads every ledger row, runs `validateLedger`, derives total EXP.
 - Both return `{ totalExp, lastSeq, levelState }` where `levelState` (`level`, `expIntoLevel`, `expToNext`, `rank`) comes from the Phase 02 `levelStateOf`.
 
-The `PlayerProgress` cache of DATA_MODEL §3 is deferred: it mostly holds streak fields (Phase 06). When added it must be a verifiable cache rebuilt from the ledger and summaries.
+No `PlayerProgress` cache exists in schema v1 and none is required (DATA_MODEL §3). One may be introduced later only if a performance need justifies it; it must then be rebuildable from and verifiable against the ledger, and it never becomes the authoritative source for XP, level or rank.
 
 ## Transaction strategy
 
@@ -207,7 +207,7 @@ Expected outcomes (a duplicate completion, a rejected completion, a bad backup f
 
 - Any UI, startup wiring, or use of persistence from the application; `localStorage` for core data.
 - Seeding of default quests. The six approved seeds (five prayers + Sleep) depend on `PlayerProfile.startedOn` and belong to Phase 04; `getTemplateBySeedKey` and the unique `seedKey` index exist so seeding can be idempotent.
-- The `player` store (`PlayerProfile`, `PlayerProgress` cache) — Phase 04/06.
+- The `player` store (`PlayerProfile`) — the phase that first needs it (Phase 04). No `PlayerProgress` cache is planned unless a performance need appears.
 - `dailySummaries` and streak persistence — Phase 06 (it also owns the domain type and the chain invariants INV-13/21/22).
 - `weeklyBoards`, `weeklyRewardClaims` and the Weekly Goal Crusher engine — Phase 07 (OD-10, OD-19). The ledger *accepts* well-formed `weekly_goal_crusher` rows because the domain declares that source type, but nothing produces or interprets them.
 - `achievementUnlocks`, `dailyMessageAssignments`, `AppSettings` — their phases (settings depend on OD-08 and others).
