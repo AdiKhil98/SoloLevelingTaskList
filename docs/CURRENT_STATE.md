@@ -1,6 +1,6 @@
 # SoloLevelingTaskList — Current State
 
-Short session handoff. Verified at the end of Phase 06 (commit `25f7014`). Authoritative rules stay in `docs/MASTER_SPEC.md`; this file only orients a fresh session.
+Short session handoff. Verified at the end of Phase 07 (commit `4afa555`). Authoritative rules stay in `docs/MASTER_SPEC.md`; this file only orients a fresh session.
 
 ## Completed phases
 
@@ -11,8 +11,9 @@ Short session handoff. Verified at the end of Phase 06 (commit `25f7014`). Autho
 - **Phase 04** — functional Home/Status UI, default seeds, quest completion (`docs/CORE_UI.md`).
 - **Phase 05** — Quest Management: create/edit/archive/restore (`docs/QUEST_MANAGEMENT.md`).
 - **Phase 06** — Daily Lifecycle: day finalization, Daily Summaries, reconciliation, streaks, live Daily Report, backward-clock guard (`docs/DAILY_LIFECYCLE.md`).
+- **Phase 07** — Weekly Goal Crusher: weekly boards, weighted goals, manual/linked progress, binary scoring, one-time weekly bonus, immutable finalized snapshots, reward claiming (`docs/WEEKLY_GOAL_CRUSHER.md`).
 
-**Phase 07 (Weekly Goal Crusher) is next and has not started**; it must not start until the owner says so.
+**Phase 08 (Progression / Stats / Achievements) is next and has not started**; it must not start until the owner says so.
 
 ## Architecture map
 
@@ -20,22 +21,23 @@ Imports go one way; ESLint enforces it (`eslint.config.js`).
 
 - `src/domain` — pure deterministic game rules. No React, storage, clock or randomness. Public API: `src/domain/index.ts`.
 - `src/persistence` — native IndexedDB, repositories, atomic commands, backup. Depends on domain only.
-- `src/application` — framework-free use cases over `ApplicationContext { database, clock, ids }`. Depends on domain + persistence only. Public API: `src/application/index.ts`. Quest use cases live in `quests/`; lifecycle (reconcile, synchronization gate) in `lifecycle/`; Daily Report in `report/`.
+- `src/application` — framework-free use cases over `ApplicationContext { database, clock, ids }`. Depends on domain + persistence only. Public API: `src/application/index.ts`. Quest use cases live in `quests/`; lifecycle (reconcile, synchronization gate, weekly finalization hook) in `lifecycle/`; Daily Report in `report/`; Weekly Goal Crusher use cases in `weekly/`.
 - `src/platform` — the only readers of the environment: `clock.ts` (Date/Intl), `ids.ts` (Web Crypto). Imports no other layer.
 - `src/app` — `AppRuntimeProvider` (owns the one DB handle), `useDaySync` (startup/resume/midnight sync), route table, router.
-- `src/features` — React feature UI: `home/`, `status/`, `quests/`, `report/`, plus `displayLabels.ts` (presentation text only).
+- `src/features` — React feature UI: `home/`, `status/`, `quests/`, `weekly/`, `report/`, plus `displayLabels.ts` (presentation text only).
 - `src/components` — reusable layout/UI (`AppShell`, `BottomNav`, `ExpProgressBar`).
-- `src/test` — shared test helpers (`renderApp`, `questUi`).
+- `src/test` — shared test helpers (`renderApp`, `questUi`, `weeklyUi`).
 - `_reference/` — local, read-only, git-ignored visual reference pack. Never modify, never import.
 
 UI talks to `@/application`, never to repositories. The provider is the only UI file that imports `@/persistence`.
 
 ## Current UI
 
-Bottom nav: **Home · Quests · Status**.
+Bottom nav: **Home · Quests · Weekly · Status**.
 
-- `/` Home — player/level/rank, Daily Message, today's progress, Daily Streak (+ "STREAK SECURED" at ≥70 %), today's quests, 48 px "+" Add Quest, a one-line "N days reconciled." notice after a multi-day catch-up, and a clock-behind notice instead of the quests when paused.
+- `/` Home — player/level/rank, Daily Message, today's progress, Daily Streak (+ "STREAK SECURED" at ≥70 %), today's quests, 48 px "+" Add Quest, a small Weekly Goal Crusher card, one dismissible reconciliation notice after a catch-up ("N days reconciled." and/or "1 weekly board finalized (+EXP)."), and a clock-behind notice instead of the quests when paused.
 - `/quests`, `/quests/new`, `/quests/:templateId/edit` — Quests: Active/Archived views, create/edit form, archive confirmation, restore.
+- `/weekly`, `/weekly/edit`, `/weekly/history` — Weekly: this week's board (or the "set this week's Goal Crushers" invitation), the create/edit form, the last finished week with CLAIM REWARD, and the finalized-weeks history.
 - `/status` Status — level, rank, lifetime EXP, level bar, Daily/Best/Perfect-Day streaks, Total Perfect Days.
 - `/report` Daily Report — LIVE / PROVISIONAL view of the day in progress (opened by completing Sleep or from Home); not in the bottom nav.
 
@@ -56,35 +58,41 @@ Bottom nav: **Home · Quests · Status**.
 - **Ranks (from level):** E 1–9 · D 10–19 · C 20–34 · B 35–49 · A 50–74 · S 75–99 · `special_100_plus` ≥100 (displays `???`, OD-01).
 - **Streaks change only when a day is finalized.** Finalized day ≥70 % → Daily Streak +1; <70 % → 0; No Active Quests → neutral. Perfect Day (100 %) → Perfect streak +1 and Total Perfect Days +1; any other active day resets the Perfect streak; Total never decreases. Finalization awards 0 EXP. No streak freezes in V1.
 - **The Daily Summary chain is authoritative** for finalized days and streaks (one immutable summary per date, written atomically by `finalizeDayAtomically`; no streak cache). Missed dates are finalized chronologically, materializing eligible occurrences first. A finalized date refuses new completions/occurrences.
-- **Every mutating action synchronizes the day first** (completion, create, edit, archive, restore): refused unless all past days are finalized and the device date is safe. Sync runs on startup, resume and a midnight timer (convenience only).
+- **Every mutating action synchronizes the day first** (completion, create, edit, archive, restore, and the weekly save / progress / claim): refused unless all past days are finalized and the device date is safe. Sync runs on startup, resume and a midnight timer (convenience only).
 - **Backward device clock** (date earlier than the last recorded day): safe paused state; nothing finalized, rewritten or materialized; changes refused until the date catches up. Forward clock jumps are not capped or repaired.
 - **Sleep is an ordinary quest** (+20 EXP); completing it opens the Daily Report but never finalizes or moves the day.
 - **IndexedDB is the durable source of truth**; localStorage only for tiny cosmetic prefs.
 - **Only six default seeds:** Fajr, Dhuhr, Asr, Maghrib, Isha (E/Discipline) and Sleep before 00:00 (D/Discipline, role `sleep`). Seeds are manageable but keep id, `seedKey`, `role`; an archived seed is never re-seeded.
 - Goal Crushers are not quests and never touch the daily denominator or streak. Achievements award 0 EXP.
+- **Weekly Goal Crusher** (details in `docs/WEEKLY_GOAL_CRUSHER.md`): one board per local Monday→Sunday week, `WeekKey` = the Monday; created for the current week only, editable until finalization. Goal weights total **exactly 10**. Tracking is **Manual Numeric** or **Linked Quest Completion Count** (one quest; completions dated inside the week, counted from Monday, derived on read) — nothing else. Scoring is **binary per goal** (`progress ≥ target` earns its full points; no fractions). Bonus EXP is a single lookup: 0–5 → 0 · 6 → 100 · 7 → 150 · 8 → 225 · 9 → 325 · 10 → 500 (`WEEKLY_BONUS_EXP`, domain only).
+- **Weekly finalization is exactly-once and immutable.** One transaction writes the frozen board and the single bonus ledger row (`weekly_goal_crusher:{weekKey}`, no category, `createdAt` = real instant, `effectiveDate` = Sunday, `sourceWeekKey` = Monday). The exact progress scored is frozen per goal in `finalization.goalResults`; history views read only that snapshot. A finalized board is refused by the domain, the application and the persistence commands. A week without a board leaves no record, bonus or penalty.
+- **Weekly reconciliation runs after the daily reconciliation** (`finalizeDueWeeks`: every active board whose Sunday has passed, oldest first). Real-life reward claims (highest tier only; needs finalization and non-blank text) record a claim and award **no EXP**.
 
 ## Current database schema
 
-Database `solo-leveling-task-list`, `DATABASE_VERSION` 2, backup `schemaVersion` 2. Five stores:
+Database `solo-leveling-task-list`, `DATABASE_VERSION` 3, backup `schemaVersion` 3. Seven stores:
 
 1. `questTemplates` (mutable, soft-archived)
 2. `questOccurrences` (insert-only)
 3. `questCompletions` (insert-only)
 4. `xpTransactions` (append-only ledger)
 5. `dailySummaries` (insert-only, key `dateKey`, index `quality`; added in v2)
+6. `weeklyBoards` (key `weekKey`, index `status`; mutable only while `active`, written only by the weekly commands; added in v3)
+7. `weeklyRewardClaims` (key `weekKey`, insert-only; added in v3)
 
 New stores arrive only through versioned migrations in their owning phase (bump `DATABASE_VERSION`, add `migrations/vN.ts`, and bump `BACKUP_SCHEMA_VERSION` with an upgrade when the stored model changes).
 
 ## Current test baseline
 
-**912 passing tests** in 52 files (Phase 02: 250 · Phase 03: 421 · Phase 04: 521 · Phase 05: 805 · Phase 06: 912). `npm run lint`, `typecheck`, `test:run` and `build` all pass.
+**1,244 passing tests** in 66 files (Phase 02: 250 · Phase 03: 421 · Phase 04: 521 · Phase 05: 805 · Phase 06: 912 · Phase 07: 1,244). `npm run lint`, `typecheck`, `test:run` and `build` all pass.
 
 ## Important current limitations / next work
 
-- No History screen yet (summaries are queryable for Phase 08). A stale "day ended" message can linger on Home until the next action or Refresh.
+- No daily History screen yet (summaries are queryable for Phase 08); Weekly History is basic (no charts). A stale "day ended" message can linger on Home until the next action or Refresh.
 - Archiving or rescheduling Sleep means some days have no Sleep occurrence; none is invented.
 - An active One-Time quest whose date passed stays listed ("Date passed") until archived; nothing auto-archives it.
-- No Weekly Goal Crusher (Phase 07), achievements, final visual effects/animation, Player Awakening/name, or PWA/service worker. No manual quest reordering. No Backup/Restore UI.
+- No achievements (including Perfect Weeks), final visual effects/animation, Player Awakening/name, or PWA/service worker. No manual quest reordering. No Backup/Restore UI.
+- Weekly: a saved board can only be edited, not deleted; a quest completion does not emit `WeeklyGoalCompleted` (Phase 10 decides, OD-20); the production bundle is ~505 kB (above Vite's 500 kB advisory; code splitting is a later-phase concern).
 - **LAN HTTP lacks `crypto.subtle`** (secure-context only), so the backup checksum fails (`checksum_unavailable`) when the app is opened over plain HTTP on a LAN IP. Relevant to the backup UI and phone testing. `crypto.randomUUID` is also absent there; `systemIds` falls back to `getRandomValues`.
 
 Later phases (see `docs/PHASE_PLAN.md`): 06 Daily Lifecycle · 07 Weekly Goal Crusher · 08 Progression/Stats/Achievements · 09 Visual SYSTEM Layer · 10 Animation/Event Engine · 11 Player Awakening · 12 PWA · 13 QA · 14 Polish · 15 optional Android.
@@ -93,14 +101,13 @@ Later phases (see `docs/PHASE_PLAN.md`): 06 Daily Lifecycle · 07 Weekly Goal Cr
 
 Active ones only (details in `docs/OPEN_DECISIONS.md`):
 
-- **OD-10** extra Goal Crusher tracking modes; **OD-19** weekly board lifecycle/linked progress — Phase 07.
 - **OD-01** Level-100+ rank name; **OD-03** achievement catalog; **OD-18** semantic quest identity for e.g. "Gym" — Phase 08.
 - **OD-09** typography — Phase 09.
 - **OD-06** sounds; **OD-07** haptics; **OD-08** animation timings/intensity; **OD-20** which moment is the Goal Crusher spectacle — Phase 10.
 - **OD-04** final Daily Message catalog — Phase 14.
 - **OD-15 (remaining)** seeding any default beyond the six — before any further default is seeded.
 
-Resolved and retired (rules live in `MASTER_SPEC` / `DAILY_LIFECYCLE`): OD-02, 05, 11, 12, 13, 14, 16, 17, 21, 22.
+Resolved and retired (rules live in `MASTER_SPEC` / `DAILY_LIFECYCLE` / `WEEKLY_GOAL_CRUSHER`): OD-02, 05, 10, 11, 12, 13, 14, 16, 17, 19, 21, 22.
 
 ## Commands and working conventions
 
