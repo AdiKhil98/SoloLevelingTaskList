@@ -212,7 +212,7 @@ Expected outcomes (a duplicate completion, a rejected completion, a bad backup f
 - The `player` store (`PlayerProfile`) — the phase that first needs it (Phase 04). No `PlayerProgress` cache is planned unless a performance need appears.
 - `dailySummaries` and streak persistence — **implemented in Phase 06** (schema v2, backup schema 2); see [DAILY_LIFECYCLE.md](DAILY_LIFECYCLE.md).
 - `weeklyBoards`, `weeklyRewardClaims` and the Weekly Goal Crusher engine — **implemented in Phase 07** (schema v3, backup schema 3); see [WEEKLY_GOAL_CRUSHER.md](WEEKLY_GOAL_CRUSHER.md). The weekly bonus is the only producer of `weekly_goal_crusher` ledger rows.
-- `achievementUnlocks`, `dailyMessageAssignments`, `AppSettings` — their phases (settings depend on OD-08 and others).
+- `dailyMessageAssignments`, `AppSettings` — their phases (settings depend on OD-08 and others). (`achievementUnlocks` is no longer planned: achievements are derived from history in Phase 08 and need no store; see [PROGRESSION_STATS_ACHIEVEMENTS.md](PROGRESSION_STATS_ACHIEVEMENTS.md).)
 - A "reset all data" function. Restore is the only whole-store replacement and it has its own deliberate path.
 - Cross-tab UI synchronization (correctness does not depend on it).
 - Salvage of a corrupt database (export refuses; Phase 13 may add a repair path).

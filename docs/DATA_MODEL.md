@@ -50,7 +50,7 @@ Rules:
 | DailySummary | `dateKey` |
 | WeeklyGoalBoard | `weekKey` |
 | WeeklyRewardClaim | `weekKey` |
-| AchievementUnlock | `achievementId` |
+| AchievementUnlock *(superseded, never built: derived in Phase 08)* | `achievementId` |
 | DailyMessageAssignment | `dateKey` |
 
 A retried or racing write therefore collides on the key instead of creating a second record.
@@ -75,7 +75,7 @@ A retried or racing write therefore collides on the key instead of creating a se
 | Current/best streak, perfect-day totals | **DailySummary chain** | any further persisted copy is a verifiable cache of the chain; Phase 06 decision: no separate cache; the chain tip's `*After` values plus a `quality` index count are read directly | each summary stores streak-after values (§7) |
 | Weekly score (live) | goals' completion state | derived | persisted only in the finalization snapshot |
 | Weekly bonus | **XPTransaction** `weekly_goal_crusher:{weekKey}` | board finalization snapshot references it | |
-| Achievements earned | **AchievementUnlock** rows | — | definitions are static code |
+| Achievements earned | **Derived from history** (Phase 08); there are no unlock rows | — | definitions are static code |
 | Daily message of a day | **DailyMessageAssignment** | — | bank is static code |
 | Level-up / rank-up history | derivable by replaying the ledger | not stored | events exist only at action time (see OD-21) |
 
@@ -434,6 +434,8 @@ One command may emit several (e.g., +EXP crossing two levels and a rank boundary
 
 ## 12. Achievements
 
+> **Superseded in Phase 08 (the persisted design below is not built).** Achievements are **derived from history on every read** and nothing about an unlock is stored: no `achievementUnlocks` store, no `AchievementUnlock` row, no schema migration, and no unlock write in any atomic command. The unlock moment is the exact record that first satisfied the condition (a ledger row, a Daily Summary or a finalized board), so it is reproducible and survives backups and restores. The `AchievementDefinition` and condition vocabulary below remain the model (the implemented vocabulary and the approved catalog are in [PROGRESSION_STATS_ACHIEVEMENTS.md](PROGRESSION_STATS_ACHIEVEMENTS.md)); the `AchievementUnlock` row and the "written in the same transaction" sentence are retained only as history. Achievements still award 0 EXP and never create ledger rows (INV-10).
+
 ```ts
 interface AchievementDefinition {     // STATIC data shipped in code; data-driven, extensible; not stored in IndexedDB
   id: string;                         // stable, e.g. 'first_perfect_day'
@@ -504,10 +506,10 @@ interface DailyMessageAssignment {    // primary key = dateKey  ⇒ ≤ 1 per lo
 | `dailySummaries` | `dateKey` | `quality` (counts Perfect Days; an `isPerfect` index is impossible because booleans are not valid IndexedDB keys) | insert-only | ✔ v2 |
 | `weeklyBoards` | `weekKey` | `status` | mutable until finalized, then immutable | ✔ v3 |
 | `weeklyRewardClaims` | `weekKey` | — | insert-only | ✔ v3 |
-| `achievementUnlocks` | `achievementId` | `unlockedOn` | insert-only | future migration |
+| ~~`achievementUnlocks`~~ *(superseded in Phase 08: never built)* | `achievementId` | `unlockedOn` | insert-only | none |
 | `dailyMessageAssignments` | `dateKey` | — | insert-only | future migration |
 
-- **Transaction boundaries:** one `readwrite` transaction spanning all stores touched by a command (e.g., in schema v1 a completion = `questOccurrences`(read) + `questCompletions` + `xpTransactions`; later phases add the stores they own to the same transaction, such as `achievementUnlocks`). Uniqueness is re-checked **inside** the transaction.
+- **Transaction boundaries:** one `readwrite` transaction spanning all stores touched by a command (e.g., in schema v1 a completion = `questOccurrences`(read) + `questCompletions` + `xpTransactions`; later phases add the stores they own to the same transaction, such as the weekly stores; the once-planned `achievementUnlocks` store was superseded in Phase 08). Uniqueness is re-checked **inside** the transaction.
 - **Concurrency:** two tabs, double-taps, and retries are serialized by IndexedDB transactions + unique keys; losing writers resolve to idempotent no-ops.
 - **Reconcile unit:** each finalized date (and its week finalization when applicable) commits atomically so an interrupted catch-up resumes from `finalizedThrough`.
 - **Insert-only stores expose no update/delete repository methods.**
@@ -535,7 +537,7 @@ interface BackupEnvelope {
     dailySummaries: DailySummary[];
     weeklyBoards: WeeklyGoalBoard[];
     weeklyRewardClaims: WeeklyRewardClaim[];
-    achievementUnlocks: AchievementUnlock[];
+    // achievementUnlocks: AchievementUnlock[];   // superseded in Phase 08: achievements are derived, not stored
     dailyMessageAssignments: DailyMessageAssignment[];
     // Derived values (total EXP, level, rank, and any future derived cache such as PlayerProgress)
     // are intentionally ABSENT: they are rebuilt from the ledger on import.
@@ -569,7 +571,7 @@ Violation of any invariant is a bug (and a reason for import rejection). Phase 0
 - INV-1 One `QuestOccurrence` per `(templateId, dateKey)`.
 - INV-2 One `QuestCompletion` per occurrence.
 - INV-3 One XPTransaction per `idempotencyKey` (so one per completion; one per finalized week).
-- INV-4 One `DailySummary` per `dateKey`; one `WeeklyGoalBoard` per `weekKey`; one `AchievementUnlock` per achievement; one `DailyMessageAssignment` per `dateKey`; one `WeeklyRewardClaim` per `weekKey`.
+- INV-4 One `DailySummary` per `dateKey`; one `WeeklyGoalBoard` per `weekKey`; one achievement status per achievement (derived in Phase 08, so it holds by construction); one `DailyMessageAssignment` per `dateKey`; one `WeeklyRewardClaim` per `weekKey`.
 
 **EXP & progression**
 - INV-5 Every ledger `amount` is a positive integer; `totalExp` never decreases.
@@ -614,7 +616,7 @@ Violation of any invariant is a bug (and a reason for import rejection). Phase 0
 | One occurrence per quest per date | `questOccurrences` unique `[templateId, dateKey]` |
 | One XP award per completion source | `xpTransactions` unique `idempotencyKey` |
 | One Goal Crusher bonus per finalized week | `xpTransactions` unique `idempotencyKey = weekly_goal_crusher:{weekKey}` + `weeklyBoards` PK `weekKey` |
-| One AchievementUnlock per achievement | `achievementUnlocks` PK `achievementId` |
+| One unlock per achievement | One derived status per definition id (Phase 08); no store or key needed |
 | One DailySummary per date | `dailySummaries` PK `dateKey` |
 | One DailyMessageAssignment per date | `dailyMessageAssignments` PK `dateKey` |
 | One reward claim per week | `weeklyRewardClaims` PK `weekKey` |

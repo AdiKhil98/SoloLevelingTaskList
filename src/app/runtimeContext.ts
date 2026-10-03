@@ -1,15 +1,19 @@
 import { createContext, useContext } from 'react'
 import type {
+  AchievementsView,
   ArchiveQuestResult,
   ClaimWeeklyRewardUseCaseResult,
   CompleteTodayQuestResult,
   CreateQuestResult,
+  DailyHistoryEntry,
   HomeSnapshot,
+  LoadResult,
   ListQuestTemplatesResult,
   LoadQuestForEditResult,
   LoadWeeklyEditorResult,
   LoadWeeklyHistoryResult,
   LoadWeeklyScreenResult,
+  PlayerProfile,
   QuestFormValues,
   RestoreQuestResult,
   SaveWeeklyBoardUseCaseResult,
@@ -49,6 +53,17 @@ export interface WeeklyActions {
 }
 
 /**
+ * The player's derived statistics and achievements, through the application
+ * layer. Read-only: every figure is recomputed from stored history on each load
+ * and nothing is written, so loading can never change progression.
+ */
+export interface ProfileActions {
+  loadProfile(): Promise<LoadResult<PlayerProfile>>
+  loadAchievements(): Promise<LoadResult<AchievementsView>>
+  loadDailyHistory(): Promise<LoadResult<readonly DailyHistoryEntry[]>>
+}
+
+/**
  * The one restrained notice a catch-up may leave (OD-21): how many old days
  * and how many weekly boards were finalized, and the bonus EXP those boards
  * paid. Informational; it carries no events and never replays celebrations.
@@ -75,6 +90,8 @@ export interface AppRuntimeValue {
   readonly quests: QuestActions
   /** The Weekly Goal Crusher: board, progress, reward claim, history. */
   readonly weekly: WeeklyActions
+  /** The player's statistics, achievements and Daily History (read-only). */
+  readonly profile: ProfileActions
   /** The catch-up notice to show, or null. */
   readonly lifecycleNotice: LifecycleNotice | null
   dismissLifecycleNotice(): void

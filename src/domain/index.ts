@@ -207,6 +207,34 @@ export {
   weeklyBonusTransactionId,
 } from './weekly/keys'
 
+// Progression statistics (derived from history; nothing here is a stored counter)
+export {
+  finalizedBoardsInWeekOrder,
+  inDayOrder,
+  inLedgerOrder,
+  isFinalizedBoard,
+  normalizeHistory,
+  type FinalizedWeeklyBoard,
+  type NormalizedHistory,
+  type ProgressionHistory,
+} from './stats/history'
+export { summarizeLedger, type CategoryStats, type LedgerStats, type QuestTally } from './stats/ledgerStats'
+export { dayMeetsMilestone, summarizeDailyHistory, type DailyStats, type DayMilestone } from './stats/dailyStats'
+export { summarizeWeeklyHistory, type WeeklyStats } from './stats/weeklyStats'
+
+// Achievements (derived trophies; 0 EXP; no stored unlock state)
+export { ACHIEVEMENT_CATALOG } from './achievements/catalog'
+export { evaluateAchievements, summarizeAchievements, type AchievementSummary } from './achievements/evaluate'
+export type {
+  AchievementCondition,
+  AchievementDefinition,
+  AchievementEvidence,
+  AchievementGroup,
+  AchievementProgress,
+  AchievementStatus,
+  AchievementUnlock,
+} from './achievements/types'
+
 // Events
 export type {
   DomainEvent,

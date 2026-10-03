@@ -46,12 +46,4 @@ describe('Status', () => {
     expect(within(sheet).getByText('Lifetime EXP').nextElementSibling).toHaveTextContent('120')
     expect(screen.getByText('20 / 135')).toBeInTheDocument()
   })
-
-  it('does not show things later phases own', async () => {
-    renderApp({ path: '/status' })
-    await statusReady()
-
-    expect(screen.queryByText(/achievement/i)).not.toBeInTheDocument()
-    expect(screen.queryByText(/completed quests/i)).not.toBeInTheDocument()
-  })
 })

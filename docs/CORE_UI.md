@@ -114,7 +114,7 @@ A completed quest is rendered as a plain, non-interactive row (no checkbox): com
 
 ## Player progression
 
-`loadPlayerStatus` calls `readProgression` (ledger tip, cross-checked against the row count) and returns `{ totalExp, level, expIntoLevel, expToNext, rank }` from the Phase 02 engine. The main bar uses `expIntoLevel / expToNext`; `totalExp` (lifetime) appears only on Status. `special_100_plus` displays `???` (OD-01), from one map in `displayLabels.ts`.
+`loadPlayerStatus` calls `readProgression` (ledger tip, cross-checked against the row count) and returns `{ totalExp, level, expIntoLevel, expToNext, rank }` from the Phase 02 engine. The main bar uses `expIntoLevel / expToNext`; `totalExp` (lifetime) appears only on Status. `special_100_plus` displays `???` (OD-01, resolved in Phase 08), from one map in `displayLabels.ts`.
 
 ## Daily Message
 

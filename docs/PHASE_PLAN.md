@@ -157,9 +157,9 @@
 - **Owns:** detailed Status page; category totals (derived from the ledger); rank presentation; **achievement engine** (data-driven, 0 EXP, one unlock each) and the approved catalog; history views; **EXP ledger** view; progression statistics.
 - **May modify:** status/stats/history features; achievement domain+persistence; minimal additive extensions.
 - **Must not implement:** achievements that award EXP, duplicate category state, heavy effects (Phase 10).
-- **Prerequisites:** Phase 07 approved; **OD-01, OD-03, OD-18** decided. (Perfect Week is already defined: a finalized Weekly Goal Crusher board scored exactly 10/10.)
-- **Outputs:** Status, Achievements, History, Ledger screens.
-- **Acceptance criteria:** category totals reconcile with the ledger (INV-9); achievements idempotent and awarded zero EXP; rank thresholds (10/20/35/50/75/100) correct; Level-100 rank presented only with the owner-approved name.
+- **Prerequisites:** Phase 07 approved; **OD-01, OD-03, OD-18** decided (OD-01 and OD-03 were resolved in Phase 08; OD-18 was deferred beyond V1, so V1 achievements are quest-agnostic). (Perfect Week is already defined: a finalized Weekly Goal Crusher board scored exactly 10/10.)
+- **Outputs:** Status, Achievements, History, Ledger screens. *(Phase 08 as built: Status, Achievements and a Daily History list; the EXP ledger view was deferred. See [PROGRESSION_STATS_ACHIEVEMENTS.md](PROGRESSION_STATS_ACHIEVEMENTS.md).)*
+- **Acceptance criteria:** category totals reconcile with the ledger (INV-9); achievements idempotent and awarded zero EXP; rank thresholds (10/20/35/50/75/100) correct; Level-100+ rank presented only with the owner-approved label (`???`, OD-01).
 
 ---
 

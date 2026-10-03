@@ -96,7 +96,7 @@ completeQuest({ occurrence, existingCompletion, ledger: { totalExp, lastSeq }, c
 - `xpToNext(level) = round(100 + 35 × (level − 1)^1.25)`; `totalExpToReachLevel(level)`; `levelStateOf(totalExp)` → `{ level, expIntoLevel, expToNext, rank }`; `levelOf`. Total EXP is authoritative; level is derived. Reference values (including 485,351 total EXP to reach Level 100) are pinned in tests.
 - **No level cap.** Level 100 is an ordinary level; every level from 100 up uses the same formula.
 - **Numeric safety:** sums are exact integers. Input outside `Number.MAX_SAFE_INTEGER` (a technical limit, level ≈ 3.6 million) throws `DomainError('numeric_boundary')`; invalid inputs throw `invalid_level | invalid_total_exp | invalid_exp_amount`. Loops are bounded by that limit, so extreme input terminates (worst case ≈ millions of cheap iterations).
-- `rankOfLevel(level)`; `rankTransitionsBetween(from, to)` returns **every** rank boundary crossed, ascending, as `{ previousRank, newRank, atLevel }`. `special_100_plus` is an opaque id (display name open: OD-01); 100 → 101 is not a rank-up.
+- `rankOfLevel(level)`; `rankTransitionsBetween(from, to)` returns **every** rank boundary crossed, ascending, as `{ previousRank, newRank, atLevel }`. `special_100_plus` is an opaque id (displays `???`; OD-01 resolved in Phase 08); 100 → 101 is not a rank-up.
 - `applyExpAward(totalExpBefore, amount)` → `ProgressionChange { totalExpBefore, totalExpAfter, before, after, levelsCrossed[], rankTransitions[] }`. One award may cross many levels and ranks; all are reported.
 
 ## Daily progress

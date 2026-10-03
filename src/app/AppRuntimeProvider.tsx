@@ -6,6 +6,9 @@ import {
   completeTodayQuest,
   createQuest,
   listQuestTemplates,
+  loadAchievements,
+  loadDailyHistory,
+  loadPlayerProfile,
   loadQuestForEdit,
   loadWeeklyEditor,
   loadWeeklyHistory,
@@ -32,6 +35,7 @@ import {
   AppRuntimeContext,
   type AppRuntimeValue,
   type LifecycleNotice,
+  type ProfileActions,
   type QuestActions,
   type WeeklyActions,
 } from './runtimeContext'
@@ -86,6 +90,13 @@ const UNAVAILABLE_WEEKLY_ACTIONS: WeeklyActions = {
   save: async () => UNAVAILABLE,
   setProgress: async () => UNAVAILABLE,
   claim: async () => UNAVAILABLE,
+}
+
+/** Profile reads before the database is ready: every one fails visibly without touching anything. */
+const UNAVAILABLE_PROFILE_ACTIONS: ProfileActions = {
+  loadProfile: async () => UNAVAILABLE,
+  loadAchievements: async () => UNAVAILABLE,
+  loadDailyHistory: async () => UNAVAILABLE,
 }
 
 /** One finalized day is the normal overnight case and needs no words; a longer absence gets one notice. */
@@ -291,12 +302,21 @@ export function AppRuntimeProvider({ options, children }: AppRuntimeProviderProp
     }
   }, [context, reload, syncDay])
 
+  const profile = useMemo<ProfileActions>(() => {
+    if (context === null) return UNAVAILABLE_PROFILE_ACTIONS
+    return {
+      loadProfile: () => loadPlayerProfile(context),
+      loadAchievements: () => loadAchievements(context),
+      loadDailyHistory: () => loadDailyHistory(context),
+    }
+  }, [context])
+
   const value = useMemo<AppRuntimeValue | null>(
     () =>
       snapshot === null
         ? null
-        : { snapshot, completeQuest, quests, weekly, reload, lifecycleNotice, dismissLifecycleNotice },
-    [snapshot, completeQuest, quests, weekly, reload, lifecycleNotice, dismissLifecycleNotice],
+        : { snapshot, completeQuest, quests, weekly, profile, reload, lifecycleNotice, dismissLifecycleNotice },
+    [snapshot, completeQuest, quests, weekly, profile, reload, lifecycleNotice, dismissLifecycleNotice],
   )
 
   if (state.status === 'error') return <StartupErrorScreen reason={state.reason} onRetry={retry} />

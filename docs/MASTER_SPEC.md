@@ -447,11 +447,11 @@ Rank derives **only from Player Level** in V1.
 | B-Rank | 35 – 49 |
 | A-Rank | 50 – 74 |
 | S-Rank | 75 – 99 |
-| **Level 100 and above** | one special rank tier, semantic identifier **`special_100_plus`**; display name **`???`** (placeholder) **[OPEN: OD-01]** |
+| **Level 100 and above** | one special rank tier, semantic identifier **`special_100_plus`**; display name **`???`** **[APPROVED — OD-01, Phase 08]** |
 
 Levels 1–99 use the bands above. Every level from 100 upward (100, 101, 102, …) belongs to the single `special_100_plus` tier; there are no further rank bands above it in V1, so reaching Level 100 is the last rank-up.
 
-Rank-ups (at Levels 10, 20, 35, 50, 75, 100) are rarer and visually far more significant than level-ups. Rank calculation belongs to domain logic. The special tier's **display name** is unresolved (OD-01) and must not be invented in code or copy; the identifier `special_100_plus` is opaque and carries no display meaning, and the UI shows `???` until the name is chosen.
+Rank-ups (at Levels 10, 20, 35, 50, 75, 100) are rarer and visually far more significant than level-ups. Rank calculation belongs to domain logic. The special tier's **display name is `???`** **[APPROVED — OD-01, resolved in Phase 08]**: Level keeps rising normally past 100 and the rank reads `???`. The identifier `special_100_plus` is opaque and carries no display meaning; the label lives in one place (`RANK_LABELS` in `displayLabels.ts`) and no canonical rank name is invented, so a name could be chosen later as a one-line label change.
 
 ---
 
@@ -474,10 +474,10 @@ When a quest awards EXP, the same amount also contributes to that quest's catego
 - Conceptual record: id, title, description, condition/type, unlock timestamp, optional rarity/presentation tier.
 - At most one unlock per achievement.
 - The engine is **data-driven and extensible**; definitions are data, not branching code per achievement.
-- Illustrative initial candidates (**not** an approved catalog): First Quest Completed · First Perfect Day · 7-Day Streak · 30-Day Streak · 100 Quests Completed · 25 Gym Sessions · 10 Perfect Weeks · Reach D/C/B/A/S-Rank.
-- The final catalog is **[OPEN: OD-03]**.
+- **The V1 catalog is approved [APPROVED — OD-03, Phase 08]**: 28 quest-agnostic achievements (General 6, Daily 6, Streak 4, Weekly 6, Rank 6), listed in [PROGRESSION_STATS_ACHIEVEMENTS.md](PROGRESSION_STATS_ACHIEVEMENTS.md) §4.
+- **Derived, not stored [APPROVED — Phase 08]:** an achievement is unlocked exactly when history says it qualified, and its unlock moment is the exact record that first satisfied the condition. There is no unlock row and no `achievementUnlocks` store (this supersedes the persisted design in DATA_MODEL §12). At most one unlock per achievement holds by construction.
 - **Perfect Week [APPROVED]:** a *Perfect Week* is a **finalized** Weekly Goal Crusher board with a score of exactly **10 / 10**. "10 Perfect Weeks" therefore means 10 finalized boards scored 10/10.
-- **"25 Gym Sessions" [OPEN: OD-18]:** how an achievement recognizes a "Gym" quest is deliberately unresolved. Do **not** assume every Fitness-category quest is a Gym session. The question stays open unless the future achievement design introduces a stable semantic quest tag / activity identifier.
+- **"25 Gym Sessions" [DEFERRED beyond V1: OD-18]:** how an achievement recognizes a "Gym" quest is deliberately unresolved, and no quest-specific achievement ships in V1. Do **not** assume every Fitness-category quest is a Gym session, and never match on a title. The question stays open unless a future design introduces a stable semantic quest tag / activity identifier (a snapshotted key; see [OPEN_DECISIONS.md](OPEN_DECISIONS.md)).
 - Achievements that depend on streak or Perfect Day counters evaluate against the **persisted (finalized)** values (§7.4), unless a specific achievement is later defined on live state.
 
 ---

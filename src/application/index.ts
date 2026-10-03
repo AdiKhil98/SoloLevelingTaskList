@@ -28,6 +28,17 @@ export { msUntilMidnight } from './lifecycle/midnight'
 export { finalizeDueWeeks, type FinalizedWeekReport } from './lifecycle/finalizeWeeks'
 export { buildDailyReport, type DailyReport } from './report/buildDailyReport'
 export { loadStreakStats, type StreakStats } from './player/loadStreakStats'
+export { attemptLoad, type LoadResult } from './loadResult'
+export {
+  loadPlayerProfile,
+  RECENT_ACHIEVEMENT_COUNT,
+  TOP_QUEST_COUNT,
+  type PlayerProfile,
+  type TopQuest,
+  type WeeklyProfile,
+} from './player/loadPlayerProfile'
+export { loadAchievements, type AchievementsView } from './player/loadAchievements'
+export { loadDailyHistory, type DailyHistoryEntry } from './player/loadDailyHistory'
 
 export {
   completeTodayQuest,

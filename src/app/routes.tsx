@@ -1,10 +1,12 @@
 import type { RouteObject } from 'react-router'
 import { AppShell } from '@/components/layout/AppShell'
+import { AchievementsPage } from '@/features/achievements/AchievementsPage'
 import { HomePage } from '@/features/home/HomePage'
 import { CreateQuestPage } from '@/features/quests/CreateQuestPage'
 import { EditQuestPage } from '@/features/quests/EditQuestPage'
 import { QuestsPage } from '@/features/quests/QuestsPage'
 import { ReportPage } from '@/features/report/ReportPage'
+import { DailyHistoryPage } from '@/features/status/DailyHistoryPage'
 import { StatusPage } from '@/features/status/StatusPage'
 import { WeeklyEditPage } from '@/features/weekly/WeeklyEditPage'
 import { WeeklyHistoryPage } from '@/features/weekly/WeeklyHistoryPage'
@@ -26,6 +28,8 @@ export const appRoutes: RouteObject[] = [
       { path: 'weekly/history', element: <WeeklyHistoryPage /> },
       { path: 'report', element: <ReportPage /> },
       { path: 'status', element: <StatusPage /> },
+      { path: 'status/history', element: <DailyHistoryPage /> },
+      { path: 'achievements', element: <AchievementsPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

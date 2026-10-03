@@ -1,4 +1,4 @@
-import type { Category, DayQuality, Difficulty, IsoWeekday, RankId } from '@/domain'
+import { dateKeyParts, type AchievementGroup, type Category, type DateKey, type DayQuality, type Difficulty, type IsoWeekday, type RankId } from '@/domain'
 
 /**
  * Display text for domain identifiers. These are presentation only: they name
@@ -98,4 +98,38 @@ export function weekdayName(weekday: IsoWeekday): string {
 /** `Mon` */
 export function weekdayShortName(weekday: IsoWeekday): string {
   return WEEKDAY_NAMES[weekday].slice(0, 3)
+}
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const
+
+/** `Oct 5, 2026` */
+export function formatDateKey(key: DateKey): string {
+  const { year, month, day } = dateKeyParts(key)
+  return `${MONTHS[month - 1]} ${day}, ${year}`
+}
+
+/**
+ * The name shown for a quest that history counts but that neither its template
+ * nor any stored snapshot can name. The count itself is never dropped.
+ */
+export const UNKNOWN_QUEST_LABEL = 'Unknown quest'
+
+/** The order the Achievements screen lists its groups in. */
+export const ACHIEVEMENT_GROUP_ORDER: readonly AchievementGroup[] = ['general', 'daily', 'streak', 'weekly', 'rank']
+
+const ACHIEVEMENT_GROUP_LABELS: Record<AchievementGroup, string> = {
+  general: 'General',
+  daily: 'Daily',
+  streak: 'Streak',
+  weekly: 'Weekly',
+  rank: 'Rank',
+}
+
+export function achievementGroupLabel(group: AchievementGroup): string {
+  return ACHIEVEMENT_GROUP_LABELS[group]
+}
+
+/** A mean weekly score to one decimal (`7.3`), or a dash before any week was finalized. */
+export function averageScoreLabel(average: number | null): string {
+  return average === null ? '—' : (Math.round(average * 10) / 10).toFixed(1)
 }

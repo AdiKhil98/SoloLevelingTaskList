@@ -1,54 +1,39 @@
-import type { ReactNode } from 'react'
-import { ExpProgressBar } from '@/components/ui/ExpProgressBar'
 import { useAppRuntime } from '@/app/runtimeContext'
-import { daysLabel, PLAYER_LABEL, rankLabel } from '../displayLabels'
-
-function Row({ term, children }: { term: string; children: ReactNode }) {
-  return (
-    <div className="flex items-baseline justify-between gap-4 border-b border-border py-3 last:border-b-0">
-      <dt className="text-muted">{term}</dt>
-      <dd className="text-right font-semibold tabular-nums">{children}</dd>
-    </div>
-  )
-}
+import { PlayerSections, StreaksSection } from './PlayerSections'
+import { AchievementsSection, DaysSection, QuestsSection, WeeklySection } from './ProfileSections'
+import { LoadFailure } from './StatBlocks'
+import { useLoadedData } from './useLoadedData'
 
 /**
- * A small status sheet. Lifetime EXP is the ledger's running total; the
- * current-level figures are the engine's `expIntoLevel` / `expToNext`.
- * The streak rows are the finalized values (a day in progress is not in them).
- * Completed-quest totals, categories and history belong to later phases.
+ * The player's profile. The first sections (level, rank, lifetime EXP, the level
+ * bar, the finalized streaks) come straight from the runtime snapshot, so they
+ * are there at once. Everything else is derived from stored history when the
+ * screen opens and whenever the snapshot changes (`useLoadedData`): quest and
+ * category totals from the XP ledger, day totals from the Daily Summaries, week
+ * totals from the finalized boards, achievements from all three. Reading
+ * changes nothing.
  */
 export function StatusPage() {
-  const { player, streaks } = useAppRuntime().snapshot
+  const { snapshot, profile } = useAppRuntime()
+  const { state, retry } = useLoadedData(profile.loadProfile, snapshot)
 
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-sm font-semibold tracking-[0.4em] text-accent">STATUS</h1>
 
-      <section aria-label="Player status" className="rounded-xl border border-border bg-surface px-4">
-        <dl>
-          <Row term="Player">{PLAYER_LABEL}</Row>
-          <Row term="Level">{player.level}</Row>
-          <Row term="Rank">{rankLabel(player.rank)}</Row>
-          <Row term="Lifetime EXP">{player.totalExp}</Row>
-        </dl>
-      </section>
+      <PlayerSections player={snapshot.player} />
+      <StreaksSection streaks={snapshot.streaks} />
 
-      <section aria-label="Streaks" className="rounded-xl border border-border bg-surface px-4">
-        <dl>
-          <Row term="Daily Streak">{daysLabel(streaks.currentStreak)}</Row>
-          <Row term="Best Streak">{daysLabel(streaks.bestStreak)}</Row>
-          <Row term="Perfect Day Streak">{daysLabel(streaks.perfectStreak)}</Row>
-          <Row term="Total Perfect Days">{streaks.totalPerfectDays}</Row>
-        </dl>
-      </section>
-
-      <section aria-labelledby="level-progress-heading" className="flex flex-col gap-3 rounded-xl border border-border bg-surface p-4">
-        <h2 id="level-progress-heading" className="text-xs tracking-[0.3em] text-muted">
-          CURRENT LEVEL
-        </h2>
-        <ExpProgressBar value={player.expIntoLevel} max={player.expToNext} />
-      </section>
+      {state.status === 'loading' && <p className="text-muted">Loading statistics…</p>}
+      {state.status === 'failed' && <LoadFailure what="Your statistics" onRetry={retry} />}
+      {state.status === 'ok' && (
+        <>
+          <DaysSection days={state.value.days} />
+          <QuestsSection profile={state.value} />
+          <WeeklySection weekly={state.value.weekly} />
+          <AchievementsSection achievements={state.value.achievements} />
+        </>
+      )}
     </div>
   )
 }
