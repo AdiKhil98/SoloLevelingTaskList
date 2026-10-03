@@ -354,9 +354,13 @@ Do not push destructive changes without explicit instruction.
 
 ## Current status
 
-**Phase 00 (master product / architecture specification) is complete and approved.**
+**Phases 00, 01 and 02 are complete and approved.**
 
-The application itself has NOT yet been scaffolded (no `src/`, no `package.json`). Phase 01 has not begun and must not start until the owner approves it. The `_reference/solo-leveling-effects-pack/` directory is populated, read-only, and git-ignored.
+- **Phase 00** — the master product / architecture specification is complete and authoritative.
+- **Phase 01** — the application foundation is complete (React/Vite/TypeScript/Tailwind scaffold, placeholder UI, lint-enforced layer boundaries). See `docs/FOUNDATION.md`.
+- **Phase 02** — the pure domain/game engine is complete. `src/domain/` now exists and covers: DateKey/calendar primitives, quest recurrence and eligibility, occurrence snapshots, completion/idempotency, XP transactions, levels and ranks, daily progress classification, and typed domain events. 250 tests pass as of Phase 02. See `docs/DOMAIN_ENGINE.md`.
+
+**Phase 03 (persistence) has NOT started** and must not start until the owner approves it. IndexedDB is not implemented, and no game UI features exist yet (the UI is still the Phase 01 placeholder). The `_reference/solo-leveling-effects-pack/` directory remains local, read-only, and git-ignored.
 
 ### Specification documents
 
@@ -364,6 +368,7 @@ The application itself has NOT yet been scaffolded (no `src/`, no `package.json`
 - `docs/DATA_MODEL.md` defines the conceptual data model and invariants (guides Phases 02–03).
 - `docs/PHASE_PLAN.md` defines phase ownership, boundaries, and acceptance criteria.
 - `docs/OPEN_DECISIONS.md` lists the decisions that are deliberately still undecided.
+- `docs/FOUNDATION.md` and `docs/DOMAIN_ENGINE.md` record implementation facts for Phases 01 and 02.
 
 Do not duplicate approved values here; read them from `docs/MASTER_SPEC.md`. If this file and the specification documents appear to conflict, stop and report the conflict instead of guessing.
 
