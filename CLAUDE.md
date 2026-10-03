@@ -354,21 +354,32 @@ Do not push destructive changes without explicit instruction.
 
 ## Current status
 
-The repository is currently at pre-implementation setup.
+**Phase 00 (master product / architecture specification) is complete and approved.**
 
-The `_reference/solo-leveling-effects-pack/` directory has already been populated.
+The application itself has NOT yet been scaffolded (no `src/`, no `package.json`). Phase 01 has not begun and must not start until the owner approves it. The `_reference/solo-leveling-effects-pack/` directory is populated, read-only, and git-ignored.
 
-The application itself has NOT yet been scaffolded.
+### Specification documents
 
-Game economy values such as:
+- `docs/MASTER_SPEC.md` is the **authoritative source for approved game/product rules**.
+- `docs/DATA_MODEL.md` defines the conceptual data model and invariants (guides Phases 02–03).
+- `docs/PHASE_PLAN.md` defines phase ownership, boundaries, and acceptance criteria.
+- `docs/OPEN_DECISIONS.md` lists the decisions that are deliberately still undecided.
 
-- EXP rewards
-- level curve
+Do not duplicate approved values here; read them from `docs/MASTER_SPEC.md`. If this file and the specification documents appear to conflict, stop and report the conflict instead of guessing.
+
+### Approved (see `docs/MASTER_SPEC.md` for the exact values)
+
+- difficulty EXP values
+- the player level formula
 - rank thresholds
-- streak thresholds
-- Goal Crusher values
-- achievement thresholds
+- daily completion thresholds and day-quality rules (exact-ratio classification)
+- streak behavior (persisted only at day finalization)
+- Weekly Goal Crusher scoring, bonus EXP, and reward-tier rules
 
-are NOT final yet.
+These approved values must live in centralized configuration/domain code when implemented, never scattered through the UI.
 
-Do not invent or permanently encode these values until they are explicitly provided in a later phase.
+### Still open
+
+Some explicitly listed product decisions remain open (for example the Level-100 rank name, behavior after Level 100, the achievement catalog, the Daily Message catalog, quest EXP overrides, sounds/haptics/animation timings, typography, and some Weekly Goal Crusher lifecycle details). They are tracked in `docs/OPEN_DECISIONS.md`.
+
+Do not invent answers to open decisions. Keep each behind an isolated decision point until the owner decides.
