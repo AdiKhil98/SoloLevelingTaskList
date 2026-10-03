@@ -358,14 +358,17 @@ When a day is **finalized** (and has at least one eligible quest):
 
 ### 7.5 Days with zero eligible quests **[APPROVED]**
 
-If a calendar day somehow has **zero** eligible quests, it is classified **No Active Quests**. The day is **neutral for streak purposes**:
+A finalized calendar day with **zero** eligible quests is classified **No Active Quests**. It is **neutral for BOTH streak systems**:
 
 - it does **not** increment the Daily Streak;
-- it does **not** break/reset the Daily Streak;
+- it does **not** reset the Daily Streak;
+- it does **not** increment the Perfect Day Streak;
+- it does **not** reset the Perfect Day Streak;
 - it is **not** a Perfect Day (and does not count toward total Perfect Days);
-- it does **not** increment the Perfect Day Streak.
+- it is **not** an Incomplete Day;
+- it remains classified `No Active Quests`.
 
-It is also neutral for the Perfect Day Streak's reset: it neither increments nor breaks it. **[INTERPRETATION I-14 — confirm]** A Daily Summary is still written for the date (eligible count 0, quality `no_active_quests`) so the day remains reconstructable; no division by zero ever occurs (an empty ratio is never evaluated as a percentage).
+A Daily Summary is still written for the date (eligible count 0, quality `no_active_quests`) so the day remains reconstructable; no division by zero ever occurs (an empty ratio is never evaluated as a percentage).
 
 ---
 
@@ -628,6 +631,7 @@ Readable contrast, semantic buttons, keyboard support where practical, appropria
 | I-11 | A weekly reward is claimable only after that week's board is finalized. | §12.6 |
 | I-12 | A Daily Report before midnight is provisional/live; the authoritative Daily Summary comes from rollover finalization. | §14.2 |
 | I-13 | **Phase 02** owns pure calendar/date/domain functions; **Phase 06** owns runtime rollover, resume reconciliation, and lifecycle behavior. | PHASE_PLAN |
+| I-14 | A finalized **No Active Quests** day (zero eligible quests) is neutral for **both** streak systems — it neither increments nor resets the Daily Streak or the Perfect Day Streak, is not a Perfect Day, and is not an Incomplete Day. | §7.5 |
 | I-15 | A *Perfect Week* = a finalized Weekly Goal Crusher board scoring exactly 10/10. | §11 |
 
 ### A.2 Interpretations still awaiting explicit confirmation
@@ -636,7 +640,6 @@ These fill literal gaps and are binding until the owner objects.
 
 | ID | Interpretation |
 |----|----------------|
-| I-14 | A **No Active Quests** day is neutral for *both* streaks: it neither increments nor resets the Perfect Day Streak, in addition to the approved Daily-Streak neutrality (§7.5). |
 | I-3 | `WeekKey` = the Monday's `DateKey` (§4.2). |
 | I-4 | Quest occurrences are materialized only for dates ≤ today; future views are projections, not stored (§4.4). |
 | I-5 | V1 backup import is a **full replace** with confirmation, not a merge (§16). |

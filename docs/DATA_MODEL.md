@@ -271,7 +271,7 @@ interface DailySummary {              // primary key = dateKey  ⇒ one per cale
   | `incomplete` | reset | reset | → 0 | → 0 | — |
   | `no_active_quests` | neutral | neutral | unchanged | unchanged | unchanged |
 
-  `bestStreak = max(bestStreak, currentStreak)` after each transition. (The neutral Perfect-Day-Streak behavior is MASTER_SPEC I-14.)
+  `bestStreak = max(bestStreak, currentStreak)` after each transition. (A `no_active_quests` day is neutral for both streak systems — MASTER_SPEC §7.5 / I-14.)
 - Streaks are a pure fold over the ordered DailySummary chain; `PlayerProgress` caches the result and is verifiable against it.
 - A Daily Summary is written for `no_active_quests` days too (`eligibleCount 0`, empty `occurrenceIds`), so every finalized date is reconstructable and the contiguous-finalization invariant (INV-13) holds. No division by zero occurs anywhere because the ratio is never evaluated when `eligibleCount === 0`.
 - `finalizedLate` distinguishes "closed at midnight with the app open" from "closed on next launch".
