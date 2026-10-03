@@ -34,6 +34,14 @@ export {
 } from './repositories/occurrences'
 export { getCompletion, listCompletionsByDate, listCompletionsByTemplate } from './repositories/completions'
 export {
+  getDailySummary,
+  getLatestDailySummary,
+  listDailySummaries,
+  readDailyChainTip,
+  readFinalizationCursor,
+  type DailyChainTip,
+} from './repositories/dailySummaries'
+export {
   getXpTransaction,
   getXpTransactionByIdempotencyKey,
   listXpTransactions,
@@ -48,12 +56,20 @@ export {
   type CompleteQuestAtomicallyInput,
 } from './commands/completeQuest'
 
+export {
+  finalizeDayAtomically,
+  type FinalizeDayInput,
+  type FinalizeDayRejection,
+  type FinalizeDayResult,
+} from './commands/finalizeDay'
+
 // Ledger and progression
 export { validateLedger, type LedgerSummary } from './ledger/validateLedger'
 export { readProgression, reconstructProgression, type PlayerProgression } from './ledger/ledgerTip'
 
 // Record validation (untrusted value → typed record)
 export { parseCompletion } from './records/completion'
+export { parseDailySummary } from './records/dailySummary'
 export { parseOccurrence } from './records/occurrence'
 export { parseTemplate } from './records/template'
 export { parseXpTransaction } from './records/xpTransaction'

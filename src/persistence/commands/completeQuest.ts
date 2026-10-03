@@ -1,6 +1,7 @@
 import {
   completeQuest,
   type CompletionRejection,
+  type DateKey,
   type EpochMs,
   type QuestCompletion,
   type QuestCompletionOutcome,
@@ -26,6 +27,8 @@ export interface CompleteQuestAtomicallyInput {
 export type AtomicCompletionRejection =
   | CompletionRejection
   | { readonly code: 'occurrence_not_found'; readonly occurrenceId: string }
+  /** The occurrence's date already has a Daily Summary: finalized days are closed (also when the device clock moved back). */
+  | { readonly code: 'day_already_finalized'; readonly dateKey: DateKey }
 
 export type AtomicCompletionResult =
   | ({ readonly status: 'completed' } & QuestCompletionOutcome)
@@ -33,7 +36,7 @@ export type AtomicCompletionResult =
   | { readonly status: 'already_completed'; readonly completion: QuestCompletion }
   | { readonly status: 'rejected'; readonly reason: AtomicCompletionRejection }
 
-const COMPLETION_STORES = [STORE.occurrences, STORE.completions, STORE.xpTransactions] as const
+const COMPLETION_STORES = [STORE.occurrences, STORE.completions, STORE.xpTransactions, STORE.dailySummaries] as const
 
 /**
  * Completes a quest occurrence atomically.
@@ -93,6 +96,16 @@ async function attemptCompletion(
   if (existingCompletion !== null) {
     // A completion without its XP row would break INV-24; report it, never mask it.
     await requireXpRow(ledger, existingCompletion)
+  } else {
+    // Finalization and completion are both transactions, so this read is
+    // authoritative: a completion that lands after the day was finalized would
+    // contradict the Daily Summary, so it is refused.
+    const finalized = await requestToPromise(
+      transaction.objectStore(STORE.dailySummaries).getKey(occurrence.dateKey),
+    )
+    if (finalized !== undefined) {
+      return { status: 'rejected', reason: { code: 'day_already_finalized', dateKey: occurrence.dateKey } }
+    }
   }
 
   const state = await readLedgerState(transaction)

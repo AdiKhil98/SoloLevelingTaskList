@@ -41,6 +41,11 @@ export function dayQualityLabel(quality: DayQuality): string {
   return DAY_QUALITY_LABELS[quality]
 }
 
+/** `1 day` / `4 days` */
+export function daysLabel(days: number): string {
+  return days === 1 ? '1 day' : `${days} days`
+}
+
 const CATEGORY_LABELS: Record<Category, string> = {
   discipline: 'Discipline',
   fitness: 'Fitness',

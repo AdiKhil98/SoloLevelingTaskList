@@ -6,7 +6,13 @@ import type { ValidationIssue } from '../errors'
 import { progressionFromLedger, type PlayerProgression } from '../ledger/ledgerTip'
 import { validateDataset, type DatasetRecords, type ValidatedDataset } from './dataset'
 
-const ALL_STORES = [STORE.templates, STORE.occurrences, STORE.completions, STORE.xpTransactions] as const
+const ALL_STORES = [
+  STORE.templates,
+  STORE.occurrences,
+  STORE.completions,
+  STORE.xpTransactions,
+  STORE.dailySummaries,
+] as const
 
 /**
  * Reads every durable record in ONE read-only transaction (a consistent
@@ -17,15 +23,15 @@ const ALL_STORES = [STORE.templates, STORE.occurrences, STORE.completions, STORE
  */
 export async function readRawDataset(database: PersistenceDatabase): Promise<Record<string, unknown[]>> {
   return runTransaction(database, ALL_STORES, 'readonly', async (transaction) => {
-    const [questTemplates, questOccurrences, questCompletions, xpTransactions] = (await allRequests(
+    const [questTemplates, questOccurrences, questCompletions, xpTransactions, dailySummaries] = (await allRequests(
       ALL_STORES.map((name) => () => transaction.objectStore(name).getAll()),
-    )) as [unknown[], unknown[], unknown[], unknown[]]
+    )) as [unknown[], unknown[], unknown[], unknown[], unknown[]]
     const seqOf = (row: unknown): number => {
       const seq = typeof row === 'object' && row !== null ? (row as { seq?: unknown }).seq : undefined
       return typeof seq === 'number' ? seq : Number.POSITIVE_INFINITY
     }
     xpTransactions.sort((a: unknown, b: unknown) => seqOf(a) - seqOf(b))
-    return { questTemplates, questOccurrences, questCompletions, xpTransactions }
+    return { questTemplates, questOccurrences, questCompletions, xpTransactions, dailySummaries }
   })
 }
 
@@ -42,6 +48,7 @@ export interface IntegrityReport {
     readonly questOccurrences: number
     readonly questCompletions: number
     readonly xpTransactions: number
+    readonly dailySummaries: number
   }
   /** Progression derived from the verified ledger (nothing is read from a cache). */
   readonly progression: PlayerProgression
@@ -53,6 +60,7 @@ export function summarizeRecords(records: DatasetRecords): IntegrityReport['coun
     questOccurrences: records.questOccurrences.length,
     questCompletions: records.questCompletions.length,
     xpTransactions: records.xpTransactions.length,
+    dailySummaries: records.dailySummaries.length,
   }
 }
 

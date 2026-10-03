@@ -88,6 +88,7 @@ export async function snapshotAll(database: PersistenceDatabase): Promise<Record
     questOccurrences: await readRaw(database, 'questOccurrences'),
     questCompletions: await readRaw(database, 'questCompletions'),
     xpTransactions: await readRaw(database, 'xpTransactions'),
+    dailySummaries: await readRaw(database, 'dailySummaries'),
   }
 }
 

@@ -1,6 +1,7 @@
 import type { DomainEvent } from '@/domain'
 import { completeQuestAtomically, type AtomicCompletionRejection } from '@/persistence'
 import { readClock } from '../clock'
+import { requireSynchronizedDay } from '../lifecycle/synchronization'
 import type { ApplicationContext } from '../context'
 import { classifyFailure, type FailureReason } from '../errors'
 import { loadHome, type HomeSnapshot } from '../home'
@@ -37,6 +38,7 @@ export type CompleteTodayQuestResult =
 function rejectionOf(reason: AtomicCompletionRejection): CompleteQuestRejection {
   switch (reason.code) {
     case 'occurrence_day_ended':
+    case 'day_already_finalized':
       return 'day_ended'
     case 'occurrence_not_yet_active':
       return 'not_yet_active'
@@ -70,6 +72,7 @@ export async function completeTodayQuest(
   let result
   try {
     const reading = readClock(context.clock)
+    await requireSynchronizedDay(context, reading)
     result = await completeQuestAtomically(context.database, {
       occurrenceId,
       completedAt: reading.epochMs,

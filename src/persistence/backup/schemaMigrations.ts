@@ -7,12 +7,22 @@ export type BackupDataMigration = (data: unknown) => unknown
 export type BackupDataMigrationMap = Readonly<Record<number, BackupDataMigration>>
 
 /**
- * Backup data migrations, oldest first. Schema 1 is the first and only schema
- * so far, so the registry is empty: there is nothing older to upgrade from.
- * When the data model changes, bump `BACKUP_SCHEMA_VERSION` and register the
- * `N-1 → N` upgrade here; old backups then still import (DATA_MODEL §15).
+ * Backup data migrations, oldest first. When the data model changes, bump
+ * `BACKUP_SCHEMA_VERSION` and register the `N-1 → N` upgrade here; old backups
+ * then still import (DATA_MODEL §15).
+ *
+ *  - 2 (Phase 06): adds `dailySummaries`. A schema-1 backup predates day
+ *    finalization, so it has none; the next reconciliation after restoring it
+ *    finalizes its past days from its own occurrences and completions.
  */
-export const BACKUP_DATA_MIGRATIONS: BackupDataMigrationMap = {}
+export const BACKUP_DATA_MIGRATIONS: BackupDataMigrationMap = {
+  2: (data) => {
+    if (typeof data !== 'object' || data === null || Array.isArray(data)) {
+      throw new Error('Backup data must be an object')
+    }
+    return { ...(data as Record<string, unknown>), dailySummaries: [] }
+  },
+}
 
 export type BackupUpgrade =
   | { readonly ok: true; readonly data: unknown }

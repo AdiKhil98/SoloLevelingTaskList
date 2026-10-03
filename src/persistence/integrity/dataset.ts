@@ -5,11 +5,14 @@ import {
   type QuestOccurrence,
   type QuestTemplate,
   type Result,
+  verifySummaryChain,
+  type DailySummary,
   type XPTransaction,
 } from '@/domain'
 import { PersistenceError, type ValidationIssue } from '../errors'
 import { validateLedger, type LedgerSummary } from '../ledger/validateLedger'
 import { readCompletion } from '../records/completion'
+import { readDailySummary } from '../records/dailySummary'
 import { readOccurrence } from '../records/occurrence'
 import {
   IssueCollector,
@@ -27,6 +30,8 @@ export interface DatasetRecords {
   readonly questCompletions: readonly QuestCompletion[]
   /** In ledger order: the row at index `i` has `seq = i + 1`. */
   readonly xpTransactions: readonly XPTransaction[]
+  /** Oldest first: contiguous dates, one per finalized day. */
+  readonly dailySummaries: readonly DailySummary[]
 }
 
 export interface ValidatedDataset {
@@ -34,7 +39,7 @@ export interface ValidatedDataset {
   readonly ledger: LedgerSummary
 }
 
-const COLLECTIONS = ['questTemplates', 'questOccurrences', 'questCompletions', 'xpTransactions'] as const
+const COLLECTIONS = ['questTemplates', 'questOccurrences', 'questCompletions', 'xpTransactions', 'dailySummaries'] as const
 
 function readCollection<T>(
   collector: IssueCollector,
@@ -116,12 +121,14 @@ export function validateDataset(
   const occurrences = readCollection(collector, raw, 'questOccurrences', path, readOccurrence)
   const completions = readCollection(collector, raw, 'questCompletions', path, readCompletion)
   const transactions = readCollection(collector, raw, 'xpTransactions', path, readXpTransaction)
+  const summaries = readCollection(collector, raw, 'dailySummaries', path, readDailySummary)
   if (
     !collector.isClean ||
     templates === undefined ||
     occurrences === undefined ||
     completions === undefined ||
-    transactions === undefined
+    transactions === undefined ||
+    summaries === undefined
   ) {
     return err(collector.issues)
   }
@@ -133,6 +140,7 @@ export function validateDataset(
   findDuplicates(collector, occurrences, (o) => o.id, at('questOccurrences'), 'id', 'duplicate_id')
   findDuplicates(collector, occurrences, (o) => `${o.templateId}@${o.dateKey}`, at('questOccurrences'), 'dateKey', 'duplicate_occurrence_for_date')
   findDuplicates(collector, completions, (c) => c.occurrenceId, at('questCompletions'), 'occurrenceId', 'duplicate_completion')
+  findDuplicates(collector, summaries, (s) => s.dateKey, at('dailySummaries'), 'dateKey', 'duplicate_summary')
 
   const ledger = validateLedger(transactions, at('xpTransactions'))
   if (!ledger.ok) ledger.error.forEach((issue) => collector.add(issue.path, issue.code, issue.message))
@@ -187,6 +195,8 @@ export function validateDataset(
     }
   })
 
+  validateSummaries(collector, summaries, occurrences, completions, at('dailySummaries'))
+
   if (!collector.isClean || !ledger.ok) return err(collector.issues)
   return ok({
     records: {
@@ -194,9 +204,70 @@ export function validateDataset(
       questOccurrences: occurrences,
       questCompletions: completions,
       xpTransactions: transactions,
+      dailySummaries: summaries,
     },
     ledger: ledger.value,
   })
+}
+
+/**
+ * Rules of the summary chain and of each summary against the records of its
+ * date (DATA_MODEL INV-13, 21, 22): finalized dates are contiguous, every
+ * streak value equals the fold of the days before it, a finalized day lists
+ * exactly the occurrences that exist for its date and counts exactly its
+ * completions, and nothing exists before the first finalized date.
+ */
+function validateSummaries(
+  collector: IssueCollector,
+  summaries: readonly DailySummary[],
+  occurrences: readonly QuestOccurrence[],
+  completions: readonly QuestCompletion[],
+  path: string,
+): void {
+  const ordered = [...summaries].sort((a, b) => (a.dateKey < b.dateKey ? -1 : a.dateKey > b.dateKey ? 1 : 0))
+  const indexOf = new Map(summaries.map((summary, index) => [summary.dateKey, index]))
+  const pathOf = (summary: DailySummary, field: string) => joinPath(joinPath(path, indexOf.get(summary.dateKey) ?? 0), field)
+
+  for (const problem of verifySummaryChain(ordered)) {
+    const summary = ordered[problem.index]
+    if (summary !== undefined) collector.add(pathOf(summary, problem.field), problem.code, problem.message)
+  }
+
+  const occurrencesByDate = new Map<string, string[]>()
+  for (const occurrence of occurrences) {
+    const ids = occurrencesByDate.get(occurrence.dateKey) ?? []
+    ids.push(occurrence.id)
+    occurrencesByDate.set(occurrence.dateKey, ids)
+  }
+  const completionsByDate = new Map<string, QuestCompletion[]>()
+  for (const completion of completions) {
+    const list = completionsByDate.get(completion.dateKey) ?? []
+    list.push(completion)
+    completionsByDate.set(completion.dateKey, list)
+  }
+
+  for (const summary of ordered) {
+    const ids = [...(occurrencesByDate.get(summary.dateKey) ?? [])].sort()
+    const listed = [...summary.occurrenceIds].sort()
+    if (ids.length !== listed.length || ids.some((id, i) => id !== listed[i])) {
+      collector.add(pathOf(summary, 'occurrenceIds'), 'summary_occurrences_mismatch', 'Differs from the occurrences stored for this date')
+    }
+    const done = completionsByDate.get(summary.dateKey) ?? []
+    if (done.length !== summary.completedCount) {
+      collector.add(pathOf(summary, 'completedCount'), 'summary_completions_mismatch', 'Differs from the completions stored for this date')
+    }
+    if (done.reduce((sum, completion) => sum + completion.expAwarded, 0) !== summary.questExp) {
+      collector.add(pathOf(summary, 'questExp'), 'summary_exp_mismatch', 'Differs from the quest EXP of this date')
+    }
+  }
+
+  const first = ordered[0]
+  if (first !== undefined) {
+    const early = occurrences.find((occurrence) => occurrence.dateKey < first.dateKey)
+    if (early !== undefined) {
+      collector.add(pathOf(first, 'dateKey'), 'occurrence_before_chain', 'An occurrence exists before the first finalized date')
+    }
+  }
 }
 
 /**

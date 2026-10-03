@@ -4,6 +4,7 @@ import { HomePage } from '@/features/home/HomePage'
 import { CreateQuestPage } from '@/features/quests/CreateQuestPage'
 import { EditQuestPage } from '@/features/quests/EditQuestPage'
 import { QuestsPage } from '@/features/quests/QuestsPage'
+import { ReportPage } from '@/features/report/ReportPage'
 import { StatusPage } from '@/features/status/StatusPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 
@@ -17,6 +18,7 @@ export const appRoutes: RouteObject[] = [
       { path: 'quests', element: <QuestsPage /> },
       { path: 'quests/new', element: <CreateQuestPage /> },
       { path: 'quests/:templateId/edit', element: <EditQuestPage /> },
+      { path: 'report', element: <ReportPage /> },
       { path: 'status', element: <StatusPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],

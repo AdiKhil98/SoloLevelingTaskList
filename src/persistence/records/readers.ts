@@ -164,3 +164,17 @@ export function readEnum<T extends string>(
   }
   return value
 }
+
+export function readBoolean(
+  collector: IssueCollector,
+  source: Record<string, unknown>,
+  key: string,
+  path: string,
+): boolean | undefined {
+  const value = source[key]
+  if (typeof value !== 'boolean') {
+    collector.add(joinPath(path, key), 'not_a_boolean', 'Expected true or false')
+    return undefined
+  }
+  return value
+}

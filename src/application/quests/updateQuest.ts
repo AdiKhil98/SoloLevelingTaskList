@@ -1,6 +1,7 @@
 import { validateQuestTemplate } from '@/domain'
 import { getTemplate, updateTemplate } from '@/persistence'
 import { readClock } from '../clock'
+import { requireSynchronizedDay } from '../lifecycle/synchronization'
 import type { ApplicationContext } from '../context'
 import { classifyFailure, type FailureReason } from '../errors'
 import { parseQuestForm, type QuestFormErrors, type QuestFormValues } from './questForm'
@@ -36,6 +37,7 @@ export async function updateQuest(
 ): Promise<UpdateQuestResult> {
   try {
     const reading = readClock(context.clock)
+    await requireSynchronizedDay(context, reading)
 
     const current = await getTemplate(context.database, templateId)
     if (current === null) return { status: 'not_found' }

@@ -166,7 +166,7 @@ Reopening after N days away therefore finalizes N days: each with all of its eli
 |------|------|
 | DST / timezone offset change | Handled by calendar-field date arithmetic (§4.1). A 23- or 25-hour day is still exactly one `DateKey`. |
 | Leap day, year boundary | Must be covered by tests (Phase 02/13). |
-| Device clock/timezone moves to an earlier date than the last finalized date | **[OPEN: OD-22]** — Finalized days are never reopened or re-finalized; the remaining behavior is undecided. |
+| Device clock/timezone moves to an earlier date than the last recorded day | **[APPROVED — OD-22, Phase 06]** Finalized days are never reopened, re-finalized, deleted or rewritten, and streaks never regress. The app enters a safe paused state ("clock appears to have moved backwards"): nothing is finalized or materialized and completion/quest changes are refused until the device date reaches the recorded day again. See [DAILY_LIFECYCLE.md](DAILY_LIFECYCLE.md). |
 | Day with zero eligible quests | **[APPROVED]** Classified **No Active Quests**; neutral for streaks (§7.5). |
 | App open across midnight | The UI receives a rollover (reconcile result) and transitions to the new day; the Sleep action does *not* cause this. |
 
@@ -572,7 +572,7 @@ The domain layer returns structured events; the UI/animation layer may present t
 
 `QuestCompleted` · `XPAwarded` · `LevelUp` · `RankUp` · `AchievementUnlocked` · `DayStatusChanged` · `PerfectDayReached` · `WeeklyGoalCompleted` · `WeeklyBoardFinalized`
 
-One action can emit several (e.g., quest completion + EXP + two levels + a rank change + an achievement); the result must represent that correctly and in a defined order (see DATA_MODEL §11). How events produced during a multi-day catch-up are surfaced is **[OPEN: OD-21]**.
+One action can emit several (e.g., quest completion + EXP + two levels + a rank change + an achievement); the result must represent that correctly and in a defined order (see DATA_MODEL §11). Events are not replayed after a multi-day catch-up **[APPROVED — OD-21, Phase 06]**: finalization awards no EXP and emits no events; the UI shows at most one restrained "N days reconciled." notice (see [DAILY_LIFECYCLE.md](DAILY_LIFECYCLE.md)).
 
 ---
 

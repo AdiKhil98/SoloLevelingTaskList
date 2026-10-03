@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { clockReadingAt } from './clock'
+import { clockReadingAt, msUntilNextLocalMidnight } from './clock'
 
 
 function reading(epochMs: number, timeZone: string) {
@@ -78,5 +78,27 @@ describe('clockReadingAt', () => {
       expect(result.ok).toBe(false)
       if (!result.ok) expect(result.error.code).toBe('invalid_epoch')
     }
+  })
+})
+
+describe('msUntilNextLocalMidnight', () => {
+  it('counts down to local midnight in the named zone', () => {
+    // 23:30 UTC on the 3rd is 01:30 CEST on the 4th: 22 h 30 min to the next midnight.
+    expect(msUntilNextLocalMidnight(reading(INSTANT, 'Europe/Berlin'))).toBe(22.5 * 3_600_000)
+    expect(msUntilNextLocalMidnight(reading(INSTANT, 'UTC'))).toBe(30 * 60_000)
+    expect(msUntilNextLocalMidnight(reading(INSTANT, 'America/Los_Angeles'))).toBe(7.5 * 3_600_000)
+  })
+
+  it('is a full day exactly at midnight and one millisecond just before it', () => {
+    const atMidnight = Date.UTC(2026, 9, 3, 22, 0, 0, 0) // 00:00:00.000 CEST on the 4th
+    expect(msUntilNextLocalMidnight(reading(atMidnight, 'Europe/Berlin'))).toBe(86_400_000)
+    expect(msUntilNextLocalMidnight(reading(atMidnight - 1, 'Europe/Berlin'))).toBe(1)
+  })
+
+  it('stays within (0, 24 h] in a zone with a half-hour offset', () => {
+    const value = msUntilNextLocalMidnight(reading(INSTANT, 'Asia/Kolkata'))
+    expect(value).toBeGreaterThan(0)
+    expect(value).toBeLessThanOrEqual(86_400_000)
+    expect(value).toBe(19 * 3_600_000) // 05:00 IST on the 4th
   })
 })

@@ -228,21 +228,23 @@ export async function importBackup(
   try {
     await runTransaction(
       database,
-      [STORE.templates, STORE.occurrences, STORE.completions, STORE.xpTransactions],
+      [STORE.templates, STORE.occurrences, STORE.completions, STORE.xpTransactions, STORE.dailySummaries],
       'readwrite',
       async (transaction) => {
         const templates = transaction.objectStore(STORE.templates)
         const occurrences = transaction.objectStore(STORE.occurrences)
         const completions = transaction.objectStore(STORE.completions)
         const ledger = transaction.objectStore(STORE.xpTransactions)
+        const summaries = transaction.objectStore(STORE.dailySummaries)
 
-        const stores = [templates, occurrences, completions, ledger]
+        const stores = [templates, occurrences, completions, ledger, summaries]
         await allRequests(stores.map((store) => () => store.clear()))
         await allRequests([
           ...data.questTemplates.map((record) => () => templates.add(record)),
           ...data.questOccurrences.map((record) => () => occurrences.add(record)),
           ...data.questCompletions.map((record) => () => completions.add(record)),
           ...data.xpTransactions.map((record) => () => ledger.add(record)),
+          ...data.dailySummaries.map((record) => () => summaries.add(record)),
         ])
 
         // Read back before commit: a mismatch aborts and rolls everything back.
@@ -252,6 +254,7 @@ export async function importBackup(
           expected.counts.questOccurrences,
           expected.counts.questCompletions,
           expected.counts.xpTransactions,
+          expected.counts.dailySummaries,
         ]
         if (counts.some((count, index) => count !== wanted[index])) {
           throw new PersistenceError('ledger_integrity_failed', 'Restored record counts do not match the backup')

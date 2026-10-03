@@ -20,22 +20,23 @@ function rawOpen(factory: IDBFactory, name: string, version?: number): Promise<I
   })
 }
 
-describe('schema v1', () => {
-  it('creates a fresh database at the production name and version 1', async () => {
+describe('current schema (v2)', () => {
+  it('creates a fresh database at the production name and the current version', async () => {
     const factory = newFactory()
     const database = tracker.track(await openDatabase({ factory }))
     expect(database.name).toBe(DATABASE_NAME)
-    expect(database.version).toBe(1)
-    expect(DATABASE_VERSION).toBe(1)
+    expect(database.version).toBe(2)
+    expect(DATABASE_VERSION).toBe(2)
     expect(database.isOpen).toBe(true)
   })
 
-  it('creates exactly the four stores with the documented key paths', async () => {
+  it('creates exactly the five stores with the documented key paths', async () => {
     const factory = newFactory()
     tracker.track(await openDatabase({ factory }))
     const raw = await rawOpen(factory, DATABASE_NAME)
     try {
       expect([...raw.objectStoreNames].sort()).toEqual([
+        'dailySummaries',
         'questCompletions',
         'questOccurrences',
         'questTemplates',
@@ -46,6 +47,7 @@ describe('schema v1', () => {
       expect(tx.objectStore('questOccurrences').keyPath).toBe('id')
       expect(tx.objectStore('questCompletions').keyPath).toBe('occurrenceId')
       expect(tx.objectStore('xpTransactions').keyPath).toBe('id')
+      expect(tx.objectStore('dailySummaries').keyPath).toBe('dateKey')
     } finally {
       raw.close()
     }
@@ -63,6 +65,8 @@ describe('schema v1', () => {
           return `${name}:${JSON.stringify(index.keyPath)}:${index.unique ? 'unique' : 'plain'}`
         })
 
+      // The quality index counts Perfect Days; an isPerfect index is impossible (booleans are not keys).
+      expect(describeIndexes('dailySummaries')).toEqual(['quality:"quality":plain'])
       expect(describeIndexes('questTemplates')).toEqual([
         'seedKey:"seedKey":unique',
         'status:"status":plain',
@@ -135,10 +139,25 @@ describe('connection handle', () => {
   })
 })
 
+describe('the real v1 → v2 upgrade (Phase 06)', () => {
+  it('adds dailySummaries to an existing v1 database and keeps every existing row', async () => {
+    const factory = newFactory()
+    const v1 = await openVersionedDatabase({ name: DATABASE_NAME, factory, version: 1, migrations: { 1: MIGRATIONS[1]! } })
+    await createTemplate(v1, buildTemplate({ id: 'tpl_legacy', title: 'From v1' }))
+    expect([...(await rawOpen(factory, DATABASE_NAME, 1).then((raw) => { const names = [...raw.objectStoreNames]; raw.close(); return names }))]).not.toContain('dailySummaries')
+    v1.close()
+
+    const upgraded = tracker.track(await openDatabase({ factory }))
+    expect(upgraded.version).toBe(2)
+    expect((await getTemplate(upgraded, 'tpl_legacy'))?.title).toBe('From v1')
+    expect(await readRaw(upgraded, 'dailySummaries')).toEqual([])
+  })
+})
+
 describe('upgrades and versionchange', () => {
-  const v2 = {
+  const v3 = {
     ...MIGRATIONS,
-    2: (database: IDBDatabase) => {
+    3: (database: IDBDatabase) => {
       database.createObjectStore('futureStore', { keyPath: 'id' })
     },
   }
@@ -150,9 +169,9 @@ describe('upgrades and versionchange', () => {
     first.close()
 
     const upgraded = tracker.track(
-      await openVersionedDatabase({ name: DATABASE_NAME, factory, version: 2, migrations: v2 }),
+      await openVersionedDatabase({ name: DATABASE_NAME, factory, version: 3, migrations: v3 }),
     )
-    expect(upgraded.version).toBe(2)
+    expect(upgraded.version).toBe(3)
     expect(await readRaw(upgraded, 'questTemplates')).toHaveLength(1)
     const raw = await rawOpen(factory, DATABASE_NAME)
     expect([...raw.objectStoreNames]).toContain('futureStore')
@@ -165,9 +184,9 @@ describe('upgrades and versionchange', () => {
     await createTemplate(oldTab, buildTemplate({ id: 'tpl_1' }))
 
     const newTab = tracker.track(
-      await openVersionedDatabase({ name: DATABASE_NAME, factory, version: 2, migrations: v2 }),
+      await openVersionedDatabase({ name: DATABASE_NAME, factory, version: 3, migrations: v3 }),
     )
-    expect(newTab.version).toBe(2)
+    expect(newTab.version).toBe(3)
     expect(oldTab.isOpen).toBe(false)
     await expect(getTemplate(oldTab, 'tpl_1')).rejects.toMatchObject({ code: 'database_closed' })
     expect(await getTemplate(newTab, 'tpl_1')).not.toBeNull()
@@ -179,13 +198,13 @@ describe('upgrades and versionchange', () => {
     const holdout = await rawOpen(factory, DATABASE_NAME) // ignores versionchange
 
     await expect(
-      openVersionedDatabase({ name: DATABASE_NAME, factory, version: 2, migrations: v2 }),
+      openVersionedDatabase({ name: DATABASE_NAME, factory, version: 3, migrations: v3 }),
     ).rejects.toMatchObject({ code: 'database_blocked' })
 
     holdout.close()
     // The abandoned upgrade must not have been applied once the holdout let go.
     const after = tracker.track(await openDatabase({ factory }))
-    expect(after.version).toBe(1)
+    expect(after.version).toBe(2)
   })
 
   it('reports a failing migration as database_open_failed and does not upgrade', async () => {
@@ -193,14 +212,14 @@ describe('upgrades and versionchange', () => {
     tracker.track(await openDatabase({ factory })).close()
     const broken = {
       ...MIGRATIONS,
-      2: () => {
+      3: () => {
         throw new Error('boom')
       },
     }
     await expect(
-      openVersionedDatabase({ name: DATABASE_NAME, factory, version: 2, migrations: broken }),
+      openVersionedDatabase({ name: DATABASE_NAME, factory, version: 3, migrations: broken }),
     ).rejects.toMatchObject({ code: 'database_open_failed' })
-    expect(tracker.track(await openDatabase({ factory })).version).toBe(1)
+    expect(tracker.track(await openDatabase({ factory })).version).toBe(2)
   })
 
   it('fails clearly when a migration step is missing', async () => {
@@ -209,7 +228,7 @@ describe('upgrades and versionchange', () => {
         name: DATABASE_NAME,
         factory: newFactory(),
         version: 3,
-        migrations: { 1: MIGRATIONS[1]! },
+        migrations: { 1: MIGRATIONS[1]!, 2: MIGRATIONS[2]! },
       }),
     ).rejects.toMatchObject({ code: 'database_open_failed' })
   })

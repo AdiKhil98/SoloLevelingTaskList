@@ -94,11 +94,13 @@ describe('Home — loading and loaded', () => {
     expect(within(today).getByText('Incomplete')).toBeInTheDocument()
   })
 
-  it('shows no streak yet', async () => {
+  it('shows the real Daily Streak: 0 days before any day has been finalized', async () => {
     renderApp()
     await homeReady()
 
-    expect(screen.queryByText(/streak/i)).not.toBeInTheDocument()
+    const streak = screen.getByRole('region', { name: 'DAILY STREAK' })
+    expect(streak).toHaveTextContent('0 days')
+    expect(screen.queryByText('STREAK SECURED')).not.toBeInTheDocument()
   })
 
   it('works under React StrictMode without duplicating anything', async () => {
@@ -196,29 +198,26 @@ describe('Home — completing quests', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Big quest completed. +120 EXP. LEVEL UP — LV. 2.')
   })
 
-  it('refuses a completion after midnight, keeps stored state, and offers Refresh', async () => {
+  it('a tap on a stale screen after midnight reconciles first, shows the new day and completes nothing', async () => {
     const clock = createTestClock(noonOn(TODAY))
     renderApp({ clock })
     await homeReady()
-    clock.set(noonOn('2026-10-06'))
+    clock.set(noonOn('2026-10-06')) // midnight passed while the screen stayed open
 
     fireEvent.click(questButton('Fajr'))
 
-    const alert = await screen.findByRole('alert')
-    expect(alert).toHaveTextContent('This day has ended')
-    expect(screen.getByText('0 / 6')).toBeInTheDocument()
-    expect(screen.getByText('0 / 100')).toBeInTheDocument()
-    expect(screen.queryByRole('img', { name: 'Completed' })).not.toBeInTheDocument()
-
-    fireEvent.click(within(alert).getByRole('button', { name: 'Refresh' }))
-
-    // The reload reads the clock again, so the new day's message and quests appear.
+    // Lifecycle first: the new day, its message and its quests are loaded…
     await waitFor(() =>
       expect(screen.getByRole('region', { name: 'DAILY MESSAGE' })).toHaveTextContent(
         selectDailyMessage(d('2026-10-06')).text,
       ),
     )
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    // …and the stale tap is refused with a safe message instead of writing into yesterday.
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('That day has ended')
+    expect(screen.getByText('0 / 6')).toBeInTheDocument()
+    expect(screen.getByText('0 / 100')).toBeInTheDocument() // no EXP awarded
+    expect(screen.queryByRole('img', { name: 'Completed' })).not.toBeInTheDocument()
     expect(within(questList()).getAllByRole('listitem')).toHaveLength(6)
     expect(screen.getAllByRole('button', { name: /^Complete / })).toHaveLength(6)
   })

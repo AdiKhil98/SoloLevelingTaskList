@@ -36,6 +36,12 @@ export function saveFailureText(reason: FailureReason, what: 'create' | 'update'
   if (reason === 'database_unavailable' || reason === 'database_blocked') {
     return 'Saving is unavailable right now. Nothing was changed.'
   }
+  if (reason === 'clock_behind') {
+    return 'This device’s clock is behind your last recorded day, so changes are paused. Nothing was changed.'
+  }
+  if (reason === 'day_not_synchronized') {
+    return 'The day changed. Today’s quests have been loaded; please try again. Nothing was changed.'
+  }
   switch (what) {
     case 'create':
       return 'That quest could not be saved. Nothing was created. Please try again.'

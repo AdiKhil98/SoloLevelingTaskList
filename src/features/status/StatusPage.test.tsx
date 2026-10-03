@@ -51,7 +51,6 @@ describe('Status', () => {
     renderApp({ path: '/status' })
     await statusReady()
 
-    expect(screen.queryByText(/streak/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/achievement/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/completed quests/i)).not.toBeInTheDocument()
   })

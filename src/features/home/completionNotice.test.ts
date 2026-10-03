@@ -63,7 +63,7 @@ describe('noticeForCompletion', () => {
     expect(noticeForCompletion(quest, { status: 'rejected', reason: 'day_ended' })).toMatchObject({
       tone: 'error',
       canRefresh: true,
-      text: expect.stringContaining('This day has ended'),
+      text: expect.stringContaining('That day has ended'),
     })
     expect(noticeForCompletion(quest, { status: 'rejected', reason: 'not_yet_active' }).canRefresh).toBe(false)
   })

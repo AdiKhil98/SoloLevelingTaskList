@@ -3,11 +3,13 @@ import { afterEach, describe, expect, it } from 'vitest'
 import {
   createTemplate,
   getCompletion,
+  listDailySummaries,
   listXpTransactions,
   type PersistenceDatabase,
 } from '@/persistence'
 import { loadHome } from '../home'
 import { initializeApplication } from '../initialize'
+import { synchronizeDay } from '../lifecycle/synchronization'
 import { completeTodayQuest } from './completeTodayQuest'
 import { buildTemplate, createTestContext, noonOn, type TestContext } from '../test-utils/helpers'
 
@@ -120,6 +122,7 @@ describe('completeTodayQuest', () => {
   it('rejects a completion after midnight without writing anything', async () => {
     const { context, database, clock } = await setup()
     clock.set(noonOn('2026-10-06'))
+    await synchronizeDay(context, 'resume') // the lifecycle step every screen runs first
 
     const result = await completeTodayQuest(context, FAJR)
 
@@ -128,13 +131,25 @@ describe('completeTodayQuest', () => {
     expect(await listXpTransactions(database)).toHaveLength(0)
   })
 
-  it('rejects an occurrence of a future day', async () => {
+  it('refuses a stale-day completion before the lifecycle has reconciled the missed day', async () => {
+    const { context, database, clock } = await setup()
+    clock.set(noonOn('2026-10-06'))
+
+    const result = await completeTodayQuest(context, FAJR)
+
+    expect(result).toMatchObject({ status: 'failed', reason: 'day_not_synchronized' })
+    expect(await getCompletion(database, FAJR)).toBeNull()
+    expect(await listXpTransactions(database)).toHaveLength(0)
+    expect(await listDailySummaries(database)).toHaveLength(0)
+  })
+
+  it('refuses every completion while the device clock is behind the recorded history', async () => {
     const { context, database, clock } = await setup()
     clock.set(noonOn('2026-10-04'))
 
     const result = await completeTodayQuest(context, FAJR)
 
-    expect(result).toEqual({ status: 'rejected', reason: 'not_yet_active' })
+    expect(result).toMatchObject({ status: 'failed', reason: 'clock_behind' })
     expect(await listXpTransactions(database)).toHaveLength(0)
   })
 

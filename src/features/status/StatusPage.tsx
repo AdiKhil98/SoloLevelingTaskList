@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { ExpProgressBar } from '@/components/ui/ExpProgressBar'
 import { useAppRuntime } from '@/app/runtimeContext'
-import { PLAYER_LABEL, rankLabel } from '../displayLabels'
+import { daysLabel, PLAYER_LABEL, rankLabel } from '../displayLabels'
 
 function Row({ term, children }: { term: string; children: ReactNode }) {
   return (
@@ -15,10 +15,11 @@ function Row({ term, children }: { term: string; children: ReactNode }) {
 /**
  * A small status sheet. Lifetime EXP is the ledger's running total; the
  * current-level figures are the engine's `expIntoLevel` / `expToNext`.
- * Completed-quest totals, categories, history and streaks belong to later phases.
+ * The streak rows are the finalized values (a day in progress is not in them).
+ * Completed-quest totals, categories and history belong to later phases.
  */
 export function StatusPage() {
-  const { player } = useAppRuntime().snapshot
+  const { player, streaks } = useAppRuntime().snapshot
 
   return (
     <div className="flex flex-col gap-4">
@@ -30,6 +31,15 @@ export function StatusPage() {
           <Row term="Level">{player.level}</Row>
           <Row term="Rank">{rankLabel(player.rank)}</Row>
           <Row term="Lifetime EXP">{player.totalExp}</Row>
+        </dl>
+      </section>
+
+      <section aria-label="Streaks" className="rounded-xl border border-border bg-surface px-4">
+        <dl>
+          <Row term="Daily Streak">{daysLabel(streaks.currentStreak)}</Row>
+          <Row term="Best Streak">{daysLabel(streaks.bestStreak)}</Row>
+          <Row term="Perfect Day Streak">{daysLabel(streaks.perfectStreak)}</Row>
+          <Row term="Total Perfect Days">{streaks.totalPerfectDays}</Row>
         </dl>
       </section>
 

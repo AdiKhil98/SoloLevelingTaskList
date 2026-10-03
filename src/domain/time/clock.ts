@@ -23,6 +23,20 @@ export type ClockError =
 
 const MS_PER_SECOND = 1000
 const MS_PER_MINUTE = 60_000
+const MS_PER_DAY = 86_400_000
+
+/**
+ * Milliseconds from `reading` to the next local midnight, assuming today's UTC
+ * offset holds until then. A daylight-saving change before midnight shifts the
+ * true boundary by an hour, so this is only a scheduling hint: a caller wakes up
+ * then, re-reads the clock, and re-arms if the date has not changed. Always in
+ * `(0, 86 400 000]`.
+ */
+export function msUntilNextLocalMidnight(reading: ClockReading): number {
+  const localMs = reading.epochMs + reading.utcOffsetMinutes * MS_PER_MINUTE
+  const intoDay = ((localMs % MS_PER_DAY) + MS_PER_DAY) % MS_PER_DAY
+  return MS_PER_DAY - intoDay
+}
 
 /**
  * Resolves `epochMs` in the IANA zone `timeZone` (e.g. `Europe/Berlin`).

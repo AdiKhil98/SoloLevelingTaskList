@@ -14,8 +14,19 @@ export {
   type FailureReason,
 } from './errors'
 
-export { loadHome, type HomeSnapshot } from './home'
-export { initializeApplication } from './initialize'
+export { loadHome, synchronizeAndLoadHome, type HomeSnapshot, type SynchronizedHome } from './home'
+export { initializeApplication, startApplication } from './initialize'
+export {
+  reconcileDays,
+  requireSynchronizedDay,
+  synchronizeDay,
+  type ClockStatus,
+  type ReconcileResult,
+  type ReconcileTrigger,
+} from './lifecycle/synchronization'
+export { msUntilMidnight } from './lifecycle/midnight'
+export { buildDailyReport, type DailyReport } from './report/buildDailyReport'
+export { loadStreakStats, type StreakStats } from './player/loadStreakStats'
 
 export {
   completeTodayQuest,

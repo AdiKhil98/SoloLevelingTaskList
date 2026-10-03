@@ -11,7 +11,7 @@ import {
 } from '@/persistence'
 import { completeTodayQuest } from '../completion/completeTodayQuest'
 import { initializeApplication } from '../initialize'
-import { loadHome } from '../home'
+import { loadHome, synchronizeAndLoadHome } from '../home'
 import { buildFormValues, buildTemplate, createTestContext, d, noonOn, type TestContext } from '../test-utils/helpers'
 import { readHistory } from '../test-utils/history'
 import { archiveQuest } from './archiveQuest'
@@ -276,10 +276,10 @@ describe('restoreQuest', () => {
     await archiveQuest(t.context, id)
 
     t.clock.set(noonOn('2026-10-08'))
-    await loadHome(t.context)
+    await synchronizeAndLoadHome(t.context, 'resume')
     await restoreQuest(t.context, id)
     t.clock.set(noonOn('2026-10-09'))
-    const next = await loadHome(t.context)
+    const { home: next } = await synchronizeAndLoadHome(t.context, 'resume')
 
     expect(next.today.quests.map((quest) => quest.title)).toContain('Paused')
     for (const gap of ['2026-10-06', '2026-10-07']) {
@@ -293,6 +293,7 @@ describe('restoreQuest', () => {
     const id = await create(t, { recurrence: 'one_time', questDate: MONDAY })
     await archiveQuest(t.context, id)
     t.clock.set(noonOn('2026-10-06'))
+    await synchronizeAndLoadHome(t.context, 'resume')
 
     const result = await restoreQuest(t.context, id)
 

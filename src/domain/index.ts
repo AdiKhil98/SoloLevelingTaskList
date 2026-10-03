@@ -51,6 +51,7 @@ export {
 } from './time/dateKey'
 export {
   clockReadingAt,
+  msUntilNextLocalMidnight,
   type ClockError,
   type ClockReading,
 } from './time/clock'
@@ -126,6 +127,22 @@ export {
   type DailyProgressError,
   type DayQuality,
 } from './daily/dailyProgress'
+export {
+  applyDayToStreaks,
+  buildDailySummary,
+  foldStreaks,
+  INITIAL_STREAK_STATE,
+  isStreakSecured,
+  projectedDailyStreak,
+  qualityOfSummaryCounts,
+  streakEffectsOf,
+  verifySummaryChain,
+  type BuildDailySummaryInput,
+  type ChainProblem,
+  type DailySummary,
+  type StreakEffect,
+  type StreakState,
+} from './daily/dailySummary'
 
 // Events
 export type {

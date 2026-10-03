@@ -55,11 +55,11 @@ describe('exportBackup', () => {
     expect(envelope).toMatchObject({
       format: BACKUP_FORMAT,
       formatVersion: 1,
-      schemaVersion: 1,
+      schemaVersion: 2,
       appVersion: '0.1.0',
       exportedAt: META.exportedAt,
       exportedFromTimeZone: ZONE,
-      data: { questTemplates: [], questOccurrences: [], questCompletions: [], xpTransactions: [] },
+      data: { questTemplates: [], questOccurrences: [], questCompletions: [], xpTransactions: [], dailySummaries: [] },
     })
     expect(envelope.checksum.algorithm).toBe('SHA-256')
     expect(envelope.checksum.value).toMatch(/^[0-9a-f]{64}$/)
@@ -70,7 +70,7 @@ describe('exportBackup', () => {
   it('exports every durable record and nothing derived', async () => {
     const database = await populated()
     const envelope = await exportBackup(database, META)
-    expect(Object.keys(envelope.data).sort()).toEqual(['questCompletions', 'questOccurrences', 'questTemplates', 'xpTransactions'])
+    expect(Object.keys(envelope.data).sort()).toEqual(['dailySummaries', 'questCompletions', 'questOccurrences', 'questTemplates', 'xpTransactions'])
     expect(envelope.data.questTemplates).toHaveLength(4)
     expect(envelope.data.questOccurrences).toHaveLength(7)
     expect(envelope.data.questCompletions).toHaveLength(4)
@@ -130,7 +130,7 @@ describe('importBackup — round trip and replacement', () => {
     expect(result).toMatchObject({
       ok: true,
       value: {
-        counts: { questTemplates: 4, questOccurrences: 7, questCompletions: 4, xpTransactions: 4 },
+        counts: { questTemplates: 4, questOccurrences: 7, questCompletions: 4, xpTransactions: 4, dailySummaries: 0 },
         progression: { totalExp: POPULATED_TOTAL_EXP, lastSeq: 4 },
       },
     })
@@ -181,7 +181,7 @@ describe('importBackup — round trip and replacement', () => {
     const empty = await exportText(await tracker.open())
     const target = await populated()
     await importBackup(target, empty)
-    expect(await snapshotAll(target)).toEqual({ questTemplates: [], questOccurrences: [], questCompletions: [], xpTransactions: [] })
+    expect(await snapshotAll(target)).toEqual({ questTemplates: [], questOccurrences: [], questCompletions: [], xpTransactions: [], dailySummaries: [] })
   })
 
   it('keeps the restored database fully usable: completing continues the ledger', async () => {
@@ -232,7 +232,7 @@ describe('importBackup — rejection', () => {
 
   it('rejects unsupported versions with a dedicated code', async () => {
     const text = await exportText(await populated())
-    expect(await rejection(await tampered(text, (e) => { e.schemaVersion = 2 }))).toMatchObject({ code: 'unsupported_backup_version', issues: [{ code: 'newer_schema' }] })
+    expect(await rejection(await tampered(text, (e) => { e.schemaVersion = 3 }))).toMatchObject({ code: 'unsupported_backup_version', issues: [{ code: 'newer_schema' }] })
     expect(await rejection(await tampered(text, (e) => { e.formatVersion = 2 }))).toMatchObject({ code: 'unsupported_backup_version', issues: [{ code: 'newer_format' }] })
     expect(await rejection(await tampered(text, (e) => { e.schemaVersion = 0 }))).toMatchObject({ code: 'invalid_backup' })
     expect(await rejection(await tampered(text, (e) => { e.schemaVersion = '1' }))).toMatchObject({ code: 'invalid_backup' })
@@ -387,29 +387,56 @@ describe('backup schema upgrades', () => {
     const text = await exportText(await populated())
     const seen: number[] = []
     const result = await parseBackup(text, {
-      currentSchemaVersion: 3,
+      currentSchemaVersion: 4,
       migrations: {
-        2: (data) => { seen.push(2); return data },
         3: (data) => { seen.push(3); return data },
+        4: (data) => { seen.push(4); return data },
       },
     })
-    expect(seen).toEqual([2, 3])
-    expect(result).toMatchObject({ ok: true, value: { envelope: { schemaVersion: 3 } } })
+    expect(seen).toEqual([3, 4])
+    expect(result).toMatchObject({ ok: true, value: { envelope: { schemaVersion: 4 } } })
   })
 
   it('refuses an older backup when an upgrade step is missing, instead of guessing', async () => {
     const text = await exportText(await populated())
-    const result = await parseBackup(text, { currentSchemaVersion: 2, migrations: {} })
+    const result = await parseBackup(text, { currentSchemaVersion: 3, migrations: {} })
     expect(result).toMatchObject({ ok: false, error: { code: 'unsupported_backup_version', issues: [{ code: 'no_upgrade_path' }] } })
   })
 
   it('validates the upgraded data, so a faulty upgrade cannot smuggle bad records in', async () => {
     const text = await exportText(await populated())
     const result = await parseBackup(text, {
-      currentSchemaVersion: 2,
-      migrations: { 2: (data) => ({ ...(data as object), questTemplates: 'oops' }) },
+      currentSchemaVersion: 3,
+      migrations: { 3: (data) => ({ ...(data as object), questTemplates: 'oops' }) },
     })
     expect(result).toMatchObject({ ok: false, error: { code: 'invalid_backup' } })
+  })
+})
+
+describe('the real 1 → 2 backup upgrade (Phase 06)', () => {
+  async function schemaOneText(): Promise<string> {
+    return tampered(await exportText(await populated()), (e) => {
+      e.schemaVersion = 1
+      delete e.data.dailySummaries
+    })
+  }
+
+  it('upgrades a schema-1 backup by adding an empty summary collection', async () => {
+    const result = await parseBackup(await schemaOneText())
+    expect(result).toMatchObject({ ok: true, value: { envelope: { schemaVersion: 2, data: { dailySummaries: [] } } } })
+  })
+
+  it('restores a schema-1 backup into a v2 database without losing any record', async () => {
+    const target = await tracker.open()
+    const result = await importBackup(target, await schemaOneText())
+    expect(result).toMatchObject({ ok: true, value: { counts: { questOccurrences: 7, dailySummaries: 0 } } })
+    expect(await readRaw(target, 'questCompletions')).toHaveLength(4)
+    expect(await readRaw(target, 'dailySummaries')).toEqual([])
+  })
+
+  it('rejects a current-schema backup that lacks the summary collection', async () => {
+    const text = await tampered(await exportText(await populated()), (e) => { delete e.data.dailySummaries })
+    expect(await rejection(text)).toMatchObject({ code: 'invalid_backup' })
   })
 })
 
@@ -419,7 +446,7 @@ describe('verifyDatabaseIntegrity', () => {
     expect(await verifyDatabaseIntegrity(database)).toMatchObject({
       ok: true,
       report: {
-        counts: { questTemplates: 4, questOccurrences: 7, questCompletions: 4, xpTransactions: 4 },
+        counts: { questTemplates: 4, questOccurrences: 7, questCompletions: 4, xpTransactions: 4, dailySummaries: 0 },
         progression: { totalExp: POPULATED_TOTAL_EXP, lastSeq: 4 },
       },
     })

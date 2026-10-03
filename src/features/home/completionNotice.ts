@@ -17,6 +17,10 @@ function failureMessage(reason: FailureReason): string {
     case 'database_unavailable':
     case 'database_blocked':
       return 'Saving is unavailable right now. That quest was not saved.'
+    case 'clock_behind':
+      return 'This device’s clock is behind your last recorded day, so changes are paused. Nothing was saved.'
+    case 'day_not_synchronized':
+      return 'The day changed. Today’s quests have been loaded; please try again.'
     default:
       return 'That quest could not be saved. Nothing was changed. Please try again.'
   }
@@ -26,7 +30,7 @@ function failureMessage(reason: FailureReason): string {
 function rejectionMessage(reason: CompleteQuestRejection): string {
   switch (reason) {
     case 'day_ended':
-      return 'This day has ended. Refresh to load today’s quests.'
+      return 'That day has ended and can no longer be completed. Today’s quests are loaded.'
     case 'not_yet_active':
       return 'That quest is not active yet.'
     case 'not_found':

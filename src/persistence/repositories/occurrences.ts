@@ -16,6 +16,7 @@ import type { PersistenceDatabase } from '../database/connection'
 import { requestToPromise, runTransaction } from '../database/transaction'
 import { PersistenceError } from '../errors'
 import { parseOccurrence } from '../records/occurrence'
+import { assertDateNotFinalized } from './dailySummaries'
 import { parseForWrite, parseStored } from './stored'
 
 /**
@@ -37,7 +38,7 @@ export interface StoredOccurrence {
  */
 export async function insertOccurrence(database: PersistenceDatabase, occurrence: QuestOccurrence): Promise<StoredOccurrence> {
   const valid = parseForWrite(parseOccurrence, occurrence, 'quest occurrence')
-  return runTransaction(database, [STORE.occurrences], 'readwrite', async (transaction) => {
+  return runTransaction(database, [STORE.occurrences, STORE.dailySummaries], 'readwrite', async (transaction) => {
     const store = transaction.objectStore(STORE.occurrences)
     const existing = await requestToPromise(store.get(valid.id))
     if (existing !== undefined) {
@@ -50,6 +51,7 @@ export async function insertOccurrence(database: PersistenceDatabase, occurrence
       }
       return { occurrence: stored, created: false }
     }
+    await assertDateNotFinalized(transaction, valid.dateKey)
     await requestToPromise(store.add(valid))
     return { occurrence: valid, created: true }
   })
@@ -59,7 +61,8 @@ export async function insertOccurrence(database: PersistenceDatabase, occurrence
  * Returns the persisted occurrence of `template` on `dateKey`, creating it
  * with the Phase 02 factory if none exists. An existing snapshot always wins:
  * later template edits never change it. Returns the domain's
- * `OccurrenceError` if the template is not eligible that day.
+ * `OccurrenceError` if the template is not eligible that day. A date that is
+ * already finalized accepts no new occurrence (`constraint_violation`).
  */
 export async function ensureOccurrence(
   database: PersistenceDatabase,
@@ -67,7 +70,7 @@ export async function ensureOccurrence(
   dateKey: DateKey,
   materializedAt: EpochMs,
 ): Promise<Result<StoredOccurrence, OccurrenceError>> {
-  return runTransaction(database, [STORE.occurrences], 'readwrite', async (transaction) => {
+  return runTransaction(database, [STORE.occurrences, STORE.dailySummaries], 'readwrite', async (transaction) => {
     const store = transaction.objectStore(STORE.occurrences)
     const id = occurrenceIdOf(template.id, dateKey)
     const existing = await requestToPromise(store.get(id))
@@ -77,6 +80,7 @@ export async function ensureOccurrence(
     const built = createOccurrence(template, dateKey, materializedAt)
     if (!built.ok) return err(built.error)
     const valid = parseForWrite(parseOccurrence, built.value, 'quest occurrence')
+    await assertDateNotFinalized(transaction, dateKey)
     await requestToPromise(store.add(valid))
     return ok({ occurrence: valid, created: true })
   })

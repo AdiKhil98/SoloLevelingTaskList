@@ -1,6 +1,7 @@
 import { validateQuestTemplate } from '@/domain'
 import { createTemplate } from '@/persistence'
 import { readClock } from '../clock'
+import { requireSynchronizedDay } from '../lifecycle/synchronization'
 import type { ApplicationContext } from '../context'
 import { classifyFailure, type FailureReason } from '../errors'
 import { newTemplateId } from '../ids'
@@ -34,6 +35,7 @@ export async function createQuest(context: ApplicationContext, values: QuestForm
   let templateId: string
   try {
     const reading = readClock(context.clock)
+    await requireSynchronizedDay(context, reading)
 
     const parsed = parseQuestForm(values, { today: reading.dateKey })
     if (!parsed.ok) return { status: 'invalid', errors: parsed.error }

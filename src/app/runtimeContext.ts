@@ -26,6 +26,15 @@ export interface QuestActions {
 }
 
 /**
+ * The one restrained notice a multi-day catch-up may leave (OD-21): how many
+ * old days were finalized. Informational; it carries no events and never
+ * replays per-day celebrations.
+ */
+export interface LifecycleNotice {
+  readonly daysReconciled: number
+}
+
+/**
  * What screens get from the application runtime: the current stored truth plus
  * the actions that change it. Deliberately small; UI-only state (pending
  * taps, notices) stays in the screens.
@@ -37,7 +46,13 @@ export interface AppRuntimeValue {
   completeQuest(occurrenceId: string): Promise<CompleteTodayQuestResult>
   /** Creates, edits, archives and restores quests. */
   readonly quests: QuestActions
-  /** Re-reads everything from storage (the same load as at startup). */
+  /** The catch-up notice to show, or null. */
+  readonly lifecycleNotice: LifecycleNotice | null
+  dismissLifecycleNotice(): void
+  /**
+   * Re-reads everything from storage and reconciles any missed day first (the
+   * same lifecycle step as at startup).
+   */
   reload(): Promise<void>
 }
 

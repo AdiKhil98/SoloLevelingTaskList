@@ -1,5 +1,6 @@
 import { archiveTemplate, getTemplate } from '@/persistence'
 import { readClock } from '../clock'
+import { requireSynchronizedDay } from '../lifecycle/synchronization'
 import type { ApplicationContext } from '../context'
 import { classifyFailure, type FailureReason } from '../errors'
 import { archiveActiveUntil } from './questTemplate'
@@ -32,6 +33,7 @@ export async function archiveQuest(context: ApplicationContext, templateId: stri
   let alreadyArchived = false
   try {
     const reading = readClock(context.clock)
+    await requireSynchronizedDay(context, reading)
     const current = await getTemplate(context.database, templateId)
     if (current === null) return { status: 'not_found' }
     if (current.status === 'archived') {

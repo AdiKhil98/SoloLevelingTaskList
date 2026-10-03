@@ -5,6 +5,10 @@ export type ApplicationErrorCode =
   | 'clock_unavailable'
   /** Stored data contradicts itself in a way a use case cannot work around. */
   | 'inconsistent_data'
+  /** The device date is before the last recorded day: nothing may be written (OD-22). */
+  | 'clock_behind'
+  /** Days before today are not finalized yet: lifecycle synchronization must run first. */
+  | 'day_not_synchronized'
 
 /** A failure raised by an application use case (as opposed to the storage layer). */
 export class ApplicationError extends Error {
@@ -28,6 +32,10 @@ export type FailureReason =
   | 'storage_full'
   | 'data_invalid'
   | 'clock_unavailable'
+  /** The device clock reads an earlier date than the last recorded day; changes are paused. */
+  | 'clock_behind'
+  /** The day changed under this screen; it must be synchronized before anything changes. */
+  | 'day_not_synchronized'
   | 'unexpected'
 
 export function classifyFailure(error: unknown): FailureReason {
@@ -51,7 +59,16 @@ export function classifyFailure(error: unknown): FailureReason {
     }
   }
   if (error instanceof ApplicationError) {
-    return error.code === 'clock_unavailable' ? 'clock_unavailable' : 'data_invalid'
+    switch (error.code) {
+      case 'clock_unavailable':
+        return 'clock_unavailable'
+      case 'clock_behind':
+        return 'clock_behind'
+      case 'day_not_synchronized':
+        return 'day_not_synchronized'
+      case 'inconsistent_data':
+        return 'data_invalid'
+    }
   }
   return 'unexpected'
 }

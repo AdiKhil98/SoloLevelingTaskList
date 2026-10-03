@@ -9,7 +9,7 @@ For each item: **Question** · **Why it matters** · **Needed by** (the latest p
 
 **Foundational blockers:** none. Every item below can be deferred to its "needed by" phase without blocking Phase 01.
 
-**Stable IDs:** decision IDs are never renumbered. **OD-02, OD-05, OD-11, OD-12, OD-13, OD-14, OD-16, and OD-17 are retired** — they were resolved after Phase 00 and now live as approved rules in `MASTER_SPEC.md` (levels after 100 §8.4, normal-quest EXP derived from difficulty only §5.3, zero-eligible days §7.5, completion finality §5.6, same-day quest create/edit/archive/restore semantics §5.7, streak finalization §7.4, no streak freezes §7.4, Perfect Week §11). OD-05 and OD-16 were resolved in Phase 05; the implementation is recorded in [QUEST_MANAGEMENT.md](QUEST_MANAGEMENT.md). They are intentionally absent below.
+**Stable IDs:** decision IDs are never renumbered. **OD-02, OD-05, OD-11, OD-12, OD-13, OD-14, OD-16, OD-17, OD-21, and OD-22 are retired** — they were resolved after Phase 00 and now live as approved rules in `MASTER_SPEC.md` (levels after 100 §8.4, normal-quest EXP derived from difficulty only §5.3, zero-eligible days §7.5, completion finality §5.6, same-day quest create/edit/archive/restore semantics §5.7, streak finalization §7.4, no streak freezes §7.4, Perfect Week §11). OD-05 and OD-16 were resolved in Phase 05; the implementation is recorded in [QUEST_MANAGEMENT.md](QUEST_MANAGEMENT.md). OD-21 (multi-day catch-up shows one restrained "N days reconciled." notice, no replayed events) and OD-22 (backward device clock enters a safe paused state, history never rewritten) were resolved in Phase 06; see [DAILY_LIFECYCLE.md](DAILY_LIFECYCLE.md) and MASTER_SPEC §4.4–4.5. They are intentionally absent below.
 
 ## Index
 
@@ -29,8 +29,6 @@ For each item: **Question** · **Why it matters** · **Needed by** (the latest p
 | OD-18 | Reliable semantic identification for achievements (e.g., "Gym Sessions") | Phase 08 |
 | OD-19 | Weekly board lifecycle and linked-progress rules | Phase 07 |
 | OD-20 | Which moment is the "Goal Crusher completion" spectacle | Phase 10 |
-| OD-21 | Surfacing events produced during multi-day catch-up | Phase 06 |
-| OD-22 | Device clock / timezone moving backwards | Phase 06 |
 
 ---
 
@@ -115,14 +113,3 @@ These are gaps or tensions found while turning the brief into a contract. None w
 - **Why it matters:** Determines which domain events carry heavy presentation and whether a live 10/10 moment is celebrated before the bonus is actually awarded at finalization.
 - **Needed by:** Phase 10 (events exist from Phase 07).
 - **Until then:** Domain emits `WeeklyGoalCompleted` and `WeeklyBoardFinalized`; presentation mapping is deferred.
-
-### OD-21 — Surfacing events produced during multi-day catch-up
-- **Question:** If reopening after days away finalizes several days/a week and awards a weekly bonus (possibly causing a level-up or rank-up), how are those celebrations shown? Persist unacknowledged events, summarize them in one "While you were away" report, or show nothing?
-- **Why it matters:** A bonus-driven Level/Rank-Up must not be lost or duplicated, and event delivery must never affect progression correctness.
-- **Needed by:** Phase 06.
-- **Until then:** Progression is applied atomically regardless; events are returned from reconcile but their persistence/presentation policy is undecided.
-
-### OD-22 — Device clock / timezone moving backwards
-- **Question:** If the device date becomes earlier than the last finalized date (travel west across the date line, manual clock change), what should the app do? Finalized days are never reopened (approved).
-- **Needed by:** Phase 06.
-- **Until then:** Reconcile must never un-finalize or re-finalize a date; it must not crash. Specific user-visible behavior is undecided.

@@ -16,6 +16,8 @@ function startupFailureHint(reason: FailureReason): string {
       return 'Some saved data could not be read. Nothing has been changed or deleted.'
     case 'clock_unavailable':
       return 'The device date and time could not be read.'
+    case 'clock_behind':
+    case 'day_not_synchronized':
     case 'unexpected':
       return 'Nothing has been changed or deleted.'
   }

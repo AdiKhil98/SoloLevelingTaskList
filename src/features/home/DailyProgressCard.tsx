@@ -1,3 +1,4 @@
+import { Link } from 'react-router'
 import type { DailyProgress } from '@/domain'
 import { dayQualityLabel } from '../displayLabels'
 
@@ -28,6 +29,12 @@ export function DailyProgressCard({ progress }: { progress: DailyProgress }) {
           </p>
         </div>
       )}
+      <Link
+        to="/report"
+        className="-mb-1 inline-flex min-h-11 items-center self-start text-sm font-medium text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+      >
+        Daily Report
+      </Link>
     </section>
   )
 }

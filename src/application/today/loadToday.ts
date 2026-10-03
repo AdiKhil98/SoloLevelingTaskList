@@ -71,10 +71,14 @@ interface Entry {
  *
  * `reading` lets a caller that already read the clock (initialization) reuse
  * the same instant; otherwise the clock is read here.
+ *
+ * `materialize: false` (the device clock is behind the recorded history) creates
+ * nothing: the view holds only what is already stored for the date.
  */
 export async function loadToday(
   context: ApplicationContext,
   reading: ClockReading = readClock(context.clock),
+  { materialize = true }: { readonly materialize?: boolean } = {},
 ): Promise<TodayView> {
   const { database } = context
   const { dateKey } = reading
@@ -89,7 +93,7 @@ export async function loadToday(
   }))
   const hasOccurrence = new Set(existing.map((occurrence) => occurrence.templateId))
 
-  for (const template of templates) {
+  for (const template of materialize ? templates : []) {
     if (template.status !== 'active') continue
     if (hasOccurrence.has(template.id)) continue
     if (!isQuestEligibleOnDate(template, dateKey)) continue

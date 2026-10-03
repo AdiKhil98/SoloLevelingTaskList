@@ -72,7 +72,7 @@ A retried or racing write therefore collides on the key instead of creating a se
 | Quest "is completed" | existence of a `QuestCompletion` for the occurrence | — | no separate boolean to drift |
 | Today's completion %, live quality | occurrences + completions for `today` | derived view `DailyProgress` | recomputed, not stored |
 | Final day result | **DailySummary** (immutable once written) | — | |
-| Current/best streak, perfect-day totals | **DailySummary chain** | any further persisted copy is a verifiable cache of the chain; its storage form is decided in Phase 06 (not in schema v1) | each summary stores streak-after values (§7) |
+| Current/best streak, perfect-day totals | **DailySummary chain** | any further persisted copy is a verifiable cache of the chain; Phase 06 decision: no separate cache; the chain tip's `*After` values plus a `quality` index count are read directly | each summary stores streak-after values (§7) |
 | Weekly score (live) | goals' completion state | derived | persisted only in the finalization snapshot |
 | Weekly bonus | **XPTransaction** `weekly_goal_crusher:{weekKey}` | board finalization snapshot references it | |
 | Achievements earned | **AchievementUnlock** rows | — | definitions are static code |
@@ -407,7 +407,7 @@ Rules:
 
 ## 11. Domain events
 
-Returned by domain functions alongside `writes`. The UI/animation layer consumes them; it never decides them. Persistence of undelivered events during catch-up: **[OPEN: OD-21]**.
+Returned by domain functions alongside `writes`. The UI/animation layer consumes them; it never decides them. Undelivered events are not persisted: a multi-day catch-up replays none (OD-21 resolved in Phase 06, see DAILY_LIFECYCLE.md).
 
 ```ts
 type DomainEvent =
@@ -499,7 +499,7 @@ interface DailyMessageAssignment {    // primary key = dateKey  ⇒ ≤ 1 per lo
 | `questOccurrences` | `id` | `dateKey`; `templateId`; **unique** `[templateId, dateKey]` | insert-only | ✔ v1 |
 | `questCompletions` | `occurrenceId` | `dateKey`; `templateId`; `category`; `completedAt` | insert-only | ✔ v1 |
 | `xpTransactions` | `id` | **unique** `idempotencyKey`; **unique** `seq`; `effectiveDate`; `sourceWeekKey`; `createdAt`; `category`; `source.type` | insert-only | ✔ v1 |
-| `dailySummaries` | `dateKey` | `quality`; `isPerfect` | insert-only | future migration |
+| `dailySummaries` | `dateKey` | `quality` (counts Perfect Days; an `isPerfect` index is impossible because booleans are not valid IndexedDB keys) | insert-only | ✔ v2 |
 | `weeklyBoards` | `weekKey` | `status` | mutable until finalized, then immutable | future migration |
 | `weeklyRewardClaims` | `weekKey` | — | insert-only | future migration |
 | `achievementUnlocks` | `achievementId` | `unlockedOn` | insert-only | future migration |
