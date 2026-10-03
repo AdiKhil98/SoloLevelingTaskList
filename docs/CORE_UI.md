@@ -4,6 +4,8 @@ Implementation facts about the first functional mobile application: `src/applica
 
 Phase 04 changed **no domain or persistence code and added no schema migration or dependency.** The only change outside the new code is the layer-boundary lint config (below) and the route table.
 
+> **Updated in Phase 05.** Today's load now keeps every occurrence that already exists for today (see [QUEST_MANAGEMENT.md](QUEST_MANAGEMENT.md)), `ApplicationContext` also carries an id source, and quest management, the `/quests` routes and a Quests tab were added. The sections below describe Phase 04 and have been corrected where Phase 05 changed them.
+
 ## Layer structure
 
 ```
@@ -11,7 +13,7 @@ src/platform/clock.ts     systemClock — the only place that reads Date / Intl 
 src/application/          framework-free use cases (domain + persistence only)
   index.ts                public API
   clock.ts                Clock interface, readClock(clock) → ClockReading
-  context.ts              ApplicationContext { database, clock }
+  context.ts              ApplicationContext { database, clock, ids }
   errors.ts               ApplicationError, FailureReason, classifyFailure
   seeds/                  DEFAULT_QUEST_SEEDS, ensureDefaultQuests
   today/                  loadToday, questOrder
@@ -40,7 +42,7 @@ The application layer is a set of plain functions that take an explicit `Applica
 
 `AppRuntimeProvider` (the owner of the runtime) opens **one** `PersistenceDatabase` with `openDatabase` in an effect, keeps it in its state as part of the `ApplicationContext`, and closes it when the effect is disposed or retried. Screens never open connections. It is StrictMode-safe: a run disposed before its database finished opening closes that late handle and never publishes state (tests check that exactly one connection stays open and every connection is closed on unmount). If another tab upgrades the database, the persistence handle closes itself and later calls fail with `database_closed`, which the UI reports as a recoverable error.
 
-`AppRuntimeProvider` takes `options: { clock, database?: { name?, factory? } }` (kept referentially stable by the caller). Tests inject a fresh `fake-indexeddb` factory and a fixed clock; production passes `{ clock: systemClock }`.
+`AppRuntimeProvider` takes `options: { clock, ids, database?: { name?, factory? } }` (kept referentially stable by the caller). Tests inject a fresh `fake-indexeddb` factory, a fixed clock and a deterministic id source; production passes `{ clock: systemClock, ids: systemIds }`.
 
 ## Clock and time zone
 
@@ -79,17 +81,17 @@ All are `daily`, `status: 'active'`, `revision: 1`, `activeUntil: null`, with `a
 
 `loadToday(context, reading?)`:
 
-1. list **active** templates;
-2. `isQuestEligibleOnDate(template, today)` for each (any recurrence kind; nothing assumes "all daily");
-3. for an eligible template, `ensureOccurrence` returns the persisted occurrence or creates it with the domain factory; **a stored snapshot always wins** over a changed template;
+1. read **every occurrence already stored for today** (`listOccurrencesByDate`) and keep all of them: **an existing occurrence is frozen and authoritative**, whether its template is still active, was edited so it is no longer eligible today, was archived, or is missing;
+2. read the templates of any status (an occurrence's display order needs its template's seed key and creation time);
+3. for each **active** template with no occurrence yet, `isQuestEligibleOnDate(template, today)` (any recurrence kind; nothing assumes "all daily") and, if eligible, `ensureOccurrence` creates it with the domain factory;
 4. join `listCompletionsByDate(today)`;
-5. `computeDailyProgress` counts every eligible occurrence once and classifies by exact ratio; the display percentage is the domain's floor.
+5. `computeDailyProgress` counts every occurrence (existing and new) once and classifies by exact ratio; the display percentage is the domain's floor.
 
 The result (`TodayView`) holds quests in display order, each with its snapshot fields, `completed` and `completedAt`, plus the `DailyProgress`.
 
 **Order.** `questOrder.compareQuestOrder`: seeded quests in `DEFAULT_QUEST_SEEDS` order (Fajr … Isha, Sleep), then everything else by template creation time and id. It lives in the application layer because the data model has no sort field. Phase 05 can replace this one comparator with explicit user ordering.
 
-**Not decided here (OD-16).** Only active templates are scanned, so an occurrence whose template is archived mid-day would disappear from Home. Phase 04 has no way to archive, and the same-day behavior is Phase 05's decision.
+**Phase 04 note, superseded.** Phase 04 scanned only active templates, so an occurrence whose template was archived mid-day would have disappeared from Home. Phase 05 resolved the same-day semantics (OD-16, MASTER_SPEC §5.7) and changed the loader as described above.
 
 ## Completion flow
 
@@ -134,7 +136,7 @@ The catalog is walked one entry per day and cycles without repeating until exhau
 
 - **Home** (top to bottom): SYSTEM header; `PLAYER` summary (`LV. n`, rank, current-level EXP bar); Daily Message; `TODAY` (`completed / eligible`, floored `%`, status); `DAILY QUESTS` list. A quest shows its title, `Difficulty X · Category`, and `+N EXP`. The Player label is the neutral `PLAYER`.
 - **Status:** Player, Level, Rank, Lifetime EXP, and the current-level EXP bar.
-- **Navigation:** a fixed bottom bar with Home and Status (56 px targets, safe-area aware, labelled `Primary`, `aria-current="page"` on the active link), constrained to the same 448 px column as the content on wide screens. `AppShell` reserves space under it.
+- **Navigation:** a fixed bottom bar with Home and Status (Phase 05 added Quests; 56 px targets, safe-area aware, labelled `Primary`, `aria-current="page"` on the active link), constrained to the same 448 px column as the content on wide screens. `AppShell` reserves space under it.
 
 ## UI states
 
@@ -151,7 +153,7 @@ Completion failures and rejections are shown inline above the quest list (`role=
 
 - **No live midnight rollover.** There is no timer, resume reconciliation or catch-up; Phase 06 owns them. If the app stays open past midnight, the old day's quests stay on screen; tapping one is refused by the domain (`day_ended`) with a message and a Refresh button, which simply re-runs the same load against the current date (as a reload would). Nothing is finalized or summarized.
 - **No streak.** PHASE_PLAN and MASTER_SPEC §14.1 list a streak on Home; the persisted streak lifecycle is Phase 06, so Phase 04 shows none rather than a fake `0`.
-- **No quest management.** No create / edit / archive UI, no user-created quests.
+- **No quest management** in Phase 04 (create / edit / archive / restore arrived in Phase 05: [QUEST_MANAGEMENT.md](QUEST_MANAGEMENT.md)).
 - **No final effects.** No particles, shaders, overlays, Level Up / Rank Up cinematics; visuals are restrained (Phase 09 / 10).
 - **No Player Name or onboarding** (Phase 11); the label is the neutral `PLAYER`.
 - **No total completed-quests count on Status.** Persistence has no count primitive; the only way to get one is to load every completion or ledger row, so it is omitted rather than expanding persistence.

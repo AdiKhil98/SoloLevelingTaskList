@@ -1,4 +1,4 @@
-import type { Category, DayQuality, RankId } from '@/domain'
+import type { Category, DayQuality, Difficulty, IsoWeekday, RankId } from '@/domain'
 
 /**
  * Display text for domain identifiers. These are presentation only: they name
@@ -51,4 +51,46 @@ const CATEGORY_LABELS: Record<Category, string> = {
 
 export function categoryLabel(category: Category): string {
   return CATEGORY_LABELS[category]
+}
+
+/**
+ * UI wording for difficulty. The identifiers (E–S) and their EXP are the
+ * domain's; these descriptive names are presentation only.
+ */
+const DIFFICULTY_NAMES: Record<Difficulty, string> = {
+  E: 'Trivial',
+  D: 'Easy',
+  C: 'Normal',
+  B: 'Hard',
+  A: 'Very Hard',
+  S: 'Major',
+}
+
+export function difficultyName(difficulty: Difficulty): string {
+  return DIFFICULTY_NAMES[difficulty]
+}
+
+/** `B — Hard` */
+export function difficultyLabel(difficulty: Difficulty): string {
+  return `${difficulty} — ${DIFFICULTY_NAMES[difficulty]}`
+}
+
+const WEEKDAY_NAMES: Record<IsoWeekday, string> = {
+  1: 'Monday',
+  2: 'Tuesday',
+  3: 'Wednesday',
+  4: 'Thursday',
+  5: 'Friday',
+  6: 'Saturday',
+  7: 'Sunday',
+}
+
+/** `Monday` */
+export function weekdayName(weekday: IsoWeekday): string {
+  return WEEKDAY_NAMES[weekday]
+}
+
+/** `Mon` */
+export function weekdayShortName(weekday: IsoWeekday): string {
+  return WEEKDAY_NAMES[weekday].slice(0, 3)
 }

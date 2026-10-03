@@ -127,4 +127,4 @@ When later phases add `DayStatusChanged` / `PerfectDayReached`, they slot betwee
 
 ## Phase 02 boundaries (not implemented)
 
-No persistence, repositories or migrations; no UI; no rollover, reconcile, timers or lifecycle; no persistent streak or Daily Summary logic; no Weekly Goal Crusher (scoring, board, bonus); no achievements; no Daily Message; no effects, sound, haptics or PWA. Open decisions are untouched: OD-01 (rank display name), OD-05 (EXP overrides), OD-16 (same-day template edits), OD-22 (clock moving backwards).
+No persistence, repositories or migrations; no UI; no rollover, reconcile, timers or lifecycle; no persistent streak or Daily Summary logic; no Weekly Goal Crusher (scoring, board, bonus); no achievements; no Daily Message; no effects, sound, haptics or PWA. Open decisions were untouched in Phase 02: OD-01 (rank display name), OD-05 (EXP overrides), OD-16 (same-day template edits), OD-22 (clock moving backwards). OD-05 and OD-16 were later resolved in Phase 05 (MASTER_SPEC §5.3 and §5.7) without changing the domain engine.

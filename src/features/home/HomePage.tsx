@@ -1,4 +1,6 @@
+import { Plus } from 'lucide-react'
 import { useCallback, useRef, useState } from 'react'
+import { Link } from 'react-router'
 import type { TodayQuest } from '@/application'
 import { useAppRuntime } from '@/app/runtimeContext'
 import { DailyMessageCard } from './DailyMessageCard'
@@ -48,7 +50,16 @@ export function HomePage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-sm font-semibold tracking-[0.4em] text-accent">SYSTEM</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-sm font-semibold tracking-[0.4em] text-accent">SYSTEM</h1>
+        <Link
+          to="/quests/new"
+          aria-label="Add Quest"
+          className="inline-flex size-12 items-center justify-center rounded-full border border-accent/60 text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:bg-accent/15"
+        >
+          <Plus aria-hidden="true" className="size-6" />
+        </Link>
+      </div>
 
       <PlayerSummary player={player} />
       <DailyMessageCard text={dailyMessage.text} />

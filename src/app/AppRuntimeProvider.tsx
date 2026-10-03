@@ -1,22 +1,32 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
+  archiveQuest,
   classifyFailure,
   completeTodayQuest,
+  createQuest,
   initializeApplication,
+  listQuestTemplates,
   loadHome,
+  loadQuestForEdit,
+  restoreQuest,
+  updateQuest,
   type ApplicationContext,
   type Clock,
   type CompleteTodayQuestResult,
   type FailureReason,
   type HomeSnapshot,
+  type IdSource,
+  type QuestFormValues,
 } from '@/application'
 import { openDatabase, type OpenDatabaseOptions, type PersistenceDatabase } from '@/persistence'
-import { AppRuntimeContext, type AppRuntimeValue } from './runtimeContext'
+import { AppRuntimeContext, type AppRuntimeValue, type QuestActions } from './runtimeContext'
 import { LoadingScreen, StartupErrorScreen } from './StartupScreens'
 
 export interface AppRuntimeOptions {
   /** Where "now" and the time zone come from (the device clock in production). */
   readonly clock: Clock
+  /** Where fresh random ids come from (Web Crypto in production). */
+  readonly ids: IdSource
   /** Database name / IndexedDB factory; defaults to the production database. */
   readonly database?: OpenDatabaseOptions
 }
@@ -25,7 +35,7 @@ type RuntimeState =
   | { readonly status: 'loading' }
   | {
       readonly status: 'ready'
-      /** The one open database handle and the clock, shared by every use case. */
+      /** The one open database handle, the clock and the id source, shared by every use case. */
       readonly context: ApplicationContext
       readonly snapshot: HomeSnapshot
     }
@@ -36,6 +46,9 @@ interface AppRuntimeProviderProps {
   options: AppRuntimeOptions
   children: ReactNode
 }
+
+/** The part of a saved quest-management result that carries the refreshed Home state. */
+type MaybeRefreshed = { readonly home: HomeSnapshot } | { readonly home: null; readonly refreshCause: unknown }
 
 /**
  * Owns the application runtime: opens the ONE database handle, runs the startup
@@ -62,7 +75,7 @@ export function AppRuntimeProvider({ options, children }: AppRuntimeProviderProp
           return
         }
         database = opened
-        const context: ApplicationContext = { database: opened, clock: options.clock }
+        const context: ApplicationContext = { database: opened, clock: options.clock, ids: options.ids }
         const snapshot = await initializeApplication(context)
         if (disposed) return
         setState({ status: 'ready', context, snapshot })
@@ -117,9 +130,49 @@ export function AppRuntimeProvider({ options, children }: AppRuntimeProviderProp
     [context, reload],
   )
 
+  const quests = useMemo<QuestActions | null>(() => {
+    if (context === null) return null
+
+    // A quest change that was saved also refreshed Home: adopt that state, or
+    // reload if the saved change could not be re-read (never show stale state).
+    const adopt = async (result: MaybeRefreshed): Promise<void> => {
+      if (result.home !== null) {
+        setState({ status: 'ready', context, snapshot: result.home })
+      } else {
+        console.error('Refreshing after a saved quest change failed', result.refreshCause)
+        await reload()
+      }
+    }
+
+    return {
+      list: () => listQuestTemplates(context),
+      loadForEdit: (templateId: string) => loadQuestForEdit(context, templateId),
+      create: async (values: QuestFormValues) => {
+        const result = await createQuest(context, values)
+        if (result.status === 'created') await adopt(result)
+        return result
+      },
+      update: async (templateId: string, values: QuestFormValues) => {
+        const result = await updateQuest(context, templateId, values)
+        if (result.status === 'updated') await adopt(result)
+        return result
+      },
+      archive: async (templateId: string) => {
+        const result = await archiveQuest(context, templateId)
+        if (result.status === 'archived' || result.status === 'already_archived') await adopt(result)
+        return result
+      },
+      restore: async (templateId: string) => {
+        const result = await restoreQuest(context, templateId)
+        if (result.status === 'restored' || result.status === 'already_active') await adopt(result)
+        return result
+      },
+    }
+  }, [context, reload])
+
   const value = useMemo<AppRuntimeValue | null>(
-    () => (snapshot === null ? null : { snapshot, completeQuest, reload }),
-    [snapshot, completeQuest, reload],
+    () => (snapshot === null || quests === null ? null : { snapshot, completeQuest, quests, reload }),
+    [snapshot, completeQuest, quests, reload],
   )
 
   if (state.status === 'error') return <StartupErrorScreen reason={state.reason} onRetry={retry} />

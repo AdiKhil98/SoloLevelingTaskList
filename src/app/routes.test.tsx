@@ -17,6 +17,26 @@ describe('application routes', () => {
     expect(await screen.findByRole('heading', { name: 'STATUS' })).toBeInTheDocument()
   })
 
+  it('renders the quest list at /quests', async () => {
+    renderApp({ path: '/quests' })
+
+    expect(await screen.findByRole('heading', { name: 'QUESTS' })).toBeInTheDocument()
+  })
+
+  it('renders the create form at /quests/new', async () => {
+    renderApp({ path: '/quests/new' })
+
+    expect(await screen.findByRole('heading', { name: 'NEW QUEST' })).toBeInTheDocument()
+  })
+
+  it('renders a safe not-found state for an unknown quest id at /quests/:id/edit', async () => {
+    renderApp({ path: '/quests/tpl_does_not_exist/edit' })
+
+    expect(await screen.findByRole('heading', { name: 'Quest not found' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'NEW QUEST' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /create quest|save changes/i })).not.toBeInTheDocument()
+  })
+
   it('renders the not-found route for unknown paths', async () => {
     renderApp({ path: '/does-not-exist' })
 
@@ -26,12 +46,12 @@ describe('application routes', () => {
 })
 
 describe('bottom navigation', () => {
-  it('offers exactly Home and Status, with accessible labels', async () => {
+  it('offers exactly Home, Quests and Status, with accessible labels', async () => {
     renderApp()
     await screen.findByRole('heading', { name: 'SYSTEM' })
 
     const nav = screen.getByRole('navigation', { name: 'Primary' })
-    expect(within(nav).getAllByRole('link').map((link) => link.textContent)).toEqual(['Home', 'Status'])
+    expect(within(nav).getAllByRole('link').map((link) => link.textContent)).toEqual(['Home', 'Quests', 'Status'])
   })
 
   it('marks the active destination with aria-current', async () => {
@@ -40,7 +60,23 @@ describe('bottom navigation', () => {
     const nav = screen.getByRole('navigation', { name: 'Primary' })
 
     expect(within(nav).getByRole('link', { name: 'Home' })).toHaveAttribute('aria-current', 'page')
+    expect(within(nav).getByRole('link', { name: 'Quests' })).not.toHaveAttribute('aria-current')
     expect(within(nav).getByRole('link', { name: 'Status' })).not.toHaveAttribute('aria-current')
+  })
+
+  it('navigates to Quests and keeps it marked active on its nested routes', async () => {
+    renderApp()
+    await screen.findByRole('heading', { name: 'SYSTEM' })
+    const nav = screen.getByRole('navigation', { name: 'Primary' })
+
+    fireEvent.click(within(nav).getByRole('link', { name: 'Quests' }))
+    expect(await screen.findByRole('heading', { name: 'QUESTS' })).toBeInTheDocument()
+    expect(within(nav).getByRole('link', { name: 'Quests' })).toHaveAttribute('aria-current', 'page')
+
+    fireEvent.click(screen.getByRole('link', { name: 'Add Quest' }))
+    expect(await screen.findByRole('heading', { name: 'NEW QUEST' })).toBeInTheDocument()
+    expect(within(nav).getByRole('link', { name: 'Quests' })).toHaveAttribute('aria-current', 'page')
+    expect(within(nav).getByRole('link', { name: 'Home' })).not.toHaveAttribute('aria-current')
   })
 
   it('navigates Home → Status → Home', async () => {

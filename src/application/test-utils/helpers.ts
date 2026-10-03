@@ -3,6 +3,8 @@ import { asDateKey, type DateKey, type QuestTemplate } from '@/domain'
 import { openDatabase, type PersistenceDatabase } from '@/persistence'
 import type { Clock } from '../clock'
 import type { ApplicationContext } from '../context'
+import type { IdSource } from '../ids'
+import { defaultQuestFormValues, type QuestFormValues } from '../quests/questForm'
 
 /** Test-only helpers. Not part of the public application API. */
 
@@ -58,6 +60,17 @@ export function createTestClock(epochMs: number, timeZone: string = ZONE): TestC
   }
 }
 
+/** Deterministic, well-formed UUIDs (`00000000-0000-4000-8000-000000000001`, …): the same sequence every test. */
+export function createSequentialIds(): IdSource {
+  let counter = 0
+  return {
+    uuid: () => {
+      counter += 1
+      return `00000000-0000-4000-8000-${String(counter).padStart(12, '0')}`
+    },
+  }
+}
+
 /** A fresh, isolated fake IndexedDB (one per test). */
 export const newFactory = (): IDBFactory => new IDBFactory()
 
@@ -73,5 +86,10 @@ export async function createTestContext(dateKey = '2026-10-05'): Promise<TestCon
   const factory = newFactory()
   const database = await openDatabase({ factory })
   const clock = createTestClock(noonOn(dateKey))
-  return { context: { database, clock }, clock, factory, database }
+  return { context: { database, clock, ids: createSequentialIds() }, clock, factory, database }
+}
+
+/** Valid form values for a Daily "Test quest" starting `today`; override what a test cares about. */
+export function buildFormValues(overrides: Partial<QuestFormValues> = {}, today = '2026-10-05'): QuestFormValues {
+  return { ...defaultQuestFormValues(d(today)), title: 'Test quest', ...overrides }
 }

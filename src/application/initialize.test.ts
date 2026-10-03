@@ -14,6 +14,7 @@ import { initializeApplication } from './initialize'
 import {
   buildTemplate,
   createTestClock,
+  createSequentialIds,
   createTestContext,
   newFactory,
   noonOn,
@@ -73,7 +74,7 @@ describe('initializeApplication', () => {
 
     const reopened = await openDatabase({ factory })
     opened.push(reopened)
-    const home = await initializeApplication({ database: reopened, clock })
+    const home = await initializeApplication({ database: reopened, clock, ids: createSequentialIds() })
 
     expect(home.player.totalExp).toBe(10)
     expect(home.today.quests[0]).toMatchObject({ title: 'Fajr', completed: true })
@@ -113,7 +114,7 @@ describe('initializeApplication', () => {
     const restored = await importBackup(target, backup)
     expect(restored.ok).toBe(true)
 
-    const home = await initializeApplication({ database: target, clock: createTestClock(noonOn(TODAY)) })
+    const home = await initializeApplication({ database: target, clock: createTestClock(noonOn(TODAY)), ids: createSequentialIds() })
 
     expect(await listTemplates(target)).toHaveLength(6)
     expect(home.player.totalExp).toBe(20)

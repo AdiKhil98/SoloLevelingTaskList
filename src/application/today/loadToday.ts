@@ -11,11 +11,11 @@ import {
   type QuestRole,
   type QuestTemplate,
 } from '@/domain'
-import { ensureOccurrence, listCompletionsByDate, listTemplates } from '@/persistence'
+import { ensureOccurrence, listCompletionsByDate, listOccurrencesByDate, listTemplates } from '@/persistence'
 import { readClock } from '../clock'
 import type { ApplicationContext } from '../context'
 import { ApplicationError } from '../errors'
-import { compareQuestOrder } from './questOrder'
+import { compareQuestOrder, type QuestOrderKey } from './questOrder'
 
 /** One quest on today's list, as stored: the occurrence snapshot plus its completion state. */
 export interface TodayQuest {
@@ -39,20 +39,35 @@ export interface TodayView {
   readonly progress: DailyProgress
 }
 
+/** Sort key of an occurrence: its template's, or (template missing) a stable one from the snapshot. */
+function orderKeyOf(occurrence: QuestOccurrence, template: QuestTemplate | undefined): QuestOrderKey {
+  return template === undefined
+    ? { seedKey: null, templateCreatedAt: occurrence.materializedAt, templateId: occurrence.templateId }
+    : { seedKey: template.seedKey, templateCreatedAt: template.createdAt, templateId: template.id }
+}
+
 interface Entry {
-  readonly template: QuestTemplate
   readonly occurrence: QuestOccurrence
+  readonly order: QuestOrderKey
 }
 
 /**
  * Loads today's quests.
  *
- *  1. read the active templates;
- *  2. ask the domain whether each is eligible on today's date (any recurrence
- *     kind: this loader never assumes "everything is daily");
- *  3. for each eligible template take the persisted occurrence, creating it
- *     with the domain factory only if none exists (a stored snapshot always wins);
- *  4. join today's completions and let the daily engine count and classify.
+ * An occurrence that exists for today is FROZEN and authoritative (OD-16, see
+ * QUEST_MANAGEMENT.md): it stays on the list, in the denominator and
+ * completable whatever happened to its template afterwards (archived, edited so
+ * it is no longer eligible today, even missing). Only templates that are still
+ * active can add occurrences.
+ *
+ *  1. read today's persisted occurrences and keep every one of them;
+ *  2. read the templates of any status (an occurrence's display order needs its
+ *     template's seed key and creation time);
+ *  3. for each ACTIVE template that the domain says is eligible today and has no
+ *     occurrence yet, create it with the domain factory (any recurrence kind:
+ *     this loader never assumes "everything is daily");
+ *  4. join today's completions and let the daily engine count and classify the
+ *     union of the existing and the newly created occurrences.
  *
  * `reading` lets a caller that already read the clock (initialization) reuse
  * the same instant; otherwise the clock is read here.
@@ -64,9 +79,19 @@ export async function loadToday(
   const { database } = context
   const { dateKey } = reading
 
-  const templates = await listTemplates(database, { status: 'active' })
-  const entries: Entry[] = []
+  const existing = await listOccurrencesByDate(database, dateKey)
+  const templates = await listTemplates(database)
+  const templateById = new Map<string, QuestTemplate>(templates.map((template) => [template.id, template]))
+
+  const entries: Entry[] = existing.map((occurrence) => ({
+    occurrence,
+    order: orderKeyOf(occurrence, templateById.get(occurrence.templateId)),
+  }))
+  const hasOccurrence = new Set(existing.map((occurrence) => occurrence.templateId))
+
   for (const template of templates) {
+    if (template.status !== 'active') continue
+    if (hasOccurrence.has(template.id)) continue
     if (!isQuestEligibleOnDate(template, dateKey)) continue
     const stored = await ensureOccurrence(database, template, dateKey, reading.epochMs)
     if (!stored.ok) {
@@ -75,14 +100,9 @@ export async function loadToday(
         `Could not materialize "${template.id}" for ${dateKey} (${stored.error.code})`,
       )
     }
-    entries.push({ template, occurrence: stored.value.occurrence })
+    entries.push({ occurrence: stored.value.occurrence, order: orderKeyOf(stored.value.occurrence, template) })
   }
-  entries.sort((a, b) =>
-    compareQuestOrder(
-      { seedKey: a.template.seedKey, templateCreatedAt: a.template.createdAt, templateId: a.template.id },
-      { seedKey: b.template.seedKey, templateCreatedAt: b.template.createdAt, templateId: b.template.id },
-    ),
-  )
+  entries.sort((a, b) => compareQuestOrder(a.order, b.order))
 
   const completions = await listCompletionsByDate(database, dateKey)
   const completedAt = new Map<string, EpochMs>(

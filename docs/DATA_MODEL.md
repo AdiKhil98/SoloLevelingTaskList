@@ -134,8 +134,8 @@ interface QuestTemplate {
   role: 'standard' | 'sleep';        // 'sleep' marks the Sleep-before-00:00 quest (UI may give it a special action)
   seedKey: string | null;            // e.g. 'prayer.fajr', 'sleep' — prevents duplicate seeding
   activeFrom: DateKey;               // first date it may be eligible
-  activeUntil: DateKey | null;       // last date (inclusive); set when deactivated/deleted
-  status: 'active' | 'archived';     // 'archived' = deleted/deactivated (soft); never hard-deleted while referenced
+  activeUntil: DateKey | null;       // last date (inclusive); null while active. Archiving writes it as compatibility bookkeeping only (template validation forbids activeUntil < activeFrom); `status` is authoritative
+  status: 'active' | 'archived';     // 'archived' = deleted (soft) — the authoritative archive state; never hard-deleted
   revision: number;                  // incremented on each edit
   createdAt: EpochMs;
   updatedAt: EpochMs;
@@ -325,18 +325,19 @@ DailySummary (immutable)                           ← the day's final result
 
 Everything to the right of the template is a historical record that no template edit can change.
 
-### 9.2 Proposed behavior (principle approved; same-day details **[OPEN: OD-16]**)
+### 9.2 Approved behavior (MASTER_SPEC §5.7)
 
 | Action on a template | Effect |
 |----------------------|--------|
-| **Edit** (title, difficulty, category, recurrence) | Increments `revision`. Applies to occurrences materialized **for dates after the edit's local date** (proposed). Existing occurrences, completions, summaries, and ledger rows are untouched. |
-| **Delete / deactivate** | Sets `activeUntil` (proposed: the edit's local date, so today's already-materialized occurrence is unaffected) and `status = 'archived'`. Never hard-deletes while any occurrence/completion/summary references it. |
-| **Create** | Eligible from `activeFrom`; the same-day entry rule is OD-16. |
+| **Edit** (title, difficulty, category, recurrence) | Increments `revision`. Applies to occurrences **created afterwards**. An occurrence that already exists (today's included) is frozen and never changes or disappears; if none exists for today yet, the edited template's normal eligibility decides whether one is created. Completions, summaries, and ledger rows are untouched. |
+| **Delete / archive** | Sets `status = 'archived'` (authoritative) and an `activeUntil` that satisfies template validation (the latest of the archive date, `activeFrom` and a one-time date); that value is bookkeeping only. Stops future occurrences; an occurrence that already exists for today stays visible, completable and in today's denominator. Never hard-deletes. |
+| **Restore** | Sets `status = 'active'` and clears `activeUntil`. Future eligibility resumes; an existing occurrence is reused; nothing is generated retroactively. |
+| **Create** | Eligible from `activeFrom`. If eligible today, today's occurrence is created immediately; otherwise it appears when it becomes eligible. Never retroactive. |
 | **Edit weekly recurrence/anchor** | Only changes which *future* dates are eligible; past eligibility is frozen in occurrences. |
 
 ### 9.3 Materialization rule
 
-Occurrences for a date are created (idempotently, by deterministic id) when that date is first processed by reconcile: on launch for today, or while catching up missed dates. Because the edit rule above makes edits take effect from the following date, materializing a missed date from the *current* template state is equivalent to materializing it on the day.
+Occurrences for a date are created (idempotently, by deterministic id) when that date is first processed: when today's quests are loaded (launch, and after every quest-management save), or by reconcile while catching up missed dates. **An existing occurrence is authoritative:** loading a date keeps every occurrence already stored for it, whatever became of its template, and only creates occurrences for active, eligible templates that have none. Materializing a missed date from the *current* template state is sound because templates only change while the app is open, and the open day's occurrences already reflect those changes.
 
 ---
 

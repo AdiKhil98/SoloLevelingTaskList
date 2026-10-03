@@ -120,7 +120,7 @@
 - **Objective:** Let the user create and maintain quests without ever corrupting history.
 - **Owns:** create/edit/deactivate-delete of templates; Daily, Scheduled (weekdays and interval+anchor), One-Time; difficulty and category pickers (EXP shown, derived); recurrence editor with eligibility preview; validation; safe archive semantics per DATA_MODEL §9.
 - **May modify:** quest feature UI, application services, template-related domain/persistence code (extension-only).
-- **Must not implement:** free-form EXP input (unless OD-05 approves overrides), history rewriting, weekly goals, lifecycle/rollover changes.
+- **Must not implement:** free-form EXP input (OD-05 was resolved: no overrides), history rewriting, weekly goals, lifecycle/rollover changes.
 - **Prerequisites:** Phase 04 approved; **OD-05** and **OD-16** decided.
 - **Outputs:** quest-management screens and flows.
 - **Acceptance criteria:** editing a template never alters past occurrences/completions/summaries; deleting preserves all history and earned EXP; a scheduled quest never appears on or affects an ineligible day; interval quests do not shift when a session is missed; validation rejects empty weekdays, `N < 2`, invalid dates.

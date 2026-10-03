@@ -9,7 +9,7 @@ For each item: **Question** · **Why it matters** · **Needed by** (the latest p
 
 **Foundational blockers:** none. Every item below can be deferred to its "needed by" phase without blocking Phase 01.
 
-**Stable IDs:** decision IDs are never renumbered. **OD-02, OD-11, OD-12, OD-13, OD-14, and OD-17 are retired** — they were resolved after Phase 00 and now live as approved rules in `MASTER_SPEC.md` (levels after 100 §8.4, zero-eligible days §7.5, completion finality §5.6, streak finalization §7.4, no streak freezes §7.4, Perfect Week §11). They are intentionally absent below.
+**Stable IDs:** decision IDs are never renumbered. **OD-02, OD-05, OD-11, OD-12, OD-13, OD-14, OD-16, and OD-17 are retired** — they were resolved after Phase 00 and now live as approved rules in `MASTER_SPEC.md` (levels after 100 §8.4, normal-quest EXP derived from difficulty only §5.3, zero-eligible days §7.5, completion finality §5.6, same-day quest create/edit/archive/restore semantics §5.7, streak finalization §7.4, no streak freezes §7.4, Perfect Week §11). OD-05 and OD-16 were resolved in Phase 05; the implementation is recorded in [QUEST_MANAGEMENT.md](QUEST_MANAGEMENT.md). They are intentionally absent below.
 
 ## Index
 
@@ -19,15 +19,13 @@ For each item: **Question** · **Why it matters** · **Needed by** (the latest p
 | OD-01 | Final display name of the Level 100+ special rank | Phase 08 |
 | OD-03 | Final seeded achievement catalog | Phase 08 |
 | OD-04 | Final Daily Message catalog content (mechanism resolved in Phase 04) | Phase 14 |
-| OD-05 | Will quest EXP overrides ever exist? | Phase 05 |
 | OD-06 | Exact sound effects | Phase 10 |
 | OD-07 | Exact haptic patterns | Phase 10 |
 | OD-08 | Final animation timings / effect-intensity levels | Phase 10 (tuned in 14) |
 | OD-09 | Final typography / font | Phase 09 |
 | OD-10 | Additional Goal Crusher progress-tracking modes | Phase 07 |
 | **B. Items discovered while writing the specification** | | |
-| OD-15 | Seeded quest catalog beyond prayers and Sleep (the six approved seeds are implemented) | Phase 05 |
-| OD-16 | Same-day template create/edit/delete semantics | Phase 05 |
+| OD-15 | Seeded quest catalog beyond prayers and Sleep (the six approved seeds are implemented; editability was settled in Phase 05) | Before any further default is seeded |
 | OD-18 | Reliable semantic identification for achievements (e.g., "Gym Sessions") | Phase 08 |
 | OD-19 | Weekly board lifecycle and linked-progress rules | Phase 07 |
 | OD-20 | Which moment is the "Goal Crusher completion" spectacle | Phase 10 |
@@ -55,12 +53,6 @@ For each item: **Question** · **Why it matters** · **Needed by** (the latest p
 - **Still open (the content):** the final catalog — how many messages, the exact wording and polish, and whether any properly attributed / public-domain quotations are ever included. Whether a per-date assignment is ever persisted (DATA_MODEL §13) is also left open; it is not needed for correctness, and editing the catalog may change which message a past date maps to (a Daily Message has no historical role).
 - **Needed by:** Phase 14 (final catalog and polish).
 - **Until then:** Only original/system-style text in the local catalog. No external quote API. No unverified internet-attributed quotations.
-
-### OD-05 — Quest EXP overrides
-- **Question:** Will users ever be allowed to override a quest's EXP away from its difficulty-derived value?
-- **Why it matters:** Unrestricted EXP input would let trivial quests grant extreme rewards and undermine progression integrity.
-- **Needed by:** Phase 05 (quest creation form).
-- **Until then:** No override field. EXP derives only from difficulty.
 
 ### OD-06 — Exact sound effects
 - **Question:** Which sounds (if any) accompany quest completion, level-up, rank-up, Perfect Day, Goal Crusher, awakening? Source/licensing of audio files?
@@ -99,16 +91,11 @@ These are gaps or tensions found while turning the brief into a contract. None w
 
 ### OD-15 — Seeded quest catalog beyond prayers and Sleep
 - **Phase 04 status:** Phase 04 seeds **only the already-approved six** — the five prayers and Sleep before 00:00 (MASTER_SPEC §5.5), idempotently, keyed by `seedKey`. See [CORE_UI.md](CORE_UI.md). This does **not** resolve the decision below; it only implements what was already approved.
-- **Question (still open):** Are Hydration, Gym, or any others seeded by default? Only the five prayers and Sleep have approved parameters; hydration and gym appeared only as examples. Also: may seeded quests (including Sleep) be edited, deactivated, or deleted by the user?
-- **Why it matters:** First-run experience and the Sleep role. (If seeded quests can all be deactivated, a "No Active Quests" day becomes reachable — already handled neutrally per MASTER_SPEC §7.5.)
-- **Needed by:** Phase 05 (quest management decides editability; any further defaults must be decided before they are seeded).
-- **Until then:** Seed exactly the five prayers + Sleep. Others are user-created in Phase 05 unless the owner decides otherwise.
-
-### OD-16 — Same-day template create / edit / delete semantics
-- **Question:** When a template is created, edited, or deleted *today*, what happens to today's occurrence and today's denominator? The proposed default (DATA_MODEL §9) is: edits/deletions take effect from the next local date; a new quest enters today only per a rule to be chosen.
-- **Why it matters:** Integrity of "Perfect Day" (deleting an unfinished quest mid-day could inflate completion %) versus convenience (fixing a mistaken quest).
-- **Needed by:** Phase 05.
-- **Until then:** Past records are immutable (approved). Do not choose same-day behavior implicitly; Phase 05 proposes options first.
+- **Resolved in Phase 05 (editability):** the six seeded quests, including Sleep, are ordinary manageable templates. They may be edited, archived and restored through quest management; their template id, `seedKey` and `role` are preserved and not editable, and an archived seed is never re-seeded. See [QUEST_MANAGEMENT.md](QUEST_MANAGEMENT.md). (If every quest is archived, a "No Active Quests" day is reachable — already handled neutrally per MASTER_SPEC §7.5.)
+- **Question (still open):** Are Hydration, Gym, or any others seeded by default? Only the five prayers and Sleep have approved parameters; hydration and gym appeared only as examples.
+- **Why it matters:** First-run experience.
+- **Needed by:** before any further default is seeded.
+- **Until then:** Seed exactly the five prayers + Sleep. Other quests are user-created through quest management.
 
 ### OD-18 — Reliable semantic identification for achievements (e.g., "Gym Sessions")
 - **Question:** "25 Gym Sessions" needs a reliable way to recognize a "Gym" quest. Candidates: a stable semantic quest tag / activity identifier, a specific template ID, or a seed key. **A Fitness-category quest is not assumed to be a Gym session.** This stays open unless the future achievement design introduces a stable semantic quest tag/activity identifier.

@@ -61,7 +61,7 @@ No `PlayerProgress` cache exists in schema v1 and none is required (DATA_MODEL �
 - Every operation runs through one helper, `runTransaction(db, stores, mode, work)`. `work` awaits only IndexedDB requests (anything else would let the transaction auto-commit). If `work` throws, the transaction is **aborted**, so nothing it wrote survives.
 - Raw `IDBRequest` objects never leave the layer; repositories return domain records or typed results.
 - Insert-only stores (`questOccurrences`, `questCompletions`, `xpTransactions`) have **no update or delete function**. The only writers are `insertOccurrence`/`ensureOccurrence`, `completeQuestAtomically`, and the backup restore.
-- Templates are never hard-deleted (history refers to them): `archiveTemplate` sets `status = 'archived'` and an explicit `activeUntil`; `updateTemplate` replaces a template but refuses a `revision` that moves backwards. Same-day semantics of edits and deletes (OD-16) are **not** decided here — the caller passes `activeUntil`.
+- Templates are never hard-deleted (history refers to them): `archiveTemplate` sets `status = 'archived'` and an explicit `activeUntil`; `updateTemplate` replaces a template but refuses a `revision` that moves backwards. Same-day semantics of edits and deletes are decided above this layer (OD-16, resolved in MASTER_SPEC §5.7 and implemented in the application layer: [QUEST_MANAGEMENT.md](QUEST_MANAGEMENT.md)). The caller passes `activeUntil`, which is compatibility bookkeeping required by template validation; `status` is the authoritative archive state.
 
 ### Atomic quest completion
 

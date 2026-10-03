@@ -158,7 +158,7 @@ Reconcile, given `today`:
 
 Reopening after N days away therefore finalizes N days: each with all of its eligible quests uncompleted (an Incomplete Day if it had any eligible quests), and applies streak consequences accordingly.
 
-*Materializing missed days from current templates is sound because templates cannot change while the app is closed, and template edits take effect no earlier than the following local date (§5.7).*
+*Materializing missed days from current templates is sound because templates can only change while the app is open, and every change is reflected in the open day's occurrences at once (a quest that becomes eligible today is materialized as soon as it is saved, and an occurrence that already exists is frozen — §5.7). Catch-up only covers dates after the last day the app was open, for which the templates have not changed.*
 
 ### 4.5 Edge cases **[APPROVED where stated]**
 
@@ -207,7 +207,7 @@ If a quest is not eligible on a date it: does not appear as active; does not ent
 | S | 120 |
 
 - Quest EXP is **derived from the selected difficulty**. There is **no free-form EXP input** in V1.
-- Whether custom EXP overrides will ever exist is **[OPEN: OD-05]**.
+- **Normal-quest EXP is always determined by difficulty. [APPROVED]** Custom EXP overrides are not supported in V1, and there is no editable numeric EXP field anywhere in quest management.
 - Values live in one centralized configuration module (NR-12).
 - The EXP value is **snapshotted onto each occurrence** when it is materialized, so changing configuration/templates later never rewrites what past completions were worth.
 
@@ -256,8 +256,13 @@ Conceptual chain: `QuestOccurrence → QuestCompletion → XPTransaction`.
 ### 5.7 Editing and deleting quests **[APPROVED principles]**
 
 - **Editing a template** affects only *appropriate future* occurrences; past occurrences are frozen snapshots.
-- **Deleting a template** deactivates it (sets the end of its active period / archives it). It stops generating future occurrences and never erases past completions, Daily Summaries, EXP transactions, or archived weekly progress.
-- Exact same-day semantics (what happens to *today's* occurrence when a template is edited, created, or deleted mid-day) are **[OPEN: OD-16]**. The proposed default (edits/deletions take effect from the next local date) is documented in DATA_MODEL §9.
+- **Deleting a template** archives it (`status: 'archived'`, the authoritative archive state; the template is never hard-deleted). It stops generating future occurrences and never erases past completions, Daily Summaries, EXP transactions, or archived weekly progress.
+- **Same-day semantics [APPROVED].** Once a QuestOccurrence exists for a calendar date it is **frozen** for that date:
+  - **Create.** A new template that is eligible today gets today's occurrence immediately and enters today's denominator; one that is not eligible today gets none until it becomes eligible. Nothing is generated for earlier dates.
+  - **Edit.** Changes apply to occurrences created afterwards. An existing occurrence keeps every snapshotted field (title, difficulty, EXP, category, recurrence kind, template revision), stays visible, and is never removed or rebuilt, even if the edit makes the quest ineligible today. If no occurrence exists yet, the edited template's normal eligibility decides whether one is created.
+  - **Archive.** Stops all future occurrences. An existing occurrence for today is not removed: it stays visible, stays completable until the day ends, and stays in today's denominator, so an unfinished hard quest cannot be archived away to improve the day.
+  - **Restore.** Reactivates an archived template; future eligibility resumes from its stored recurrence, history is untouched, an existing occurrence is reused, and nothing is generated retroactively.
+  - No create, edit, archive or restore awards or changes EXP.
 
 ---
 
@@ -352,7 +357,7 @@ When a day is **finalized** (and has at least one eligible quest):
 - A day with **zero eligible quests** is neutral — see §7.5.
 - Goal Crusher performance **never** affects any streak (NR-11).
 
-**Live display during the active day (presentation only).** If the player's live ratio reaches ≥ 70 %, the UI may show **STREAK SECURED** and may show the *projected* next streak value (`persisted current + 1`). That projection is a derived view; the persisted streak is not incremented until the day is finalized. Likewise a live 100 % may show a projected Perfect Day Streak without persisting it. The live ratio can still fall (for example, if an additional quest becomes eligible mid-day — see OD-16); the banner and projection then simply disappear. Persisted values are unaffected either way until finalization.
+**Live display during the active day (presentation only).** If the player's live ratio reaches ≥ 70 %, the UI may show **STREAK SECURED** and may show the *projected* next streak value (`persisted current + 1`). That projection is a derived view; the persisted streak is not incremented until the day is finalized. Likewise a live 100 % may show a projected Perfect Day Streak without persisting it. The live ratio can still fall (for example, if a quest created mid-day is eligible today — see §5.7); the banner and projection then simply disappear. Persisted values are unaffected either way until finalization.
 
 **No streak freezes in V1. [APPROVED]** There are no streak-freeze tokens, vacation freezes, or rest-day freezes. A Scheduled Quest that is not eligible on a date simply does not enter that day's denominator (NR-9).
 

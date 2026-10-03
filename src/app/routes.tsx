@@ -1,6 +1,9 @@
 import type { RouteObject } from 'react-router'
 import { AppShell } from '@/components/layout/AppShell'
 import { HomePage } from '@/features/home/HomePage'
+import { CreateQuestPage } from '@/features/quests/CreateQuestPage'
+import { EditQuestPage } from '@/features/quests/EditQuestPage'
+import { QuestsPage } from '@/features/quests/QuestsPage'
 import { StatusPage } from '@/features/status/StatusPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 
@@ -11,6 +14,9 @@ export const appRoutes: RouteObject[] = [
     element: <AppShell />,
     children: [
       { index: true, element: <HomePage /> },
+      { path: 'quests', element: <QuestsPage /> },
+      { path: 'quests/new', element: <CreateQuestPage /> },
+      { path: 'quests/:templateId/edit', element: <EditQuestPage /> },
       { path: 'status', element: <StatusPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],

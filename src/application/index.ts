@@ -6,6 +6,7 @@
 
 export { readClock, type Clock } from './clock'
 export type { ApplicationContext } from './context'
+export { newTemplateId, USER_TEMPLATE_ID_PREFIX, type IdSource } from './ids'
 export {
   ApplicationError,
   classifyFailure,
@@ -24,6 +25,28 @@ export {
 export { loadPlayerStatus, type PlayerStatus } from './player/loadPlayerStatus'
 export { loadToday, type TodayQuest, type TodayView } from './today/loadToday'
 export { compareQuestOrder, type QuestOrderKey } from './today/questOrder'
+
+export {
+  defaultQuestFormValues,
+  formValuesFromTemplate,
+  parseQuestForm,
+  type ParseQuestFormContext,
+  type QuestDefinition,
+  type QuestFormErrorCode,
+  type QuestFormErrors,
+  type QuestFormField,
+  type QuestFormValues,
+} from './quests/questForm'
+export { createQuest, type CreateQuestResult } from './quests/createQuest'
+export { updateQuest, type UpdateQuestResult } from './quests/updateQuest'
+export { archiveQuest, type ArchiveQuestResult } from './quests/archiveQuest'
+export { restoreQuest, type RestoreQuestResult } from './quests/restoreQuest'
+export { loadQuestForEdit, type LoadQuestForEditResult } from './quests/loadQuestForEdit'
+export {
+  listQuestTemplates,
+  type ListQuestTemplatesResult,
+  type QuestListItem,
+} from './quests/listQuestTemplates'
 
 export { DEFAULT_QUEST_SEEDS, type DefaultQuestSeed } from './seeds/defaultQuests'
 export {

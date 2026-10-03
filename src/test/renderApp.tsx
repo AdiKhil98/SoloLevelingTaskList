@@ -4,7 +4,14 @@ import { createMemoryRouter } from 'react-router'
 import { RouterProvider } from 'react-router/dom'
 import { AppRuntimeProvider, type AppRuntimeOptions } from '@/app/AppRuntimeProvider'
 import { appRoutes } from '@/app/routes'
-import { createTestClock, newFactory, noonOn, type TestClock } from '@/application/test-utils/helpers'
+import type { IdSource } from '@/application'
+import {
+  createSequentialIds,
+  createTestClock,
+  newFactory,
+  noonOn,
+  type TestClock,
+} from '@/application/test-utils/helpers'
 
 export interface RenderAppOptions {
   /** Initial route. */
@@ -13,6 +20,8 @@ export interface RenderAppOptions {
   clock?: TestClock
   /** Defaults to a fresh, empty fake IndexedDB. Reuse one to simulate a restart. */
   factory?: IDBFactory
+  /** Defaults to a deterministic sequence of UUIDs. */
+  ids?: IdSource
   strictMode?: boolean
 }
 
@@ -25,9 +34,10 @@ export function renderApp({
   path = '/',
   clock = createTestClock(noonOn('2026-10-05')),
   factory = newFactory(),
+  ids = createSequentialIds(),
   strictMode = false,
 }: RenderAppOptions = {}) {
-  const options: AppRuntimeOptions = { clock, database: { factory } }
+  const options: AppRuntimeOptions = { clock, ids, database: { factory } }
   const router = createMemoryRouter(appRoutes, { initialEntries: [path] })
   const tree = (
     <AppRuntimeProvider options={options}>

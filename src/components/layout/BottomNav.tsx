@@ -1,4 +1,4 @@
-import { House, User, type LucideIcon } from 'lucide-react'
+import { House, ScrollText, User, type LucideIcon } from 'lucide-react'
 import { NavLink } from 'react-router'
 import { cn } from '@/lib/utils'
 
@@ -12,6 +12,7 @@ interface Destination {
 // Only destinations that exist. Later phases extend this list.
 const DESTINATIONS: readonly Destination[] = [
   { to: '/', label: 'Home', Icon: House, end: true },
+  { to: '/quests', label: 'Quests', Icon: ScrollText },
   { to: '/status', label: 'Status', Icon: User },
 ]
 
