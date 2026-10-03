@@ -18,7 +18,7 @@ For each item: **Question** · **Why it matters** · **Needed by** (the latest p
 | **A. Items required by the Phase 00 brief** | | |
 | OD-01 | Final display name of the Level 100+ special rank | Phase 08 |
 | OD-03 | Final seeded achievement catalog | Phase 08 |
-| OD-04 | Final Daily Message catalog and selection algorithm | Phase 04 (starter) / Phase 14 (final) |
+| OD-04 | Final Daily Message catalog content (mechanism resolved in Phase 04) | Phase 14 |
 | OD-05 | Will quest EXP overrides ever exist? | Phase 05 |
 | OD-06 | Exact sound effects | Phase 10 |
 | OD-07 | Exact haptic patterns | Phase 10 |
@@ -26,7 +26,7 @@ For each item: **Question** · **Why it matters** · **Needed by** (the latest p
 | OD-09 | Final typography / font | Phase 09 |
 | OD-10 | Additional Goal Crusher progress-tracking modes | Phase 07 |
 | **B. Items discovered while writing the specification** | | |
-| OD-15 | Seeded quest catalog beyond prayers and Sleep | Phase 04 |
+| OD-15 | Seeded quest catalog beyond prayers and Sleep (the six approved seeds are implemented) | Phase 05 |
 | OD-16 | Same-day template create/edit/delete semantics | Phase 05 |
 | OD-18 | Reliable semantic identification for achievements (e.g., "Gym Sessions") | Phase 08 |
 | OD-19 | Weekly board lifecycle and linked-progress rules | Phase 07 |
@@ -50,11 +50,11 @@ For each item: **Question** · **Why it matters** · **Needed by** (the latest p
 - **Needed by:** Phase 08.
 - **Until then:** The MASTER_SPEC list is illustrative only. Build the engine for extensibility; do not generate dozens of achievements. All achievements award 0 EXP (approved).
 
-### OD-04 — Final Daily Message catalog and selection algorithm
-- **Question:** How many messages, which exact texts/attributions, and how is a day's message selected (hash of date? shuffled cycle without repeats until exhausted?)
-- **Why it matters:** Home screen content; selection must be deterministic and stable across reloads (approved), but the algorithm and bank are content decisions.
-- **Needed by:** A small starter bank by Phase 04 (Home screen); final catalog by Phase 14.
-- **Until then:** Use only original/system-style placeholder text for development. No external quote API. No unverified internet-attributed quotations.
+### OD-04 — Final Daily Message catalog content
+- **Resolved in Phase 04 (the mechanism):** the Daily Message comes from a **local catalog of original, unattributed lines** (no external quote API, no network, no quotations). The message for a day is chosen by a **pure, deterministic function of the `DateKey`** (`daysBetween(anchor, dateKey)` modulo the catalog size, so the catalog is walked one entry per day without a repeat until exhausted); no random source and **no persistence** are required. Same date, same message, on every reload. The starter catalog has 40 lines. See [CORE_UI.md](CORE_UI.md).
+- **Still open (the content):** the final catalog — how many messages, the exact wording and polish, and whether any properly attributed / public-domain quotations are ever included. Whether a per-date assignment is ever persisted (DATA_MODEL §13) is also left open; it is not needed for correctness, and editing the catalog may change which message a past date maps to (a Daily Message has no historical role).
+- **Needed by:** Phase 14 (final catalog and polish).
+- **Until then:** Only original/system-style text in the local catalog. No external quote API. No unverified internet-attributed quotations.
 
 ### OD-05 — Quest EXP overrides
 - **Question:** Will users ever be allowed to override a quest's EXP away from its difficulty-derived value?
@@ -98,10 +98,11 @@ For each item: **Question** · **Why it matters** · **Needed by** (the latest p
 These are gaps or tensions found while turning the brief into a contract. None were guessed.
 
 ### OD-15 — Seeded quest catalog beyond prayers and Sleep
-- **Question:** Are Hydration, Gym, or any others seeded by default? Only the five prayers and Sleep have approved parameters; hydration and gym appeared only as examples. Also: may seeded quests (including Sleep) be edited, deactivated, or deleted by the user?
+- **Phase 04 status:** Phase 04 seeds **only the already-approved six** — the five prayers and Sleep before 00:00 (MASTER_SPEC §5.5), idempotently, keyed by `seedKey`. See [CORE_UI.md](CORE_UI.md). This does **not** resolve the decision below; it only implements what was already approved.
+- **Question (still open):** Are Hydration, Gym, or any others seeded by default? Only the five prayers and Sleep have approved parameters; hydration and gym appeared only as examples. Also: may seeded quests (including Sleep) be edited, deactivated, or deleted by the user?
 - **Why it matters:** First-run experience and the Sleep role. (If seeded quests can all be deactivated, a "No Active Quests" day becomes reachable — already handled neutrally per MASTER_SPEC §7.5.)
-- **Needed by:** Phase 04 (seed data used by the first functional task list).
-- **Until then:** Seed exactly the five prayers + Sleep. Others are user-created in Phase 05.
+- **Needed by:** Phase 05 (quest management decides editability; any further defaults must be decided before they are seeded).
+- **Until then:** Seed exactly the five prayers + Sleep. Others are user-created in Phase 05 unless the owner decides otherwise.
 
 ### OD-16 — Same-day template create / edit / delete semantics
 - **Question:** When a template is created, edited, or deleted *today*, what happens to today's occurrence and today's denominator? The proposed default (DATA_MODEL §9) is: edits/deletions take effect from the next local date; a new quest enters today only per a rule to be chosen.

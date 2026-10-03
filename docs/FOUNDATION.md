@@ -36,7 +36,7 @@ src/app/router.ts            createBrowserRouter(appRoutes)
 src/app/routes.tsx           route table (also used by tests)
 src/components/layout/       AppShell (layout route, <main>, <Outlet/>)
 src/components/ui/           reserved for shadcn-style primitives
-src/pages/                   FoundationPage (placeholder), NotFoundPage
+src/pages/                   NotFoundPage (the Phase 01 FoundationPage placeholder was replaced by Home in Phase 04)
 src/features/                reserved for feature modules
 src/lib/utils.ts             cn() = clsx + tailwind-merge
 src/styles/globals.css       Tailwind import, placeholder tokens, base rules
@@ -54,10 +54,11 @@ src/test/setup.ts            jest-dom matchers + cleanup
 
 - `src/domain/**` may import from no other layer and not from React, React Router, Framer Motion, or Lucide.
 - `src/persistence/**` may import `domain` only (and no UI packages).
+- `src/application/**` (added in Phase 04) may import `domain` and `persistence` only (and no UI packages); no lower layer may import it.
 - `src/effects/**` may import `domain` only (plus UI/animation packages).
 - `src/platform/**` may import no other layer.
 
-These directories do not exist yet. Phase 02 adds `src/domain/`; the rules apply the moment files appear there. If a phase finds a boundary too strict, report it and adjust `eslint.config.js` deliberately.
+These directories did not exist in Phase 01; the rules apply the moment files appear there (`src/domain/` arrived in Phase 02, `src/persistence/` in Phase 03, `src/application/` and `src/platform/` in Phase 04). If a phase finds a boundary too strict, report it and adjust `eslint.config.js` deliberately.
 
 ## Not in Phase 01
 

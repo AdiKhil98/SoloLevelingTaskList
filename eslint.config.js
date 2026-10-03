@@ -12,12 +12,14 @@ import tseslint from 'typescript-eslint'
  *
  *   domain       -> nothing (no other layer, no React/animation/router)
  *   persistence  -> domain only
+ *   application  -> domain + persistence only (framework-free use cases)
  *   effects      -> domain (event types) only
  *   platform     -> no game rules (not domain, not persistence)
  */
 const LAYERS = [
   'domain',
   'persistence',
+  'application',
   'app',
   'features',
   'components',
@@ -88,6 +90,9 @@ export default defineConfig([
   },
   boundary(['src/domain/**'], without('domain'), { forbidUiPackages: true }),
   boundary(['src/persistence/**'], without('domain', 'persistence'), {
+    forbidUiPackages: true,
+  }),
+  boundary(['src/application/**'], without('domain', 'persistence', 'application'), {
     forbidUiPackages: true,
   }),
   boundary(['src/effects/**'], without('domain', 'effects')),

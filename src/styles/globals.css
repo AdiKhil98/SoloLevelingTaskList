@@ -1,8 +1,9 @@
 @import 'tailwindcss';
 
 /*
- * Phase 01 baseline: restrained dark placeholder tokens.
- * The SYSTEM visual identity (violet/cyan, HUD, glows) belongs to Phase 09.
+ * Restrained dark tokens. Phase 04 adds only a quiet violet accent for
+ * functional emphasis; the full SYSTEM visual identity (HUD, glows, cyan
+ * highlights, typography) belongs to Phase 09.
  */
 :root {
   color-scheme: dark;
@@ -12,6 +13,8 @@
   --surface: #14141c;
   --border: #2a2a38;
   --muted: #9a9aab;
+  --accent: #a78bfa;
+  --accent-strong: #7c3aed;
 }
 
 @theme inline {
@@ -20,6 +23,8 @@
   --color-surface: var(--surface);
   --color-border: var(--border);
   --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
 
   --font-sans:
     system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
