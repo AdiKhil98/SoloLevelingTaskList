@@ -354,7 +354,7 @@ Do not push destructive changes without explicit instruction.
 
 ## Current status
 
-**Phases 00, 01, 02, 03, 04 and 05 are complete and approved.**
+**Phases 00, 01, 02, 03, 04, 05 and 06 are complete and approved.**
 
 - **Phase 00** — the master product / architecture specification is complete and authoritative.
 - **Phase 01** — the application foundation is complete (React/Vite/TypeScript/Tailwind scaffold, placeholder UI, lint-enforced layer boundaries). See `docs/FOUNDATION.md`.
@@ -362,8 +362,9 @@ Do not push destructive changes without explicit instruction.
 - **Phase 03** — local persistence is complete. `src/persistence/` implements native IndexedDB persistence (no wrapper library). DB schema v1 currently contains four stores: `questTemplates`, `questOccurrences`, `questCompletions` and `xpTransactions`. Atomic quest completion with XP ledger persistence, backup export/import (full-replace restore) and integrity validation are implemented. The XP ledger is authoritative; total EXP, level and rank are derived from it. 421 tests pass as of Phase 03. See `docs/PERSISTENCE.md`.
 - **Phase 04** — the functional mobile UI is implemented. A framework-free application layer (`src/application/`) connects the domain and persistence to React; the `/` (Home) and `/status` (Status) routes exist with bottom navigation. The six approved default quests (five prayers + Sleep before 00:00) seed idempotently; quest completion persists atomically and updates the visible level, rank, EXP and daily progress; a deterministic local Daily Message is implemented. 521 tests pass as of Phase 04. See `docs/CORE_UI.md`.
 - **Phase 05** — Quest Management is complete. Create / Edit / Archive / Restore quest flows exist (`/quests`, `/quests/new`, `/quests/:templateId/edit`) for Daily, selected-weekday, Interval and One-Time recurrence. Normal quest EXP remains difficulty-derived only (no custom override). An occurrence that already exists for the current day is a frozen snapshot: edits never change it, and archiving stops future generation while today's existing occurrence stays visible, completable and in the denominator. The app has Home (`/`), Quests (`/quests`) and Status (`/status`) routes. 805 tests pass as of Phase 05. See `docs/QUEST_MANAGEMENT.md`.
+- **Phase 06** — Daily Lifecycle is complete. IndexedDB schema is now **v2** (adds `dailySummaries`; backup schema 2). Immutable Daily Summaries are the authoritative record of finalized days and of streaks (no streak cache). Days finalize atomically; midnight/resume/startup reconciliation finalizes every missed date in chronological order; Daily Streak, Best Streak, Perfect Day Streak and Total Perfect Days exist. Sleep completion opens the LIVE/PROVISIONAL Daily Report (`/report`). A backward device clock enters a safe paused state, and every mutating action (completion, create, edit, archive, restore) synchronizes the day first. 912 tests pass as of Phase 06. See `docs/DAILY_LIFECYCLE.md`.
 
-**Phase 06 has NOT started** and must not start until the owner approves it. The streak lifecycle, Daily Summary finalization (with midnight/resume reconciliation), Weekly Goal Crusher, achievements, final visual effects, Player Name onboarding and PWA/offline work are still later phases. Stores for later features are added through versioned database migrations in their owning phases. The `_reference/solo-leveling-effects-pack/` directory remains local, read-only, and git-ignored.
+**Phase 07 has NOT started** and must not start until the owner approves it. Weekly Goal Crusher, achievements, final visual effects, Player Name onboarding and PWA/offline work are still later phases. Stores for later features are added through versioned database migrations in their owning phases. The `_reference/solo-leveling-effects-pack/` directory remains local, read-only, and git-ignored.
 
 **Session handoff:** after `/clear`, read this file and `docs/CURRENT_STATE.md` first. Do not reread every historical specification; open the detailed docs below only when the current phase needs them or an ambiguity/conflict appears.
 
@@ -377,6 +378,7 @@ Do not push destructive changes without explicit instruction.
 - `docs/FOUNDATION.md` and `docs/DOMAIN_ENGINE.md` record implementation facts for Phases 01 and 02.
 - `docs/PERSISTENCE.md` records the implemented storage contract (Phase 03): database, stores, indexes, transactions, backup and errors.
 - `docs/CORE_UI.md` records the implemented application layer and mobile UI (Phase 04): runtime, seeding, today's load, completion flow, Daily Message, screens and the deliberate Phase 04 limitations.
+- `docs/DAILY_LIFECYCLE.md` records the implemented daily lifecycle (Phase 06): finalization, Daily Summary chain, reconciliation, streaks, midnight/resume sync, Sleep/Daily Report, backward-clock guard, catch-up rule and the v2 migration.
 - `docs/QUEST_MANAGEMENT.md` records the implemented quest management (Phase 05): routes, form and validation, use cases, the frozen-occurrence rule, archive/restore, the Home loader change, id generation and the deliberate Phase 05 limitations.
 
 Do not duplicate approved values here; read them from `docs/MASTER_SPEC.md`. If this file and the specification documents appear to conflict, stop and report the conflict instead of guessing.
