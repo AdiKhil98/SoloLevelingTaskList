@@ -26,9 +26,10 @@ const prayer = (key: string, title: string): DefaultQuestSeed => ({
 
 /**
  * The approved seed set (MASTER_SPEC §5.5, OD-15): five prayers and Sleep, all
- * Daily. The array order is the intended display order of these quests on Home
- * (see `questOrder`). Nothing else is seeded; further quests are user-created
- * in Phase 05.
+ * Daily. The array order is only the INITIAL order a fresh install gives them;
+ * from Phase 09 the player's manual order (`sortOrder`) decides how they are
+ * shown, and they can be moved anywhere. Nothing else is seeded; further quests
+ * are user-created in Phase 05.
  */
 export const DEFAULT_QUEST_SEEDS: readonly DefaultQuestSeed[] = [
   prayer('fajr', 'Fajr'),

@@ -5,6 +5,7 @@ import { BUTTON } from '../status/styles'
 import { LoadFailure } from '../status/StatBlocks'
 import { useLoadedData } from '../status/useLoadedData'
 import { AchievementItem } from './AchievementItem'
+import { SectionLabel } from '@/components/ui/SectionLabel'
 
 /**
  * Every achievement, grouped, in catalog order, unlocked or locked. All of it is
@@ -20,7 +21,7 @@ export function AchievementsPage() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-sm font-semibold tracking-[0.4em] text-accent">ACHIEVEMENTS</h1>
+        <SectionLabel as="h1" className="text-sm tracking-[0.3em] text-accent">ACHIEVEMENTS</SectionLabel>
         <Link to="/status" className={BUTTON}>
           Back
         </Link>
@@ -32,7 +33,7 @@ export function AchievementsPage() {
       {state.status === 'ok' && (
         <>
           <p className="text-sm">
-            <span className="text-2xl font-semibold tabular-nums">
+            <span className="font-display text-3xl font-bold tabular-nums">
               {state.value.unlockedCount} / {state.value.totalCount}
             </span>{' '}
             <span className="text-muted">unlocked</span>
@@ -44,9 +45,7 @@ export function AchievementsPage() {
             if (items.length === 0) return null
             return (
               <section key={group} aria-labelledby={`achievements-${group}`} className="flex flex-col gap-2">
-                <h2 id={`achievements-${group}`} className="text-xs tracking-[0.3em] text-muted">
-                  {achievementGroupLabel(group).toUpperCase()}
-                </h2>
+                <SectionLabel id={`achievements-${group}`}>{achievementGroupLabel(group).toUpperCase()}</SectionLabel>
                 <ul aria-label={`${achievementGroupLabel(group)} achievements`} className="flex flex-col gap-2">
                   {items.map((status) => (
                     <AchievementItem key={status.definition.id} status={status} />

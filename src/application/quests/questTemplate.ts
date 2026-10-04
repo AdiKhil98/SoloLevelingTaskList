@@ -11,8 +11,11 @@ import type { QuestDefinition } from './questForm'
  * supplied by the use case; nothing here reads a clock or a random source.
  */
 
-/** A brand-new user-created template: standard role, no seed key, active, revision 1. */
-export function buildNewTemplate(definition: QuestDefinition, id: string, now: EpochMs): QuestTemplate {
+/** A template that has no place in the manual order yet: persistence assigns the last one when it stores it. */
+export type UnplacedQuestTemplate = Omit<QuestTemplate, 'sortOrder'>
+
+/** A brand-new user-created template: standard role, no seed key, active, revision 1, not yet placed in the order. */
+export function buildNewTemplate(definition: QuestDefinition, id: string, now: EpochMs): UnplacedQuestTemplate {
   return {
     id,
     title: definition.title,

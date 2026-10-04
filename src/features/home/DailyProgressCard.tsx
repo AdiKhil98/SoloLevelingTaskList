@@ -1,4 +1,6 @@
 import { Link } from 'react-router'
+import { Panel } from '@/components/ui/Panel'
+import { SectionLabel } from '@/components/ui/SectionLabel'
 import type { DailyProgress } from '@/domain'
 import { dayQualityLabel } from '../displayLabels'
 
@@ -10,15 +12,13 @@ export function DailyProgressCard({ progress }: { progress: DailyProgress }) {
   const empty = progress.eligibleCount === 0
 
   return (
-    <section aria-labelledby="today-heading" className="flex flex-col gap-2 rounded-xl border border-border bg-surface p-4">
-      <h2 id="today-heading" className="text-xs tracking-[0.3em] text-muted">
-        TODAY
-      </h2>
+    <Panel aria-labelledby="today-heading" className="flex flex-col gap-2 p-3.5">
+      <SectionLabel id="today-heading" className="text-[0.6875rem] tracking-[0.1em]">TODAY</SectionLabel>
       {empty ? (
-        <p className="text-lg font-semibold">{dayQualityLabel(progress.quality)}</p>
+        <p className="font-display text-lg font-semibold">{dayQualityLabel(progress.quality)}</p>
       ) : (
-        <div className="flex items-baseline justify-between gap-3">
-          <p className="text-2xl font-semibold tabular-nums">
+        <div className="flex flex-col">
+          <p className="font-display text-3xl leading-tight font-bold tabular-nums">
             {progress.completedCount} / {progress.eligibleCount}
           </p>
           <p className="text-sm text-muted tabular-nums">
@@ -31,10 +31,10 @@ export function DailyProgressCard({ progress }: { progress: DailyProgress }) {
       )}
       <Link
         to="/report"
-        className="-mb-1 inline-flex min-h-11 items-center self-start text-sm font-medium text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        className="system-focus -mb-1 inline-flex min-h-11 items-center self-start text-sm font-medium text-accent"
       >
         Daily Report
       </Link>
-    </section>
+    </Panel>
   )
 }

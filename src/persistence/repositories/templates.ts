@@ -1,4 +1,4 @@
-import type { DateKey, EpochMs, QuestTemplate } from '@/domain'
+import { renumberInOrder, type DateKey, type EpochMs, type QuestTemplate } from '@/domain'
 import { INDEX, STORE } from '../config'
 import type { PersistenceDatabase } from '../database/connection'
 import { requestToPromise, runTransaction } from '../database/transaction'
@@ -13,7 +13,12 @@ import { parseForWrite, parseStored } from './stored'
  * them, so removal is `archiveTemplate`.
  */
 
-/** Stores a new template. Fails with `constraint_violation` on a duplicate id or `seedKey`. */
+/**
+ * Stores a template exactly as given, including its `sortOrder`. Fails with
+ * `constraint_violation` on a duplicate id or `seedKey`. It does NOT check that
+ * the `sortOrder` is unused: new quests go through `appendTemplate`, which picks
+ * a free one atomically. This is the explicit-placement primitive.
+ */
 export async function createTemplate(database: PersistenceDatabase, template: QuestTemplate): Promise<QuestTemplate> {
   const valid = parseForWrite(parseTemplate, template, 'quest template')
   await runTransaction(database, [STORE.templates], 'readwrite', (transaction) =>
@@ -23,12 +28,52 @@ export async function createTemplate(database: PersistenceDatabase, template: Qu
 }
 
 /**
+ * Stores a new template at the END of the manual order: its `sortOrder` is one
+ * more than the largest stored value (0 for the first template), chosen in the
+ * same transaction that inserts it, so two tabs can never pick the same one.
+ *
+ * If the largest stored value is already the largest safe integer (only possible
+ * from foreign data), the whole sequence is first renumbered 0…n-1 in its
+ * current order, in that same transaction, so the new value can never overflow.
+ */
+export async function appendTemplate(
+  database: PersistenceDatabase,
+  template: Omit<QuestTemplate, 'sortOrder'>,
+): Promise<QuestTemplate> {
+  parseForWrite(parseTemplate, { ...template, sortOrder: 0 }, 'quest template')
+  return runTransaction(database, [STORE.templates], 'readwrite', async (transaction) => {
+    const store = transaction.objectStore(STORE.templates)
+    const stored = (await requestToPromise(store.getAll())).map((value, index) =>
+      parseStored(parseTemplate, value, `quest template [${index}]`),
+    )
+    let sortOrder = stored.reduce((next, row) => Math.max(next, row.sortOrder + 1), 0)
+    if (sortOrder > Number.MAX_SAFE_INTEGER) {
+      const renumbered = renumberInOrder(stored)
+      for (const row of stored) {
+        const value = renumbered.get(row.id)
+        if (value !== undefined) await requestToPromise(store.put({ ...row, sortOrder: value }))
+      }
+      sortOrder = stored.length
+    }
+    const valid = parseForWrite(parseTemplate, { ...template, sortOrder }, 'quest template')
+    await requestToPromise(store.add(valid))
+    return valid
+  })
+}
+
+/**
  * Replaces an existing template. Fails with `not_found` if it does not exist
  * and with `record_validation_failed` if `revision` would move backwards.
  * Occurrences, completions and the ledger are never touched.
+ *
+ * The stored `sortOrder` always wins: it is read in this same transaction and
+ * written back whatever `template.sortOrder` says, so an edit made from a stale
+ * form (or any other stale copy) can neither move a quest nor undo a reorder
+ * another tab made in between. Only `reorderTemplates` changes the order.
  */
 export async function updateTemplate(database: PersistenceDatabase, template: QuestTemplate): Promise<QuestTemplate> {
   const valid = parseForWrite(parseTemplate, template, 'quest template')
+  let saved = valid
   await runTransaction(database, [STORE.templates], 'readwrite', async (transaction) => {
     const store = transaction.objectStore(STORE.templates)
     const existing = await requestToPromise(store.get(valid.id))
@@ -42,9 +87,10 @@ export async function updateTemplate(database: PersistenceDatabase, template: Qu
         `Template revision cannot move backwards (${current.revision} → ${valid.revision})`,
       )
     }
-    await requestToPromise(store.put(valid))
+    saved = { ...valid, sortOrder: current.sortOrder }
+    await requestToPromise(store.put(saved))
   })
-  return valid
+  return saved
 }
 
 export interface ArchiveTemplateOptions {

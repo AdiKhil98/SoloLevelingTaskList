@@ -3,6 +3,7 @@ import { PlayerSections, StreaksSection } from './PlayerSections'
 import { AchievementsSection, DaysSection, QuestsSection, WeeklySection } from './ProfileSections'
 import { LoadFailure } from './StatBlocks'
 import { useLoadedData } from './useLoadedData'
+import { SectionLabel } from '@/components/ui/SectionLabel'
 
 /**
  * The player's profile. The first sections (level, rank, lifetime EXP, the level
@@ -19,7 +20,7 @@ export function StatusPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-sm font-semibold tracking-[0.4em] text-accent">STATUS</h1>
+      <SectionLabel as="h1" className="text-sm tracking-[0.3em] text-accent">STATUS</SectionLabel>
 
       <PlayerSections player={snapshot.player} />
       <StreaksSection streaks={snapshot.streaks} />

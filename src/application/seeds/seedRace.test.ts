@@ -67,6 +67,7 @@ describe('seeding race handling', () => {
       activeFrom: d('2026-01-01'),
       activeUntil: null,
       status: 'active',
+      sortOrder: 0,
       revision: 1,
       createdAt: 1,
       updatedAt: 1,

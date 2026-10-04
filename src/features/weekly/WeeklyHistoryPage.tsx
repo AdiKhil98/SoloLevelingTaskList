@@ -4,6 +4,8 @@ import type { FinalizedWeekView } from '@/application'
 import { useAppRuntime } from '@/app/runtimeContext'
 import { FinalizedWeekCard } from './FinalizedWeekCard'
 import { describeClaimResult } from './weeklyMessages'
+import { SectionLabel } from '@/components/ui/SectionLabel'
+import { BUTTON } from '@/components/ui/styles'
 
 type HistoryState =
   | { readonly status: 'loading' }
@@ -63,10 +65,10 @@ export function WeeklyHistoryPage() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-sm font-semibold tracking-[0.4em] text-accent">WEEKLY HISTORY</h1>
+        <SectionLabel as="h1" className="text-sm tracking-[0.3em] text-accent">WEEKLY HISTORY</SectionLabel>
         <Link
           to="/weekly"
-          className="inline-flex min-h-11 items-center rounded-lg border border-border px-3.5 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:bg-accent/15"
+          className={BUTTON}
         >
           Back
         </Link>
@@ -76,7 +78,7 @@ export function WeeklyHistoryPage() {
         {notice ?? ''}
       </p>
       {errorText !== null && (
-        <p role="alert" className="rounded-xl border border-red-400/50 bg-red-500/10 p-3 text-sm">
+        <p role="alert" className="rounded-[3px] border border-danger/50 bg-danger/10 p-3 text-sm">
           {errorText}
         </p>
       )}
@@ -84,7 +86,7 @@ export function WeeklyHistoryPage() {
       {state.status === 'loading' && <p className="text-muted">Loading history…</p>}
 
       {state.status === 'failed' && (
-        <div role="alert" className="flex flex-col items-start gap-2 rounded-xl border border-red-400/50 bg-red-500/10 p-3 text-sm">
+        <div role="alert" className="flex flex-col items-start gap-2 rounded-[3px] border border-danger/50 bg-danger/10 p-3 text-sm">
           <p>Your weekly history could not be loaded.</p>
           <button
             type="button"
@@ -92,7 +94,7 @@ export function WeeklyHistoryPage() {
               setState({ status: 'loading' })
               reload()
             }}
-            className="inline-flex min-h-11 items-center rounded-lg border border-border px-4 font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:bg-accent/15"
+            className={BUTTON}
           >
             Retry
           </button>
@@ -101,7 +103,7 @@ export function WeeklyHistoryPage() {
 
       {state.status === 'ok' &&
         (state.weeks.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-border p-4 text-center text-muted">
+          <p className="rounded-[3px] border border-dashed border-border p-4 text-center text-muted">
             No finished weeks yet. A week is finalized after its Sunday.
           </p>
         ) : (

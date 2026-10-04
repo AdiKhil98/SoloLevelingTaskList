@@ -19,6 +19,7 @@ import {
 } from '@/domain'
 import { FieldError, FieldGroup, INPUT, RadioChip, TextField } from '../quests/FormControls'
 import { boardErrorText, formatWeekRange, goalErrorText, rewardErrorText, tierLabel } from './weeklyMessages'
+import { SectionLabel } from '@/components/ui/SectionLabel'
 
 /** What the page tells the form after a save attempt. */
 export type WeeklyFormOutcome =
@@ -37,10 +38,10 @@ interface WeeklyBoardFormProps {
 }
 
 const STEP =
-  'inline-flex size-11 shrink-0 items-center justify-center rounded-lg border border-border bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:bg-accent/15 disabled:opacity-40'
+  'inline-flex size-11 shrink-0 items-center justify-center rounded-[3px] border border-border bg-surface system-focus active:bg-accent/15 disabled:opacity-40'
 
 const GHOST_BUTTON =
-  'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-border px-4 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:bg-accent/15'
+  'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-[3px] border border-border px-4 text-sm font-medium system-focus active:bg-accent/15'
 
 const GOAL_FIELD_LABEL: Record<WeeklyGoalField, string> = {
   title: 'Title',
@@ -143,9 +144,9 @@ export function WeeklyBoardForm({ mode, startDate, endDate, initial, quests, onS
   return (
     <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-5" aria-labelledby="weekly-form-heading">
       <div className="flex flex-col gap-1">
-        <h1 id="weekly-form-heading" className="text-sm font-semibold tracking-[0.4em] text-accent">
+        <SectionLabel as="h1" id="weekly-form-heading" className="text-sm tracking-[0.3em] text-accent">
           {mode === 'create' ? 'SET WEEKLY GOALS' : 'EDIT WEEKLY GOALS'}
-        </h1>
+        </SectionLabel>
         <p className="text-sm text-muted">{formatWeekRange(startDate, endDate)}</p>
       </div>
 
@@ -154,7 +155,7 @@ export function WeeklyBoardForm({ mode, startDate, endDate, initial, quests, onS
           ref={summaryRef}
           tabIndex={-1}
           role="alert"
-          className="flex flex-col gap-1 rounded-xl border border-red-400/50 bg-red-500/10 p-3 text-sm focus:outline-none"
+          className="flex flex-col gap-1 rounded-[3px] border border-danger/50 bg-danger/10 p-3 text-sm focus:outline-none"
         >
           {formError !== null ? (
             <p>{formError}</p>
@@ -185,9 +186,7 @@ export function WeeklyBoardForm({ mode, startDate, endDate, initial, quests, onS
 
       <section aria-labelledby="goals-heading" className="flex flex-col gap-3">
         <div className="flex items-baseline justify-between gap-3">
-          <h2 id="goals-heading" className="text-xs tracking-[0.3em] text-muted">
-            GOALS
-          </h2>
+          <SectionLabel id="goals-heading">GOALS</SectionLabel>
           <p role="status" className="text-sm font-semibold tabular-nums">
             {pointsSoFar} / {WEEKLY_BOARD_TOTAL_POINTS} points
           </p>
@@ -204,8 +203,8 @@ export function WeeklyBoardForm({ mode, startDate, endDate, initial, quests, onS
             const visibleQuests = quests.filter((quest) => !quest.archived || quest.templateId === goal.templateId)
             return (
               <li key={goal.key}>
-                <fieldset className="flex min-w-0 flex-col gap-3 rounded-xl border border-border bg-surface p-3.5">
-                  <legend className="px-1 text-xs tracking-[0.2em] text-muted uppercase">Goal {index + 1}</legend>
+                <fieldset className="flex min-w-0 flex-col gap-3 system-panel p-3.5">
+                  <legend className="px-1 font-display text-xs font-semibold tracking-[0.14em] text-muted uppercase">Goal {index + 1}</legend>
 
                   <TextField id={`${base}-title`} label="Title" error={goalError(goal.key, 'title')}>
                     <input
@@ -251,7 +250,7 @@ export function WeeklyBoardForm({ mode, startDate, endDate, initial, quests, onS
                   </div>
 
                   <div className="flex flex-col gap-2">
-                    <span id={`${base}-points-label`} className="text-xs tracking-[0.2em] text-muted uppercase">
+                    <span id={`${base}-points-label`} className="font-display text-xs font-semibold tracking-[0.14em] text-muted uppercase">
                       Points
                     </span>
                     <div role="group" aria-labelledby={`${base}-points-label`} className="flex items-center gap-2">
@@ -389,7 +388,7 @@ export function WeeklyBoardForm({ mode, startDate, endDate, initial, quests, onS
         <button
           type="submit"
           disabled={submitting}
-          className="inline-flex min-h-12 items-center justify-center rounded-lg bg-accent-strong px-4 font-semibold text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:opacity-90 disabled:opacity-60"
+          className="inline-flex min-h-12 items-center justify-center rounded-[3px] bg-accent-strong px-4 font-semibold text-foreground system-focus active:opacity-90 disabled:opacity-60"
         >
           {submitting ? 'Saving…' : 'Save Goals'}
         </button>

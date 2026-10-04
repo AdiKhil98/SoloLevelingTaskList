@@ -1,5 +1,5 @@
 import { validateQuestTemplate } from '@/domain'
-import { createTemplate } from '@/persistence'
+import { appendTemplate } from '@/persistence'
 import { readClock } from '../clock'
 import { requireSynchronizedDay } from '../lifecycle/synchronization'
 import type { ApplicationContext } from '../context'
@@ -23,7 +23,8 @@ export type CreateQuestResult =
  * The template is a plain user quest: standard role, no seed key, a fresh
  * `tpl_<uuid>` id, revision 1, and the single clock reading as `createdAt` and
  * `updatedAt`. Its EXP is not stored anywhere: it derives from difficulty. No
- * EXP is awarded and nothing is completed.
+ * EXP is awarded and nothing is completed. It is placed at the BOTTOM of the
+ * player's manual quest order.
  *
  * Create-today: after the template is saved, Home is reloaded through the
  * authoritative loader, which materializes today's occurrence if (and only if)
@@ -41,10 +42,13 @@ export async function createQuest(context: ApplicationContext, values: QuestForm
     if (!parsed.ok) return { status: 'invalid', errors: parsed.error }
 
     const template = buildNewTemplate(parsed.value, newTemplateId(context.ids), reading.epochMs)
-    // The domain has the final word on the assembled template.
-    if (!validateQuestTemplate(template).ok) return { status: 'invalid', errors: { recurrence: 'recurrence_invalid' } }
+    // The domain has the final word on the assembled template (the placeholder order is replaced on store).
+    if (!validateQuestTemplate({ ...template, sortOrder: 0 }).ok) {
+      return { status: 'invalid', errors: { recurrence: 'recurrence_invalid' } }
+    }
 
-    await createTemplate(context.database, template)
+    // Goes to the bottom of the manual order; the position is chosen atomically with the insert.
+    await appendTemplate(context.database, template)
     templateId = template.id
   } catch (cause) {
     return { status: 'failed', reason: classifyFailure(cause), cause }

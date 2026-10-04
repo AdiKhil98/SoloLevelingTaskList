@@ -2,9 +2,10 @@ import { useId } from 'react'
 import type { FinalizedWeekView } from '@/application'
 import { WEEKLY_BOARD_TOTAL_POINTS, WEEKLY_REWARD_TIER_SCORES } from '@/domain'
 import { formatWeekRange, tierLabel } from './weeklyMessages'
+import { SectionLabel } from '@/components/ui/SectionLabel'
+import { BUTTON_PRIMARY } from '@/components/ui/styles'
 
-const BUTTON =
-  'inline-flex min-h-11 items-center justify-center rounded-lg border border-accent/60 px-4 text-sm font-semibold text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:bg-accent/15 disabled:opacity-60'
+const CLAIM_BUTTON = BUTTON_PRIMARY
 
 interface FinalizedWeekCardProps {
   week: FinalizedWeekView
@@ -31,18 +32,16 @@ export function FinalizedWeekCard({ week, heading, claiming, onClaim, canClaim }
   const { rewardTier } = week
 
   return (
-    <section aria-labelledby={headingId} className="flex flex-col gap-3 rounded-xl border border-border bg-surface p-4">
+    <section aria-labelledby={headingId} className="flex flex-col gap-3 system-panel p-4">
       <div className="flex items-baseline justify-between gap-3">
-        <h2 id={headingId} className="text-xs tracking-[0.3em] text-muted">
-          {heading}
-        </h2>
+        <SectionLabel id={headingId}>{heading}</SectionLabel>
         <p className="text-sm text-muted">{formatWeekRange(week.startDate, week.endDate)}</p>
       </div>
 
       {week.focus !== null && <p className="text-sm text-muted italic">“{week.focus}”</p>}
 
       <div className="flex items-end justify-between gap-3">
-        <p className="text-3xl font-semibold tabular-nums">
+        <p className="font-display text-4xl leading-none font-bold tabular-nums">
           {week.score} / {WEEKLY_BOARD_TOTAL_POINTS}
           <span className="sr-only"> points</span>
         </p>
@@ -54,7 +53,7 @@ export function FinalizedWeekCard({ week, heading, claiming, onClaim, canClaim }
       <p className="text-sm">
         {week.bonusExp > 0 ? (
           <>
-            Weekly bonus: <strong className="font-semibold text-accent">+{week.bonusExp} EXP</strong>
+            Weekly bonus: <strong className="font-display font-semibold text-accent-2">+{week.bonusExp} EXP</strong>
           </>
         ) : (
           `No weekly bonus (it starts at ${WEEKLY_REWARD_TIER_SCORES[0]} / ${WEEKLY_BOARD_TOTAL_POINTS}).`
@@ -73,7 +72,7 @@ export function FinalizedWeekCard({ week, heading, claiming, onClaim, canClaim }
             {week.claimedAt !== null ? (
               <p className="font-semibold text-accent">Reward claimed</p>
             ) : week.claimable ? (
-              <button type="button" disabled={claiming || !canClaim} onClick={() => onClaim(week)} className={`${BUTTON} w-fit`}>
+              <button type="button" disabled={claiming || !canClaim} onClick={() => onClaim(week)} className={`${CLAIM_BUTTON} w-fit`}>
                 {claiming ? 'Claiming…' : 'CLAIM REWARD'}
               </button>
             ) : null}
@@ -81,8 +80,8 @@ export function FinalizedWeekCard({ week, heading, claiming, onClaim, canClaim }
         )}
       </div>
 
-      <details className="rounded-lg border border-border">
-        <summary className="flex min-h-11 cursor-pointer items-center px-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
+      <details className="rounded-[3px] border border-border">
+        <summary className="flex min-h-11 cursor-pointer items-center px-3 text-sm font-medium system-focus">
           Goals ({week.goalsCompleted} / {week.goalCount})
         </summary>
         <ul aria-label="Goal results" className="flex flex-col divide-y divide-border border-t border-border">

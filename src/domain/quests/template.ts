@@ -2,6 +2,7 @@ import { isCategory } from '../config/categories'
 import { isDifficulty } from '../config/difficulty'
 import { compareDateKeys, isDateKey } from '../time/dateKey'
 import { err, ok, type Result } from '../types/result'
+import { isSortOrder } from './order'
 import { validateRecurrence, type RecurrenceError } from './recurrence'
 import type { QuestTemplate } from './types'
 
@@ -12,6 +13,7 @@ export type TemplateValidationError =
   | { readonly code: 'invalid_category'; readonly value: unknown }
   | { readonly code: 'invalid_role'; readonly value: unknown }
   | { readonly code: 'invalid_revision'; readonly value: unknown }
+  | { readonly code: 'invalid_sort_order'; readonly value: unknown }
   | { readonly code: 'invalid_active_from'; readonly value: unknown }
   | { readonly code: 'invalid_active_until'; readonly value: unknown }
   | { readonly code: 'active_period_inverted' }
@@ -39,6 +41,9 @@ export function validateQuestTemplate(
   }
   if (!Number.isSafeInteger(template.revision) || template.revision < 0) {
     return err({ code: 'invalid_revision', value: template.revision })
+  }
+  if (!isSortOrder(template.sortOrder)) {
+    return err({ code: 'invalid_sort_order', value: template.sortOrder })
   }
   if (!isDateKey(template.activeFrom)) {
     return err({ code: 'invalid_active_from', value: template.activeFrom })

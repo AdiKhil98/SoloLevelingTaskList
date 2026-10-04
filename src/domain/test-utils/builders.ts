@@ -21,6 +21,7 @@ export function buildTemplate(
     activeFrom: d('2026-01-01'),
     activeUntil: null,
     status: 'active',
+    sortOrder: 0,
     revision: 1,
     createdAt: 0,
     updatedAt: 0,

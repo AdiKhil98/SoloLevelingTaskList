@@ -1,5 +1,7 @@
 import { Check, Lock } from 'lucide-react'
+import { MeterBar } from '@/components/ui/MeterBar'
 import type { AchievementStatus } from '@/domain'
+import { cn } from '@/lib/utils'
 import { formatDateKey } from '../displayLabels'
 
 /** What the progress numbers count, for the one line under a locked achievement. */
@@ -20,46 +22,49 @@ function progressText({ definition, progress }: AchievementStatus): string {
 }
 
 /**
- * One trophy: locked or unlocked, its description, and (when locked and the
- * target is more than a single step) how far along it is. Unlocked ones show the
- * date of the record that earned them. Plain by design: unlock effects are a
- * later phase.
+ * One trophy. Unlocked: a lit window with a filled badge and the date of the
+ * record that earned it. Locked: a dim, dashed window with a lock and, when the
+ * target is more than a single step, how far along it is. Static by design:
+ * unlock effects belong to a later phase.
  */
 export function AchievementItem({ status }: { status: AchievementStatus }) {
   const { definition, unlock, progress } = status
   const unlocked = unlock !== null
   const showProgress = !unlocked && progress.target > 1
-  const fraction = progress.target > 0 ? progress.current / progress.target : 0
 
   return (
-    <li className={`flex items-start gap-3 rounded-xl border p-3 ${unlocked ? 'border-accent/50 bg-surface' : 'border-border bg-surface/50'}`}>
-      {unlocked ? (
-        <Check aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-accent" />
-      ) : (
-        <Lock aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-muted" />
+    <li
+      className={cn(
+        'flex items-start gap-3 p-3',
+        unlocked ? 'system-panel border-border-strong bg-accent/10' : 'rounded-[3px] border border-dashed border-border opacity-90',
       )}
+    >
+      <span
+        aria-hidden="true"
+        className={cn(
+          'mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-[3px] border',
+          unlocked ? 'border-accent bg-accent/20 text-accent shadow-glow-soft' : 'border-border text-muted',
+        )}
+      >
+        {unlocked ? <Check className="size-5" /> : <Lock className="size-4" />}
+      </span>
       <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <p className={`font-semibold break-words ${unlocked ? '' : 'text-muted'}`}>{definition.title}</p>
+        <p className={cn('font-semibold break-words', !unlocked && 'text-muted')}>{definition.title}</p>
         <p className="text-sm break-words text-muted">{definition.description}</p>
         {unlocked ? (
-          <p className="text-sm font-medium text-accent">Unlocked {formatDateKey(unlock.unlockedOn)}</p>
+          <p className="text-sm font-medium text-accent-2">Unlocked {formatDateKey(unlock.unlockedOn)}</p>
         ) : (
           <>
             <p className="text-sm text-muted">
               Locked{showProgress && <span className="tabular-nums"> · {progressText(status)}</span>}
             </p>
             {showProgress && (
-              <div
-                role="progressbar"
-                aria-label={`${definition.title} progress`}
-                aria-valuemin={0}
-                aria-valuemax={progress.target}
-                aria-valuenow={progress.current}
-                aria-valuetext={progressText(status)}
-                className="h-1.5 w-full overflow-hidden rounded-full bg-border"
-              >
-                <div className="h-full rounded-full bg-accent-strong" style={{ width: `${fraction * 100}%` }} />
-              </div>
+              <MeterBar
+                value={progress.current}
+                max={progress.target}
+                label={`${definition.title} progress`}
+                valueText={progressText(status)}
+              />
             )}
           </>
         )}

@@ -1,6 +1,8 @@
+import type { StreakStats } from '@/application'
+import { Panel } from '@/components/ui/Panel'
+import { SectionLabel } from '@/components/ui/SectionLabel'
 import type { DayQuality } from '@/domain'
 import { isStreakSecured } from '@/domain'
-import type { StreakStats } from '@/application'
 import { daysLabel } from '../displayLabels'
 
 /**
@@ -12,16 +14,10 @@ import { daysLabel } from '../displayLabels'
 export function StreakCard({ streaks, quality }: { streaks: StreakStats; quality: DayQuality }) {
   const secured = isStreakSecured(quality)
   return (
-    <section aria-labelledby="streak-heading" className="flex items-center justify-between gap-3 rounded-xl border border-border bg-surface px-4 py-3">
-      <div className="flex flex-col">
-        <h2 id="streak-heading" className="text-xs tracking-[0.3em] text-muted">
-          DAILY STREAK
-        </h2>
-        <p className="text-xl font-semibold tabular-nums">{daysLabel(streaks.currentStreak)}</p>
-      </div>
-      {secured && (
-        <p className="text-xs font-semibold tracking-[0.2em] text-accent">STREAK SECURED</p>
-      )}
-    </section>
+    <Panel aria-labelledby="streak-heading" className="flex flex-col gap-2 p-3.5">
+      <SectionLabel id="streak-heading" className="text-[0.6875rem] tracking-[0.1em]">DAILY STREAK</SectionLabel>
+      <p className="font-display text-2xl leading-tight font-bold tabular-nums">{daysLabel(streaks.currentStreak)}</p>
+      {secured && <p className="font-display text-xs font-semibold tracking-[0.14em] text-accent-2">STREAK SECURED</p>}
+    </Panel>
   )
 }

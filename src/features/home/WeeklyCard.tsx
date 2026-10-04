@@ -1,5 +1,6 @@
 import { Link } from 'react-router'
 import type { WeeklyHomeSummary } from '@/application'
+import { SectionLabel } from '@/components/ui/SectionLabel'
 import { WEEKLY_BOARD_TOTAL_POINTS } from '@/domain'
 
 /**
@@ -11,12 +12,12 @@ export function WeeklyCard({ weekly }: { weekly: WeeklyHomeSummary }) {
   return (
     <Link
       to="/weekly"
-      className="flex items-center justify-between gap-3 rounded-xl border border-border bg-surface px-4 py-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:bg-accent/15"
+      className="system-panel system-focus flex items-center justify-between gap-3 px-4 py-3 active:bg-accent/15"
     >
-      <div className="flex min-w-0 flex-col">
-        <h2 className="text-xs tracking-[0.3em] text-muted">WEEKLY GOAL CRUSHER</h2>
+      <div className="flex min-w-0 flex-col gap-1">
+        <SectionLabel>WEEKLY GOAL CRUSHER</SectionLabel>
         {weekly.state === 'board' ? (
-          <p className="text-xl font-semibold tabular-nums">
+          <p className="font-display text-xl font-bold tabular-nums">
             {weekly.score} / {WEEKLY_BOARD_TOTAL_POINTS}
             <span className="sr-only"> points</span>
           </p>

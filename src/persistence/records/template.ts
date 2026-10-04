@@ -30,6 +30,7 @@ const REQUIRED = [
   'activeFrom',
   'activeUntil',
   'status',
+  'sortOrder',
   'revision',
   'createdAt',
   'updatedAt',
@@ -59,6 +60,7 @@ export const readTemplate: RecordReader<QuestTemplate> = (collector, value, path
   const seedKey = readNullableString(collector, source, 'seedKey', path)
   const activeFrom = readDateKey(collector, source, 'activeFrom', path)
   const activeUntil = readNullableDateKey(collector, source, 'activeUntil', path)
+  const sortOrder = readSafeInteger(collector, source, 'sortOrder', path)
   const revision = readSafeInteger(collector, source, 'revision', path)
   const createdAt = readSafeInteger(collector, source, 'createdAt', path)
   const updatedAt = readSafeInteger(collector, source, 'updatedAt', path)
@@ -87,6 +89,7 @@ export const readTemplate: RecordReader<QuestTemplate> = (collector, value, path
     seedKey === undefined ||
     activeFrom === undefined ||
     activeUntil === undefined ||
+    sortOrder === undefined ||
     revision === undefined ||
     createdAt === undefined ||
     updatedAt === undefined ||
@@ -107,6 +110,7 @@ export const readTemplate: RecordReader<QuestTemplate> = (collector, value, path
     activeFrom,
     activeUntil,
     status,
+    sortOrder,
     revision,
     createdAt,
     updatedAt,

@@ -3,6 +3,9 @@ import { useCallback, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import type { TodayQuest } from '@/application'
 import { useAppRuntime } from '@/app/runtimeContext'
+import { SectionLabel } from '@/components/ui/SectionLabel'
+import { BUTTON, EMPTY_STATE, NOTICE_DANGER } from '@/components/ui/styles'
+import { cn } from '@/lib/utils'
 import { ClockBehindNotice } from './ClockBehindNotice'
 import { DailyMessageCard } from './DailyMessageCard'
 import { DailyProgressCard } from './DailyProgressCard'
@@ -58,14 +61,16 @@ export function HomePage() {
   }, [reload])
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3.5">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-sm font-semibold tracking-[0.4em] text-accent">SYSTEM</h1>
+        <SectionLabel as="h1" className="text-sm tracking-[0.3em] text-accent">
+          SYSTEM
+        </SectionLabel>
         {clock.status === 'ok' && (
           <Link
             to="/quests/new"
             aria-label="Add Quest"
-            className="inline-flex size-12 items-center justify-center rounded-full border border-accent/60 text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:bg-accent/15"
+            className="system-focus inline-flex size-12 items-center justify-center rounded-[3px] border border-accent/60 bg-accent/10 text-accent active:bg-accent/20"
           >
             <Plus aria-hidden="true" className="size-6" />
           </Link>
@@ -81,28 +86,33 @@ export function HomePage() {
       ) : (
         <>
           <DailyMessageCard text={dailyMessage.text} />
-          <DailyProgressCard progress={today.progress} />
-          <StreakCard streaks={streaks} quality={today.progress.quality} />
+          {/* Two tiles side by side from 360 px up; stacked on the narrowest phones. */}
+          <div className="grid grid-cols-1 gap-3.5 min-[360px]:grid-cols-2">
+            <DailyProgressCard progress={today.progress} />
+            <StreakCard streaks={streaks} quality={today.progress.quality} />
+          </div>
           <WeeklyCard weekly={weekly} />
 
           <section aria-labelledby="quests-heading" className="flex flex-col">
-            <h2 id="quests-heading" className="mb-3 text-xs tracking-[0.3em] text-muted">
-              DAILY QUESTS
-            </h2>
+            <div className="mb-3 flex items-baseline justify-between gap-3">
+              <SectionLabel id="quests-heading">DAILY QUESTS</SectionLabel>
+              {today.progress.eligibleCount > 0 && (
+                // Duplicates the TODAY tile for sighted players only (hence aria-hidden, and no spaces around the slash).
+                <span aria-hidden="true" className="font-display text-xs font-semibold tabular-nums text-muted">
+                  {today.progress.completedCount}/{today.progress.eligibleCount} DONE
+                </span>
+              )}
+            </div>
 
             {/* Stays in the page (empty) so screen readers announce text added to it. */}
             <p role="status" className="mb-3 text-sm text-accent empty:mb-0">
               {notice?.tone === 'success' ? notice.text : ''}
             </p>
             {notice?.tone === 'error' && (
-              <div role="alert" className="mb-3 flex flex-col items-start gap-2 rounded-xl border border-red-400/50 bg-red-500/10 p-3 text-sm">
+              <div role="alert" className={cn(NOTICE_DANGER, 'mb-3 flex flex-col items-start gap-2')}>
                 <p>{notice.text}</p>
                 {notice.canRefresh && (
-                  <button
-                    type="button"
-                    onClick={handleRefresh}
-                    className="inline-flex min-h-11 items-center rounded-lg border border-border px-4 font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:bg-accent/15"
-                  >
+                  <button type="button" onClick={handleRefresh} className={BUTTON}>
                     Refresh
                   </button>
                 )}
@@ -110,9 +120,7 @@ export function HomePage() {
             )}
 
             {today.quests.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-border p-4 text-center text-muted">
-                Nothing is scheduled for today.
-              </p>
+              <p className={EMPTY_STATE}>Nothing is scheduled for today.</p>
             ) : (
               <ul aria-label="Today’s quests" className="flex flex-col gap-2.5">
                 {today.quests.map((quest) => (

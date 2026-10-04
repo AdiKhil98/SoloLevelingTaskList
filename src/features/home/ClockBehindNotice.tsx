@@ -1,4 +1,6 @@
 import type { ClockStatus } from '@/application'
+import { NOTICE_WARNING } from '@/components/ui/styles'
+import { cn } from '@/lib/utils'
 
 /**
  * Shown instead of the day's quests when the device date is earlier than the
@@ -7,8 +9,8 @@ import type { ClockStatus } from '@/application'
  */
 export function ClockBehindNotice({ clock }: { clock: Extract<ClockStatus, { status: 'behind' }> }) {
   return (
-    <section role="alert" aria-labelledby="clock-behind-heading" className="flex flex-col gap-2 rounded-xl border border-amber-400/50 bg-amber-500/10 p-4">
-      <h2 id="clock-behind-heading" className="font-semibold">
+    <section role="alert" aria-labelledby="clock-behind-heading" className={cn(NOTICE_WARNING, 'flex flex-col gap-2 p-4')}>
+      <h2 id="clock-behind-heading" className="font-display font-semibold">
         Clock appears to have moved backwards
       </h2>
       <p className="text-sm">

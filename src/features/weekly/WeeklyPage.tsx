@@ -7,14 +7,15 @@ import { ActiveBoardCard } from './ActiveBoardCard'
 import { FinalizedWeekCard } from './FinalizedWeekCard'
 import { useWeeklyFlash, WEEKLY_FLASH_TEXT } from './useWeeklyFlash'
 import { describeClaimResult, formatWeekRange, progressRejectionText, weeklyFailureText } from './weeklyMessages'
+import { SectionLabel } from '@/components/ui/SectionLabel'
+import { BUTTON, BUTTON_PRIMARY } from '@/components/ui/styles'
 
 type ScreenState =
   | { readonly status: 'loading' }
   | { readonly status: 'ok'; readonly screen: WeeklyScreen }
   | { readonly status: 'failed' }
 
-const PRIMARY_LINK =
-  'inline-flex min-h-12 items-center justify-center rounded-lg border border-accent/60 px-4 font-semibold text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:bg-accent/15'
+const PRIMARY_LINK = BUTTON_PRIMARY + ' min-h-12'
 
 /**
  * The Weekly Goal Crusher: this week's board (or the invitation to set one),
@@ -101,10 +102,10 @@ export function WeeklyPage() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-sm font-semibold tracking-[0.4em] text-accent">WEEKLY</h1>
+        <SectionLabel as="h1" className="text-sm tracking-[0.3em] text-accent">WEEKLY</SectionLabel>
         <Link
           to="/weekly/history"
-          className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-border px-3.5 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:bg-accent/15"
+          className={BUTTON + ' gap-1.5'}
         >
           <History aria-hidden="true" className="size-5" />
           History
@@ -118,7 +119,7 @@ export function WeeklyPage() {
         {notice ?? ''}
       </p>
       {errorText !== null && (
-        <p role="alert" className="rounded-xl border border-red-400/50 bg-red-500/10 p-3 text-sm">
+        <p role="alert" className="rounded-[3px] border border-danger/50 bg-danger/10 p-3 text-sm">
           {errorText}
         </p>
       )}
@@ -126,7 +127,7 @@ export function WeeklyPage() {
       {state.status === 'loading' && <p className="text-muted">Loading your week…</p>}
 
       {state.status === 'failed' && (
-        <div role="alert" className="flex flex-col items-start gap-2 rounded-xl border border-red-400/50 bg-red-500/10 p-3 text-sm">
+        <div role="alert" className="flex flex-col items-start gap-2 rounded-[3px] border border-danger/50 bg-danger/10 p-3 text-sm">
           <p>Your week could not be loaded.</p>
           <button
             type="button"
@@ -134,7 +135,7 @@ export function WeeklyPage() {
               setState({ status: 'loading' })
               reload()
             }}
-            className="inline-flex min-h-11 items-center rounded-lg border border-border px-4 font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:bg-accent/15"
+            className={BUTTON}
           >
             Retry
           </button>
@@ -142,16 +143,14 @@ export function WeeklyPage() {
       )}
 
       {screen !== null && paused && (
-        <p role="alert" className="rounded-xl border border-amber-400/50 bg-amber-500/10 p-3 text-sm">
+        <p role="alert" className="rounded-[3px] border border-warning/50 bg-warning/10 p-3 text-sm">
           This device’s clock is behind your last recorded day, so changes are paused. Your weekly board is safe and nothing was changed.
         </p>
       )}
 
       {screen !== null && screen.current.kind === 'none' && (
-        <section aria-labelledby="setup-heading" className="flex flex-col gap-3 rounded-xl border border-dashed border-accent/60 p-4">
-          <h2 id="setup-heading" className="text-sm font-semibold tracking-[0.2em] text-accent">
-            SET THIS WEEK’S GOAL CRUSHERS
-          </h2>
+        <section aria-labelledby="setup-heading" className="flex flex-col gap-3 rounded-[3px] border border-dashed border-accent/60 p-4">
+          <SectionLabel id="setup-heading" className="text-accent">SET THIS WEEK’S GOAL CRUSHERS</SectionLabel>
           <p className="text-sm text-muted">
             Choose a few goals for this week and split 10 points between them. Earn 6 or more points for bonus EXP and a reward.
           </p>

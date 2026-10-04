@@ -2,6 +2,7 @@ import type { PlayerProfile, TopQuest } from '@/application'
 import { DAILY_QUALITY_THRESHOLDS, WEEKLY_BOARD_TOTAL_POINTS } from '@/domain'
 import { averageScoreLabel, categoryLabel, formatDateKey, UNKNOWN_QUEST_LABEL } from '../displayLabels'
 import { CardLink, Row, StatCard } from './StatBlocks'
+import { SectionLabel } from '@/components/ui/SectionLabel'
 
 /** The statistics sections of the Status screen. Each is a plain read of `PlayerProfile`; nothing is computed here. */
 
@@ -47,6 +48,7 @@ function TopQuestRow({ quest }: { quest: TopQuest }) {
 }
 
 export function QuestsSection({ profile }: { profile: PlayerProfile }) {
+  const topCategoryExp = Math.max(0, ...profile.categories.map((entry) => entry.exp))
   return (
     <StatCard id="quests-heading" heading="QUESTS">
       <dl>
@@ -55,21 +57,30 @@ export function QuestsSection({ profile }: { profile: PlayerProfile }) {
         <Row term="Active quests">{profile.activeQuestCount}</Row>
       </dl>
 
-      <h3 className="mt-3 text-xs tracking-[0.2em] text-muted">BY CATEGORY</h3>
+      <SectionLabel as="h3" className="mt-3">BY CATEGORY</SectionLabel>
       <ul aria-label="Category totals">
         {profile.categories.map((entry) => (
-          <li key={entry.category} className="flex items-baseline justify-between gap-4 border-b border-border py-3 last:border-b-0">
-            <p className="min-w-0">{categoryLabel(entry.category)}</p>
-            <p className="shrink-0 text-right font-semibold tabular-nums">
-              {entry.exp} <span className="font-normal text-muted">EXP · {entry.completions}</span>
-            </p>
+          <li key={entry.category} className="border-b border-border py-3 last:border-b-0">
+            <div className="flex items-baseline justify-between gap-4">
+              <p className="min-w-0">{categoryLabel(entry.category)}</p>
+              <p className="shrink-0 text-right font-display font-semibold tabular-nums">
+                {entry.exp} <span className="font-sans font-normal text-muted">EXP · {entry.completions}</span>
+              </p>
+            </div>
+            {/* A purely visual share of the largest category; the numbers above carry the meaning. */}
+            <div aria-hidden="true" className="mt-2 h-1 overflow-hidden rounded-[2px] bg-border/70">
+              <div
+                className="h-full bg-linear-to-r from-accent-strong to-accent"
+                style={{ width: `${topCategoryExp > 0 ? (entry.exp / topCategoryExp) * 100 : 0}%` }}
+              />
+            </div>
           </li>
         ))}
       </ul>
 
       {profile.topQuests.length > 0 && (
         <>
-          <h3 className="mt-3 text-xs tracking-[0.2em] text-muted">MOST COMPLETED</h3>
+          <SectionLabel as="h3" className="mt-3">MOST COMPLETED</SectionLabel>
           <ol aria-label="Most completed quests" className="mb-2">
             {profile.topQuests.map((quest) => (
               <TopQuestRow key={quest.templateId} quest={quest} />
@@ -112,7 +123,7 @@ export function AchievementsSection({ achievements }: { achievements: PlayerProf
         <p className="py-3 text-sm text-muted">None yet. Complete a quest to earn the first.</p>
       ) : (
         <>
-          <h3 className="mt-3 text-xs tracking-[0.2em] text-muted">RECENT</h3>
+          <SectionLabel as="h3" className="mt-3">RECENT</SectionLabel>
           <ul aria-label="Recent achievements" className="mb-2">
             {achievements.recent.map(({ definition, unlock }) => (
               <li key={definition.id} className="flex items-baseline justify-between gap-4 border-b border-border py-3 last:border-b-0">

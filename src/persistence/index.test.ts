@@ -17,6 +17,7 @@ describe('public persistence API', () => {
     expect(functions).toEqual([
       'PersistenceDatabase',
       'PersistenceError',
+      'appendTemplate',
       'archiveTemplate',
       'claimWeeklyRewardAtomically',
       'completeQuestAtomically',
@@ -63,6 +64,7 @@ describe('public persistence API', () => {
       'readFinalizationCursor',
       'readProgression',
       'reconstructProgression',
+      'reorderTemplates',
       'saveWeeklyBoardAtomically',
       'serializeBackup',
       'setWeeklyGoalProgressAtomically',
@@ -102,6 +104,7 @@ describe('public persistence API', () => {
       activeFrom: '2026-10-01',
       activeUntil: null,
       status: 'active',
+      sortOrder: 0,
       revision: 1,
       createdAt: 0,
       updatedAt: 0,

@@ -9,13 +9,15 @@ Everything is imported from `src/persistence/index.ts`. The layer uses **native 
 | | |
 |---|---|
 | Name | `solo-leveling-task-list` (`DATABASE_NAME`) |
-| Version | `3` (`DATABASE_VERSION`): v1 = the four stores below; v2 = `dailySummaries` (Phase 06); v3 = `weeklyBoards` and `weeklyRewardClaims` (Phase 07) |
-| Backup format | `solo-leveling-task-list-backup`, `formatVersion 1`, `schemaVersion 3` |
+| Version | `4` (`DATABASE_VERSION`): v1 = the four stores below; v2 = `dailySummaries` (Phase 06); v3 = `weeklyBoards` and `weeklyRewardClaims` (Phase 07); v4 = the required `sortOrder` on every quest template, a data migration with no new store (Phase 09) |
+| Backup format | `solo-leveling-task-list-backup`, `formatVersion 1`, `schemaVersion 4` |
 
-`DATABASE_VERSION` and the backup `schemaVersion` are independent numbers that both started at 1. They are not required to stay equal (today both are 3).
+`DATABASE_VERSION` and the backup `schemaVersion` are independent numbers that both started at 1. They are not required to stay equal (today both are 4).
 
 ## Schema map
 
+> **Phase 09 (schema v4, backup schema 4).** `questTemplates` rows gain a required `sortOrder` (unique non-negative safe integer; manual quest order). `migrations/v4.ts` backfills it once inside the version-change transaction and is version-frozen (it reproduces the Phase 08 visible order); the backup upgrade `3 → 4` uses the same function. Integrity rejects duplicate or invalid values. New templates are stored with `appendTemplate`, edits keep the stored value, and `reorderTemplates` is the only command that changes it. See [VISUAL_SYSTEM_AND_ORDERING.md](VISUAL_SYSTEM_AND_ORDERING.md).
+>
 > **Later schema versions.** v2 (Phase 06) added `dailySummaries` (insert-only, key `dateKey`, index `quality`); see [DAILY_LIFECYCLE.md](DAILY_LIFECYCLE.md). v3 (Phase 07) added `weeklyBoards` (key `weekKey`, index `status`; mutable only while the board is `active`, written only by the commands in `commands/`, each of which refuses a finalized board) and `weeklyRewardClaims` (key `weekKey`, insert-only); see [WEEKLY_GOAL_CRUSHER.md](WEEKLY_GOAL_CRUSHER.md). Backup `schemaVersion` 3 carries both new collections; the registered upgrades `1 → 2` and `2 → 3` add them empty, so older backups still import. The table below is the original four-store map.
 
 Four stores. Every other entity in DATA_MODEL §14 (player profile, progress cache, daily summaries, weekly boards and claims, achievements, daily messages, settings) is **not** created yet; the phase that first writes it adds it through a migration (see *What Phase 03 does not implement*).

@@ -21,6 +21,15 @@ import { openDatabase, openVersionedDatabase } from './connection'
 const tracker = new DatabaseTracker()
 afterEach(() => tracker.closeAll())
 
+/** The schema as Phase 07 shipped it: exactly migrations 1–3, so this file keeps testing the v2 → v3 step alone. */
+const openV3 = (factory: IDBFactory) =>
+  openVersionedDatabase({
+    name: DATABASE_NAME,
+    factory,
+    version: 3,
+    migrations: { 1: MIGRATIONS[1]!, 2: MIGRATIONS[2]!, 3: MIGRATIONS[3]! },
+  })
+
 const V2_STORES: readonly StoreName[] = ['questTemplates', 'questOccurrences', 'questCompletions', 'xpTransactions', 'dailySummaries']
 const WEEK = asWeekKey('2026-10-05')
 
@@ -79,13 +88,13 @@ async function buildV2Database(factory: IDBFactory) {
   return before
 }
 
-describe('the real v2 → v3 upgrade (Phase 07)', () => {
+describe('the real v2 → v3 upgrade (Phase 07; the database is now v4)', () => {
   it('adds the weekly stores and keeps every existing row exactly as it was', async () => {
     const factory = newFactory()
     const before = await buildV2Database(factory)
     expect(before.xpTransactions).toHaveLength(2)
 
-    const upgraded = tracker.track(await openDatabase({ factory }))
+    const upgraded = tracker.track(await openV3(factory))
     expect(upgraded.version).toBe(3)
     expect(await snapshotV2(upgraded)).toEqual(before)
     expect(await readRaw(upgraded, 'weeklyBoards')).toEqual([])
@@ -96,7 +105,7 @@ describe('the real v2 → v3 upgrade (Phase 07)', () => {
   it('the upgraded database passes the full integrity check and exports an empty weekly section', async () => {
     const factory = newFactory()
     await buildV2Database(factory)
-    const upgraded = tracker.track(await openDatabase({ factory }))
+    const upgraded = tracker.track(await openV3(factory))
 
     const check = await verifyDatabaseIntegrity(upgraded)
     expect(check).toMatchObject({
@@ -106,7 +115,7 @@ describe('the real v2 → v3 upgrade (Phase 07)', () => {
       },
     })
     const backup = await exportBackup(upgraded, { exportedAt: 9, exportedFromTimeZone: ZONE, appVersion: '0.1.0' })
-    expect(backup.schemaVersion).toBe(3)
+    expect(backup.schemaVersion).toBe(4) // an export always carries the current backup schema
     expect(backup.data.weeklyBoards).toEqual([])
     expect(backup.data.weeklyRewardClaims).toEqual([])
   })
@@ -114,10 +123,10 @@ describe('the real v2 → v3 upgrade (Phase 07)', () => {
   it('reopening an already upgraded database changes nothing', async () => {
     const factory = newFactory()
     await buildV2Database(factory)
-    const first = await openDatabase({ factory })
+    const first = await openV3(factory)
     const after = await snapshotV2(first)
     first.close()
-    const second = tracker.track(await openDatabase({ factory }))
+    const second = tracker.track(await openV3(factory))
     expect(second.version).toBe(3)
     expect(await snapshotV2(second)).toEqual(after)
   })
@@ -125,7 +134,7 @@ describe('the real v2 → v3 upgrade (Phase 07)', () => {
   it('the upgraded ledger continues its chain: the first weekly bonus gets the next seq and total', async () => {
     const factory = newFactory()
     await buildV2Database(factory)
-    const database = tracker.track(await openDatabase({ factory }))
+    const database = tracker.track(await openV3(factory))
 
     // Mid-week on 2026-10-06: create the board for the current week.
     const saved = await saveWeeklyBoardAtomically(database, {
@@ -167,7 +176,7 @@ describe('the real v2 → v3 upgrade (Phase 07)', () => {
   it('a schema-2 database with weekly data restores through a v3 backup round trip', async () => {
     const factory = newFactory()
     await buildV2Database(factory)
-    const source = tracker.track(await openDatabase({ factory }))
+    const source = tracker.track(await openV3(factory))
     await saveWeeklyBoardAtomically(source, { weekKey: WEEK, definition, expectedRevision: null, today: d('2026-10-06'), now: 1 })
 
     const backup = await exportBackup(source, { exportedAt: 9, exportedFromTimeZone: ZONE, appVersion: '0.1.0' })

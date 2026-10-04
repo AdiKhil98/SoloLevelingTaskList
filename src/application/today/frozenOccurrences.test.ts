@@ -169,11 +169,11 @@ describe('loadToday — an existing occurrence is frozen and authoritative', () 
     expect(await getOccurrenceFor(t.database, 'tpl_a', d(TODAY))).not.toBeNull()
   })
 
-  it('orders orphaned occurrences by their template (seed order first, then creation order)', async () => {
+  it('orders the occurrences of archived templates by the manual order of their templates, not by creation time', async () => {
     const t = await setup()
-    await materialized(t, { id: 'tpl_late', title: 'Late', createdAt: 50 })
-    await materialized(t, { id: 'tpl_early', title: 'Early', createdAt: 10 })
-    await materialized(t, { id: 'tpl_seed_sleep', title: 'Sleep before 00:00', seedKey: 'sleep', role: 'sleep', createdAt: 99 })
+    await materialized(t, { id: 'tpl_late', title: 'Late', createdAt: 10, sortOrder: 2 })
+    await materialized(t, { id: 'tpl_early', title: 'Early', createdAt: 50, sortOrder: 1 })
+    await materialized(t, { id: 'tpl_seed_sleep', title: 'Sleep before 00:00', seedKey: 'sleep', role: 'sleep', createdAt: 99, sortOrder: 0 })
     for (const id of ['tpl_late', 'tpl_early', 'tpl_seed_sleep']) {
       await archiveTemplate(t.database, id, { activeUntil: d(TODAY), updatedAt: 9_000 })
     }

@@ -11,7 +11,6 @@ import {
 } from '@/persistence'
 import { ensureDefaultQuests } from '../seeds/ensureDefaultQuests'
 import { buildTemplate, createTestContext, d, noonOn, ZONE, type TestContext } from '../test-utils/helpers'
-import { compareQuestOrder } from './questOrder'
 import { loadToday } from './loadToday'
 
 // 2026-10-05 is a Monday.
@@ -216,7 +215,7 @@ describe('loadToday', () => {
     expect(today.quests).toEqual([])
   })
 
-  it('lists the default quests in their natural order, with other quests after them', async () => {
+  it('keeps a quest that already exists in its place and appends the default quests after it', async () => {
     const { context, database } = await setup()
     await createTemplate(database, buildTemplate({ id: 'tpl_aaa', title: 'AAA custom', createdAt: 5 }))
     await ensureDefaultQuests(database, { startDate: d(TODAY), now: noonOn(TODAY) })
@@ -224,13 +223,13 @@ describe('loadToday', () => {
     const today = await loadToday(context)
 
     expect(today.quests.map((quest) => quest.title)).toEqual([
+      'AAA custom',
       'Fajr',
       'Dhuhr',
       'Asr',
       'Maghrib',
       'Isha',
       'Sleep before 00:00',
-      'AAA custom',
     ])
   })
 
@@ -247,39 +246,5 @@ describe('loadToday', () => {
 
     expect(tuesday.dateKey).toBe('2026-10-06')
     expect(tuesday.quests.map((quest) => quest.title)).toEqual(['Tuesdays'])
-  })
-})
-
-describe('compareQuestOrder', () => {
-  const key = (seedKey: string | null, templateCreatedAt: number, templateId: string) => ({
-    seedKey,
-    templateCreatedAt,
-    templateId,
-  })
-
-  it('puts seeded quests in seed order before everything else', () => {
-    const sorted = [
-      key(null, 1, 'tpl_z'),
-      key('sleep', 9, 'tpl_seed_sleep'),
-      key('prayer.fajr', 9, 'tpl_seed_prayer_fajr'),
-      key('prayer.isha', 9, 'tpl_seed_prayer_isha'),
-    ].sort(compareQuestOrder)
-
-    expect(sorted.map((item) => item.templateId)).toEqual([
-      'tpl_seed_prayer_fajr',
-      'tpl_seed_prayer_isha',
-      'tpl_seed_sleep',
-      'tpl_z',
-    ])
-  })
-
-  it('orders other quests by creation time, then template id', () => {
-    const sorted = [key(null, 2, 'tpl_b'), key(null, 1, 'tpl_z'), key(null, 2, 'tpl_a')].sort(compareQuestOrder)
-
-    expect(sorted.map((item) => item.templateId)).toEqual(['tpl_z', 'tpl_a', 'tpl_b'])
-  })
-
-  it('treats an unknown seed key like any other quest', () => {
-    expect(compareQuestOrder(key('future.seed', 1, 'tpl_a'), key('prayer.fajr', 9, 'tpl_f'))).toBeGreaterThan(0)
   })
 })

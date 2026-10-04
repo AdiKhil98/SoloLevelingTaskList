@@ -89,7 +89,7 @@ All are `daily`, `status: 'active'`, `revision: 1`, `activeUntil: null`, with `a
 
 The result (`TodayView`) holds quests in display order, each with its snapshot fields, `completed` and `completedAt`, plus the `DailyProgress`.
 
-**Order.** `questOrder.compareQuestOrder`: seeded quests in `DEFAULT_QUEST_SEEDS` order (Fajr … Isha, Sleep), then everything else by template creation time and id. It lives in the application layer because the data model has no sort field. Phase 05 can replace this one comparator with explicit user ordering.
+**Order.** *(Superseded in Phase 09.)* Phases 04–08 ordered the six seeds first, then everything else by creation time and id. Today’s quests are now in the player’s manual order (`QuestTemplate.sortOrder`, compared by `compareQuestOrder`, which lives in the domain and is re-exported by `questOrder`); see [VISUAL_SYSTEM_AND_ORDERING.md](VISUAL_SYSTEM_AND_ORDERING.md).
 
 **Phase 04 note, superseded.** Phase 04 scanned only active templates, so an occurrence whose template was archived mid-day would have disappeared from Home. Phase 05 resolved the same-day semantics (OD-16, MASTER_SPEC §5.7) and changed the loader as described above.
 

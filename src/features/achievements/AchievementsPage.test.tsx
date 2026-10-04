@@ -16,7 +16,12 @@ describe('Achievements screen: a new player', () => {
     expect(await screen.findByText('0 / 28')).toBeInTheDocument()
 
     const groups = ['General', 'Daily', 'Streak', 'Weekly', 'Rank']
-    expect(screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent)).toEqual(groups.map((group) => group.toUpperCase()))
+    // By accessible name: the decorative [ ] around a label are aria-hidden, so the name is just the group.
+    expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(groups.length)
+    const headings = groups.map((group) => screen.getByRole('heading', { level: 2, name: group.toUpperCase() }))
+    headings.slice(1).forEach((heading, index) => {
+      expect(headings[index]!.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
     const sizes = groups.map((group) => within(screen.getByRole('list', { name: `${group} achievements` })).getAllByRole('listitem').length)
     expect(sizes).toEqual([6, 6, 4, 6, 6])
     expect(screen.getAllByText(/^Locked/)).toHaveLength(28)

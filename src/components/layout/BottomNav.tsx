@@ -28,7 +28,7 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Primary"
-      className="fixed bottom-0 left-1/2 z-10 w-full max-w-md -translate-x-1/2 border-t border-border bg-background pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)]"
+      className="fixed bottom-0 left-1/2 z-10 w-full max-w-md -translate-x-1/2 border-t border-border-strong bg-background pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)]"
     >
       <ul className="flex">
         {DESTINATIONS.map(({ to, label, Icon, end, alsoFor }) => (
@@ -38,12 +38,14 @@ export function BottomNav() {
               end={end}
               className={({ isActive }) =>
                 cn(
-                  'flex h-14 flex-col items-center justify-center gap-0.5 text-xs font-medium focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent',
-                  isActive || (alsoFor?.some((path) => pathname.startsWith(path)) ?? false) ? 'text-accent' : 'text-muted active:text-foreground',
+                  'relative flex h-(--nav-height) flex-col items-center justify-center gap-0.5 font-display text-[0.6875rem] font-semibold tracking-[0.12em] uppercase focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent',
+                  isActive || (alsoFor?.some((path) => pathname.startsWith(path)) ?? false)
+                    ? 'bg-accent/10 text-accent before:absolute before:inset-x-4 before:top-0 before:h-0.5 before:bg-accent before:shadow-glow-soft'
+                    : 'text-muted active:text-foreground',
                 )
               }
             >
-              <Icon aria-hidden="true" className="size-6" />
+              <Icon aria-hidden="true" className="size-5" />
               <span>{label}</span>
             </NavLink>
           </li>

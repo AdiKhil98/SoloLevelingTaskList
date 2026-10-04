@@ -14,6 +14,7 @@ import {
 import { categoryLabel, difficultyLabel, weekdayName, weekdayShortName } from '../displayLabels'
 import { CheckboxChip, FieldGroup, INPUT, RadioChip, TextField } from './FormControls'
 import { fieldErrorText } from './questMessages'
+import { SectionLabel } from '@/components/ui/SectionLabel'
 
 /** What the page tells the form after a save attempt. */
 export type QuestFormOutcome =
@@ -138,16 +139,16 @@ export function QuestForm({ mode, initial, today, onSubmit, cancelTo }: QuestFor
 
   return (
     <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-5" aria-labelledby="quest-form-heading">
-      <h1 id="quest-form-heading" className="text-sm font-semibold tracking-[0.4em] text-accent">
+      <SectionLabel as="h1" id="quest-form-heading" className="text-sm tracking-[0.3em] text-accent">
         {mode === 'create' ? 'NEW QUEST' : 'EDIT QUEST'}
-      </h1>
+      </SectionLabel>
 
       {(errorList.length > 0 || formError !== null) && (
         <div
           ref={summaryRef}
           tabIndex={-1}
           role="alert"
-          className="flex flex-col gap-1 rounded-xl border border-red-400/50 bg-red-500/10 p-3 text-sm focus:outline-none"
+          className="flex flex-col gap-1 rounded-[3px] border border-danger/50 bg-danger/10 p-3 text-sm focus:outline-none"
         >
           {formError !== null ? (
             <p>{formError}</p>
@@ -317,7 +318,7 @@ export function QuestForm({ mode, initial, today, onSubmit, cancelTo }: QuestFor
             </RadioChip>
           ))}
         </div>
-        <p aria-live="polite" className="mt-1 flex items-baseline justify-between gap-3 rounded-lg border border-border px-3 py-2 text-sm">
+        <p aria-live="polite" className="mt-1 flex items-baseline justify-between gap-3 rounded-[3px] border border-border px-3 py-2 text-sm">
           <span className="text-muted">Reward</span>
           <span className="font-semibold tabular-nums text-accent">{reward === null ? '—' : `+${reward} EXP`}</span>
         </p>
@@ -348,13 +349,13 @@ export function QuestForm({ mode, initial, today, onSubmit, cancelTo }: QuestFor
           type="submit"
           aria-busy={submitting}
           disabled={submitting}
-          className="inline-flex min-h-12 items-center justify-center rounded-lg border border-accent bg-accent/20 px-4 font-semibold text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:bg-accent/30 disabled:opacity-60"
+          className="inline-flex min-h-12 items-center justify-center rounded-[3px] border border-accent bg-accent/20 px-4 font-semibold text-foreground system-focus active:bg-accent/30 disabled:opacity-60"
         >
           {mode === 'create' ? 'Create Quest' : 'Save Changes'}
         </button>
         <Link
           to={cancelTo}
-          className="inline-flex min-h-12 items-center justify-center rounded-lg border border-border px-4 font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:bg-accent/15"
+          className="inline-flex min-h-12 items-center justify-center rounded-[3px] border border-border px-4 font-medium system-focus active:bg-accent/15"
         >
           Cancel
         </Link>

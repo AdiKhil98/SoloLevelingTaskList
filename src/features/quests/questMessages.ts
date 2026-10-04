@@ -31,7 +31,7 @@ export function fieldErrorText(code: QuestFormErrorCode): string {
 }
 
 /** Shown when a management action could not be saved (nothing was changed). */
-export function saveFailureText(reason: FailureReason, what: 'create' | 'update' | 'archive' | 'restore'): string {
+export function saveFailureText(reason: FailureReason, what: 'create' | 'update' | 'archive' | 'restore' | 'reorder'): string {
   if (reason === 'storage_full') return 'Your device is out of storage space. Nothing was changed.'
   if (reason === 'database_unavailable' || reason === 'database_blocked') {
     return 'Saving is unavailable right now. Nothing was changed.'
@@ -51,6 +51,8 @@ export function saveFailureText(reason: FailureReason, what: 'create' | 'update'
       return 'That quest could not be archived. It is still active. Please try again.'
     case 'restore':
       return 'That quest could not be restored. Please try again.'
+    case 'reorder':
+      return 'The new order could not be saved, so the list was reloaded. Please try again.'
   }
 }
 

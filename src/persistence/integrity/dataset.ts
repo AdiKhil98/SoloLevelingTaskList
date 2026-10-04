@@ -104,7 +104,7 @@ function findDuplicates<T>(
  * `verifyDatabaseIntegrity`, so the rules exist exactly once.
  *
  * Cross-record rules (DATA_MODEL INV-1…8, 24):
- *  - primary keys and unique keys are unique (templates, `seedKey`, occurrences
+ *  - primary keys and unique keys are unique (templates, `seedKey`, `sortOrder`, occurrences
  *    including `(templateId, dateKey)`, completions);
  *  - each completion refers to an imported occurrence and agrees with it
  *    (template, date, category, EXP);
@@ -156,6 +156,7 @@ export function validateDataset(
 
   findDuplicates(collector, templates, (t) => t.id, at('questTemplates'), 'id', 'duplicate_id')
   findDuplicates(collector, templates, (t) => t.seedKey, at('questTemplates'), 'seedKey', 'duplicate_seed_key')
+  findDuplicates(collector, templates, (t) => String(t.sortOrder), at('questTemplates'), 'sortOrder', 'duplicate_sort_order')
   findDuplicates(collector, occurrences, (o) => o.id, at('questOccurrences'), 'id', 'duplicate_id')
   findDuplicates(collector, occurrences, (o) => `${o.templateId}@${o.dateKey}`, at('questOccurrences'), 'dateKey', 'duplicate_occurrence_for_date')
   findDuplicates(collector, completions, (c) => c.occurrenceId, at('questCompletions'), 'occurrenceId', 'duplicate_completion')

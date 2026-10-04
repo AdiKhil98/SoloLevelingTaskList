@@ -15,6 +15,8 @@ import type {
   LoadWeeklyScreenResult,
   PlayerProfile,
   QuestFormValues,
+  ReorderQuestsInput,
+  ReorderQuestsResult,
   RestoreQuestResult,
   SaveWeeklyBoardUseCaseResult,
   SetWeeklyGoalProgressUseCaseResult,
@@ -35,6 +37,8 @@ export interface QuestActions {
   update(templateId: string, values: QuestFormValues): Promise<UpdateQuestResult>
   archive(templateId: string): Promise<ArchiveQuestResult>
   restore(templateId: string): Promise<RestoreQuestResult>
+  /** Stores the player's manual order of the active quests (refused if the screen's view is stale). */
+  reorder(input: ReorderQuestsInput): Promise<ReorderQuestsResult>
 }
 
 /**

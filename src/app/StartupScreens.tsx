@@ -35,7 +35,7 @@ function StartupFrame({ children }: { children: ReactNode }) {
 export function LoadingScreen() {
   return (
     <StartupFrame>
-      <p role="status" className="text-sm tracking-[0.3em] text-accent">
+      <p role="status" className="font-display text-sm tracking-[0.3em] text-accent">
         SYSTEM INITIALIZING...
       </p>
     </StartupFrame>
@@ -52,13 +52,13 @@ export function StartupErrorScreen({ reason, onRetry }: StartupErrorScreenProps)
   return (
     <StartupFrame>
       <div role="alert" className="flex flex-col items-center gap-3">
-        <h1 className="text-xl font-semibold">Local data could not be loaded</h1>
+        <h1 className="font-display text-xl font-semibold">Local data could not be loaded</h1>
         <p className="text-muted">{startupFailureHint(reason)}</p>
       </div>
       <button
         type="button"
         onClick={onRetry}
-        className="mt-2 inline-flex min-h-12 min-w-32 items-center justify-center rounded-lg border border-accent bg-accent/10 px-6 font-medium text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:bg-accent/20"
+        className="mt-2 inline-flex min-h-12 min-w-32 items-center justify-center rounded-[3px] border border-accent bg-accent/10 px-6 font-medium text-accent system-focus active:bg-accent/20"
       >
         Retry
       </button>

@@ -22,6 +22,12 @@ export function noonOn(dateKey: string): number {
   return Date.UTC(year, month - 1, day, 10, 0, 0)
 }
 
+/**
+ * Every template built here gets its own `sortOrder` by default (the dataset
+ * integrity check rejects a repeat); pass `sortOrder` to place one deliberately.
+ */
+let nextSortOrder = 0
+
 export function buildTemplate(overrides: Partial<QuestTemplate> = {}): QuestTemplate {
   return {
     id: 'tpl_test',
@@ -34,11 +40,24 @@ export function buildTemplate(overrides: Partial<QuestTemplate> = {}): QuestTemp
     activeFrom: d('2026-01-01'),
     activeUntil: null,
     status: 'active',
+    sortOrder: nextSortOrder++,
     revision: 1,
     createdAt: 1_000,
     updatedAt: 1_000,
     ...overrides,
   }
+}
+
+/** A template that has not been placed in the manual order yet (what `appendTemplate` takes; also a Phase 08 row). */
+export function buildUnplacedTemplate(overrides: Partial<QuestTemplate> = {}): Omit<QuestTemplate, 'sortOrder'> {
+  return withoutSortOrder(buildTemplate(overrides))
+}
+
+/** A copy of a stored template without its `sortOrder`. */
+export function withoutSortOrder<T extends { sortOrder?: unknown }>(row: T): Omit<T, 'sortOrder'> {
+  const copy = { ...row }
+  delete copy.sortOrder
+  return copy
 }
 
 export function buildOccurrence(

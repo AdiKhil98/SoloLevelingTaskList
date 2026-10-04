@@ -83,7 +83,7 @@ The six seeds remain ordinary templates. They can be edited, archived and restor
 
 ## Ordering (temporary)
 
-Unchanged from Phase 04 (`compareQuestOrder`): the six seeds in their natural order, then user quests by creation time, then template id. Editing never changes `createdAt`, so it never changes a position. There is no manual ordering and no sort-order field (no migration).
+*(Superseded in Phase 09.)* Phases 04–08 listed the six seeds first, then user quests by creation time. Quests now have a stored manual order (`sortOrder`, schema v4): new quests go to the bottom, editing never moves a quest, archive/restore keep its slot, and the Quests screen can reorder the active list by drag or with Move up / Move down. See [VISUAL_SYSTEM_AND_ORDERING.md](VISUAL_SYSTEM_AND_ORDERING.md).
 
 ## Id generation
 

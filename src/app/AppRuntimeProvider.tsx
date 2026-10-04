@@ -13,6 +13,7 @@ import {
   loadWeeklyEditor,
   loadWeeklyHistory,
   loadWeeklyScreen,
+  reorderQuests,
   restoreQuest,
   saveWeeklyBoard,
   setWeeklyGoalProgress,
@@ -26,6 +27,7 @@ import {
   type HomeSnapshot,
   type IdSource,
   type QuestFormValues,
+  type ReorderQuestsInput,
   type SynchronizedHome,
   type WeeklyBoardFormValues,
 } from '@/application'
@@ -80,6 +82,7 @@ const UNAVAILABLE_QUEST_ACTIONS: QuestActions = {
   update: async () => UNAVAILABLE,
   archive: async () => UNAVAILABLE,
   restore: async () => UNAVAILABLE,
+  reorder: async () => UNAVAILABLE,
 }
 
 /** Weekly actions before the database is ready: every one fails visibly without touching anything. */
@@ -260,6 +263,12 @@ export function AppRuntimeProvider({ options, children }: AppRuntimeProviderProp
         await syncDay('resume')
         const result = await restoreQuest(context, templateId)
         if (result.status === 'restored' || result.status === 'already_active') await adopt(result)
+        return result
+      },
+      reorder: async (input: ReorderQuestsInput) => {
+        await syncDay('resume')
+        const result = await reorderQuests(context, input)
+        if (result.status === 'reordered') await adopt(result)
         return result
       },
     }

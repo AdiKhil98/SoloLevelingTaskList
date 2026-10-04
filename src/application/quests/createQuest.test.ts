@@ -57,6 +57,7 @@ describe('createQuest — what is persisted', () => {
       activeFrom: TODAY,
       activeUntil: null,
       status: 'active',
+      sortOrder: 0, // the first template goes to the bottom of an empty order
       revision: 1,
       createdAt: clock.now(),
       updatedAt: clock.now(),

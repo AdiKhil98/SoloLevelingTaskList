@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { DATABASE_NAME, DATABASE_VERSION } from '../config'
 import { PersistenceError } from '../errors'
 import { createTemplate, getTemplate } from '../repositories/templates'
-import { buildTemplate, DatabaseTracker, newFactory, readRaw } from '../test-utils/helpers'
+import { buildTemplate, buildUnplacedTemplate, DatabaseTracker, newFactory, readRaw, writeRaw } from '../test-utils/helpers'
 import { openDatabase, openVersionedDatabase } from './connection'
 import { MIGRATIONS } from '../migrations'
 import { requestToPromise, runTransaction } from './transaction'
@@ -20,13 +20,13 @@ function rawOpen(factory: IDBFactory, name: string, version?: number): Promise<I
   })
 }
 
-describe('current schema (v3)', () => {
+describe('current schema (v4)', () => {
   it('creates a fresh database at the production name and the current version', async () => {
     const factory = newFactory()
     const database = tracker.track(await openDatabase({ factory }))
     expect(database.name).toBe(DATABASE_NAME)
-    expect(database.version).toBe(3)
-    expect(DATABASE_VERSION).toBe(3)
+    expect(database.version).toBe(4)
+    expect(DATABASE_VERSION).toBe(4)
     expect(database.isOpen).toBe(true)
   })
 
@@ -146,17 +146,18 @@ describe('connection handle', () => {
   })
 })
 
-describe('the real v1 → v3 upgrade (Phases 06 and 07)', () => {
+describe('the real v1 → v4 upgrade (Phases 06, 07 and 09)', () => {
   it('adds dailySummaries and the weekly stores to an existing v1 database and keeps every existing row', async () => {
     const factory = newFactory()
     const v1 = await openVersionedDatabase({ name: DATABASE_NAME, factory, version: 1, migrations: { 1: MIGRATIONS[1]! } })
-    await createTemplate(v1, buildTemplate({ id: 'tpl_legacy', title: 'From v1' }))
+    // A real v1 row: it has no `sortOrder`.
+    await writeRaw(v1, 'questTemplates', buildUnplacedTemplate({ id: 'tpl_legacy', title: 'From v1' }))
     expect([...(await rawOpen(factory, DATABASE_NAME, 1).then((raw) => { const names = [...raw.objectStoreNames]; raw.close(); return names }))]).not.toContain('dailySummaries')
     v1.close()
 
     const upgraded = tracker.track(await openDatabase({ factory }))
-    expect(upgraded.version).toBe(3)
-    expect((await getTemplate(upgraded, 'tpl_legacy'))?.title).toBe('From v1')
+    expect(upgraded.version).toBe(4)
+    expect(await getTemplate(upgraded, 'tpl_legacy')).toMatchObject({ title: 'From v1', sortOrder: 0 })
     expect(await readRaw(upgraded, 'dailySummaries')).toEqual([])
     expect(await readRaw(upgraded, 'weeklyBoards')).toEqual([])
     expect(await readRaw(upgraded, 'weeklyRewardClaims')).toEqual([])
@@ -164,9 +165,9 @@ describe('the real v1 → v3 upgrade (Phases 06 and 07)', () => {
 })
 
 describe('upgrades and versionchange', () => {
-  const v4 = {
+  const v5 = {
     ...MIGRATIONS,
-    4: (database: IDBDatabase) => {
+    5: (database: IDBDatabase) => {
       database.createObjectStore('futureStore', { keyPath: 'id' })
     },
   }
@@ -178,9 +179,9 @@ describe('upgrades and versionchange', () => {
     first.close()
 
     const upgraded = tracker.track(
-      await openVersionedDatabase({ name: DATABASE_NAME, factory, version: 4, migrations: v4 }),
+      await openVersionedDatabase({ name: DATABASE_NAME, factory, version: 5, migrations: v5 }),
     )
-    expect(upgraded.version).toBe(4)
+    expect(upgraded.version).toBe(5)
     expect(await readRaw(upgraded, 'questTemplates')).toHaveLength(1)
     const raw = await rawOpen(factory, DATABASE_NAME)
     expect([...raw.objectStoreNames]).toContain('futureStore')
@@ -193,9 +194,9 @@ describe('upgrades and versionchange', () => {
     await createTemplate(oldTab, buildTemplate({ id: 'tpl_1' }))
 
     const newTab = tracker.track(
-      await openVersionedDatabase({ name: DATABASE_NAME, factory, version: 4, migrations: v4 }),
+      await openVersionedDatabase({ name: DATABASE_NAME, factory, version: 5, migrations: v5 }),
     )
-    expect(newTab.version).toBe(4)
+    expect(newTab.version).toBe(5)
     expect(oldTab.isOpen).toBe(false)
     await expect(getTemplate(oldTab, 'tpl_1')).rejects.toMatchObject({ code: 'database_closed' })
     expect(await getTemplate(newTab, 'tpl_1')).not.toBeNull()
@@ -207,13 +208,13 @@ describe('upgrades and versionchange', () => {
     const holdout = await rawOpen(factory, DATABASE_NAME) // ignores versionchange
 
     await expect(
-      openVersionedDatabase({ name: DATABASE_NAME, factory, version: 4, migrations: v4 }),
+      openVersionedDatabase({ name: DATABASE_NAME, factory, version: 5, migrations: v5 }),
     ).rejects.toMatchObject({ code: 'database_blocked' })
 
     holdout.close()
     // The abandoned upgrade must not have been applied once the holdout let go.
     const after = tracker.track(await openDatabase({ factory }))
-    expect(after.version).toBe(3)
+    expect(after.version).toBe(4)
   })
 
   it('reports a failing migration as database_open_failed and does not upgrade', async () => {
@@ -221,14 +222,14 @@ describe('upgrades and versionchange', () => {
     tracker.track(await openDatabase({ factory })).close()
     const broken = {
       ...MIGRATIONS,
-      4: () => {
+      5: () => {
         throw new Error('boom')
       },
     }
     await expect(
-      openVersionedDatabase({ name: DATABASE_NAME, factory, version: 4, migrations: broken }),
+      openVersionedDatabase({ name: DATABASE_NAME, factory, version: 5, migrations: broken }),
     ).rejects.toMatchObject({ code: 'database_open_failed' })
-    expect(tracker.track(await openDatabase({ factory })).version).toBe(3)
+    expect(tracker.track(await openDatabase({ factory })).version).toBe(4)
   })
 
   it('fails clearly when a migration step is missing', async () => {

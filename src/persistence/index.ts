@@ -15,6 +15,7 @@ export { openDatabase, PersistenceDatabase, type OpenDatabaseOptions } from './d
 
 // Repositories
 export {
+  appendTemplate,
   archiveTemplate,
   createTemplate,
   getTemplate,
@@ -63,6 +64,13 @@ export {
   type AtomicCompletionResult,
   type CompleteQuestAtomicallyInput,
 } from './commands/completeQuest'
+
+export {
+  reorderTemplates,
+  type ReorderTemplatesInput,
+  type ReorderTemplatesRejection,
+  type ReorderTemplatesResult,
+} from './commands/reorderTemplates'
 
 export {
   finalizeDayAtomically,

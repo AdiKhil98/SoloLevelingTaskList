@@ -1,4 +1,6 @@
+/// <reference types="node" />
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
+import { readFileSync } from 'node:fs'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createTestClock, newFactory, noonOn } from '@/application/test-utils/helpers'
 import { renderApp } from '@/test/renderApp'
@@ -45,7 +47,12 @@ describe('navigation', () => {
   it('every bottom navigation target stays at least 44 px tall (a usable touch target)', async () => {
     renderApp({ clock: wednesday() })
     await homeReady()
-    for (const link of within(nav()).getAllByRole('link')) expect(link.className).toContain('h-14')
+    // The height comes from one token (also used for the page's bottom padding): check its value, not a class.
+    const globalStyles = readFileSync('src/styles/globals.css', 'utf8') // vitest runs from the project root
+    const navHeight = /--nav-height:\s*([\d.]+)rem/.exec(globalStyles)
+    expect(navHeight).not.toBeNull()
+    expect(Number(navHeight?.[1]) * 16).toBeGreaterThanOrEqual(44)
+    for (const link of within(nav()).getAllByRole('link')) expect(link.className).toContain('h-(--nav-height)')
   })
 })
 

@@ -89,14 +89,15 @@ describe('initializeApplication', () => {
     const home = await initializeApplication(context)
 
     expect(await listTemplates(database)).toHaveLength(7)
+    // The existing quest keeps its place; the missing seeds are appended after it.
     expect(home.today.quests.map((quest) => quest.title)).toEqual([
+      'Custom',
       'Fajr',
       'Dhuhr',
       'Asr',
       'Maghrib',
       'Isha',
       'Sleep before 00:00',
-      'Custom',
     ])
   })
 

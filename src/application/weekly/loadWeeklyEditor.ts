@@ -1,9 +1,16 @@
-import { WEEKLY_REWARD_TIER_SCORES, weekEndOf, weekKeyOf, type DateKey, type WeekKey, type WeeklyGoal } from '@/domain'
+import {
+  sortTemplatesByOrder,
+  WEEKLY_REWARD_TIER_SCORES,
+  weekEndOf,
+  weekKeyOf,
+  type DateKey,
+  type WeekKey,
+  type WeeklyGoal,
+} from '@/domain'
 import { listTemplates, listWeeklyBoards } from '@/persistence'
 import { readClock } from '../clock'
 import type { ApplicationContext } from '../context'
 import { classifyFailure, type FailureReason } from '../errors'
-import { compareQuestOrder } from '../today/questOrder'
 import { emptyRewards, type WeeklyBoardFormValues, type WeeklyGoalFormValues } from './weeklyBoardForm'
 
 /** A quest a weekly goal can be linked to. */
@@ -49,12 +56,6 @@ function goalRow(goal: WeeklyGoal): WeeklyGoalFormValues {
   }
 }
 
-const orderKey = (template: { seedKey: string | null; createdAt: number; id: string }) => ({
-  seedKey: template.seedKey,
-  templateCreatedAt: template.createdAt,
-  templateId: template.id,
-})
-
 /**
  * The initial values of the Weekly Goal Crusher form for the CURRENT week.
  *
@@ -71,7 +72,7 @@ export async function loadWeeklyEditor(context: ApplicationContext): Promise<Loa
     const board = boards.find((candidate) => candidate.weekKey === weekKey) ?? null
     if (board !== null && board.status !== 'active') return { status: 'finalized' }
 
-    const ordered = [...templates].sort((a, b) => compareQuestOrder(orderKey(a), orderKey(b)))
+    const ordered = sortTemplatesByOrder(templates)
     const quests: LinkableQuest[] = [
       ...ordered.filter((template) => template.status === 'active'),
       ...ordered.filter((template) => template.status === 'archived'),

@@ -10,8 +10,8 @@ export function AppShell() {
   return (
     <>
       <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)]">
-        {/* 3.5rem = the bottom nav's height; the rest keeps the last item clear of it. */}
-        <main className="flex flex-1 flex-col px-4 pt-6 pb-[calc(3.5rem+env(safe-area-inset-bottom)+1.5rem)]">
+        {/* The bottom padding is the nav's height (one token, shared with BottomNav) plus the safe area, so the last item always clears it. */}
+        <main className="flex flex-1 flex-col px-4 pt-5 pb-[calc(var(--nav-height)+env(safe-area-inset-bottom)+1.5rem)]">
           <Outlet />
         </main>
       </div>

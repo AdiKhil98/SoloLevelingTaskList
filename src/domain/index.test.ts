@@ -23,6 +23,7 @@ describe('public domain API', () => {
       activeFrom: asDateKey('2026-10-01'),
       activeUntil: null,
       status: 'active',
+      sortOrder: 0,
       revision: 1,
       createdAt: 0,
       updatedAt: 0,

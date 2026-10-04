@@ -47,7 +47,7 @@ export {
 } from './completion/completeTodayQuest'
 export { loadPlayerStatus, type PlayerStatus } from './player/loadPlayerStatus'
 export { loadToday, type TodayQuest, type TodayView } from './today/loadToday'
-export { compareQuestOrder, type QuestOrderKey } from './today/questOrder'
+export { compareQuestOrder, questOrderKeyOf, sortTemplatesByOrder, type QuestOrderKey } from './today/questOrder'
 
 export {
   defaultQuestFormValues,
@@ -64,6 +64,7 @@ export { createQuest, type CreateQuestResult } from './quests/createQuest'
 export { updateQuest, type UpdateQuestResult } from './quests/updateQuest'
 export { archiveQuest, type ArchiveQuestResult } from './quests/archiveQuest'
 export { restoreQuest, type RestoreQuestResult } from './quests/restoreQuest'
+export { reorderQuests, type ReorderQuestsInput, type ReorderQuestsResult } from './quests/reorderQuests'
 export { loadQuestForEdit, type LoadQuestForEditResult } from './quests/loadQuestForEdit'
 export {
   listQuestTemplates,

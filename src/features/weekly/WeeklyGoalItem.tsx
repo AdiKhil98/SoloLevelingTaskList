@@ -3,9 +3,10 @@ import { useRef, useState, type FormEvent } from 'react'
 import type { WeeklyGoalView } from '@/application'
 import { WEEKLY_LIMITS } from '@/domain'
 import { cn } from '@/lib/utils'
+import { MeterBar } from '@/components/ui/MeterBar'
 
 const STEP =
-  'inline-flex size-11 shrink-0 items-center justify-center rounded-lg border border-border bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:bg-accent/15 disabled:opacity-40'
+  'inline-flex size-11 shrink-0 items-center justify-center rounded-[3px] border border-border bg-surface-raised system-focus active:bg-accent/15 disabled:opacity-40'
 
 interface WeeklyGoalItemProps {
   goal: WeeklyGoalView
@@ -79,7 +80,7 @@ function ManualProgress({ goal, onSetProgress, canEdit }: WeeklyGoalItemProps) {
           disabled={disabled}
           onChange={(event) => setDraft(event.target.value)}
           onBlur={submitText}
-          className="min-h-11 w-20 rounded-lg border border-border bg-surface px-2 text-center text-base tabular-nums focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent aria-[invalid=true]:border-red-400/70 disabled:opacity-60"
+          className="min-h-11 w-20 rounded-[3px] border border-border bg-background px-2 text-center font-display text-base font-semibold tabular-nums system-focus aria-[invalid=true]:border-danger/70 disabled:opacity-60"
         />
         <button
           type="button"
@@ -92,7 +93,7 @@ function ManualProgress({ goal, onSetProgress, canEdit }: WeeklyGoalItemProps) {
         </button>
       </div>
       {error !== null && (
-        <p id={errorId} role="alert" className="text-sm text-red-300">
+        <p id={errorId} role="alert" className="text-sm text-danger">
           {error}
         </p>
       )}
@@ -108,11 +109,10 @@ function ManualProgress({ goal, onSetProgress, canEdit }: WeeklyGoalItemProps) {
  */
 export function WeeklyGoalItem(props: WeeklyGoalItemProps) {
   const { goal } = props
-  const fraction = Math.min(goal.progress / goal.target, 1)
   const unit = goal.unit === null ? '' : ` ${goal.unit}`
 
   return (
-    <li className={cn('flex flex-col gap-2.5 rounded-xl border bg-surface p-3.5', goal.completed ? 'border-accent/60' : 'border-border')}>
+    <li className={cn('system-panel flex flex-col gap-2.5 p-3.5', goal.completed && 'border-border-strong bg-accent/10')}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="font-semibold break-words">{goal.title}</h3>
@@ -123,7 +123,7 @@ export function WeeklyGoalItem(props: WeeklyGoalItemProps) {
             </p>
           )}
         </div>
-        <p className="shrink-0 text-sm font-semibold tabular-nums">
+        <p className="shrink-0 font-display text-sm font-semibold tabular-nums text-accent-2">
           {goal.maxPoints} {goal.maxPoints === 1 ? 'pt' : 'pts'}
         </p>
       </div>
@@ -141,17 +141,13 @@ export function WeeklyGoalItem(props: WeeklyGoalItemProps) {
         )}
       </div>
 
-      <div
-        role="progressbar"
-        aria-label={`${goal.title} progress`}
-        aria-valuemin={0}
-        aria-valuemax={goal.target}
-        aria-valuenow={Math.min(goal.progress, goal.target)}
-        aria-valuetext={`${goal.progress} of ${goal.target}${unit}`}
-        className="h-2 w-full overflow-hidden rounded-full bg-border"
-      >
-        <div className="h-full rounded-full bg-accent-strong" style={{ width: `${fraction * 100}%` }} />
-      </div>
+      <MeterBar
+        value={goal.progress}
+        max={goal.target}
+        label={`${goal.title} progress`}
+        valueText={`${goal.progress} of ${goal.target}${unit}`}
+        tone={goal.completed ? 'done' : 'default'}
+      />
 
       {goal.trackingMode === 'manual' && <ManualProgress {...props} />}
 

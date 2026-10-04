@@ -15,7 +15,7 @@ import { ensureOccurrence, listCompletionsByDate, listOccurrencesByDate, listTem
 import { readClock } from '../clock'
 import type { ApplicationContext } from '../context'
 import { ApplicationError } from '../errors'
-import { compareQuestOrder, type QuestOrderKey } from './questOrder'
+import { compareQuestOrder, questOrderKeyOf, type QuestOrderKey } from './questOrder'
 
 /** One quest on today's list, as stored: the occurrence snapshot plus its completion state. */
 export interface TodayQuest {
@@ -33,17 +33,23 @@ export interface TodayQuest {
 
 export interface TodayView {
   readonly dateKey: DateKey
-  /** Display order (see `questOrder`). */
+  /** The player's manual order (see `questOrder`). */
   readonly quests: readonly TodayQuest[]
   /** Counted and classified by the Phase 02 daily engine over all of today's occurrences. */
   readonly progress: DailyProgress
 }
 
-/** Sort key of an occurrence: its template's, or (template missing) a stable one from the snapshot. */
+/**
+ * Sort key of an occurrence: its template's manual order, or, when the template
+ * is missing (never produced by the app, which only archives; only foreign or
+ * hand-edited data), after every quest that has a template, then by when the
+ * occurrence was created and by template id. The order is never stored on the
+ * occurrence, so reordering cannot change a frozen snapshot.
+ */
 function orderKeyOf(occurrence: QuestOccurrence, template: QuestTemplate | undefined): QuestOrderKey {
   return template === undefined
-    ? { seedKey: null, templateCreatedAt: occurrence.materializedAt, templateId: occurrence.templateId }
-    : { seedKey: template.seedKey, templateCreatedAt: template.createdAt, templateId: template.id }
+    ? { sortOrder: Number.POSITIVE_INFINITY, templateCreatedAt: occurrence.materializedAt, templateId: occurrence.templateId }
+    : questOrderKeyOf(template)
 }
 
 interface Entry {

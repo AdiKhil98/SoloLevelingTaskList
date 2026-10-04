@@ -4,6 +4,9 @@ import { WEEKLY_BOARD_TOTAL_POINTS } from '@/domain'
 import { cn } from '@/lib/utils'
 import { WeeklyGoalItem } from './WeeklyGoalItem'
 import { tierLabel } from './weeklyMessages'
+import { SectionLabel } from '@/components/ui/SectionLabel'
+import { MeterBar } from '@/components/ui/MeterBar'
+import { BUTTON_PRIMARY } from '@/components/ui/styles'
 
 interface ActiveBoardCardProps {
   board: ActiveWeeklyBoardView
@@ -19,25 +22,19 @@ interface ActiveBoardCardProps {
  * awarded once, when the week is finalized.
  */
 export function ActiveBoardCard({ board, onSetProgress, canEdit }: ActiveBoardCardProps) {
-  const fraction = board.score / WEEKLY_BOARD_TOTAL_POINTS
-
   return (
     <div className="flex flex-col gap-4">
       {board.focus !== null && (
-        <section aria-labelledby="focus-heading" className="flex flex-col gap-1 rounded-xl border border-border bg-surface px-4 py-3">
-          <h2 id="focus-heading" className="text-xs tracking-[0.3em] text-muted">
-            WEEKLY FOCUS
-          </h2>
+        <section aria-labelledby="focus-heading" className="system-panel flex flex-col gap-1 border-l-2 border-l-accent-2 px-4 py-3">
+          <SectionLabel id="focus-heading">WEEKLY FOCUS</SectionLabel>
           <p className="break-words">{board.focus}</p>
         </section>
       )}
 
-      <section aria-labelledby="score-heading" className="flex flex-col gap-3 rounded-xl border border-border bg-surface p-4">
-        <h2 id="score-heading" className="text-xs tracking-[0.3em] text-muted">
-          THIS WEEK’S SCORE
-        </h2>
+      <section aria-labelledby="score-heading" className="system-panel system-panel-accent system-frame flex flex-col gap-3 p-4">
+        <SectionLabel id="score-heading">THIS WEEK’S SCORE</SectionLabel>
         <div className="flex items-end justify-between gap-3">
-          <p className="text-3xl font-semibold tabular-nums">
+          <p className="font-display text-4xl leading-none font-bold tabular-nums">
             {board.score} / {WEEKLY_BOARD_TOTAL_POINTS}
             <span className="sr-only"> points</span>
           </p>
@@ -45,24 +42,17 @@ export function ActiveBoardCard({ board, onSetProgress, canEdit }: ActiveBoardCa
             {board.goalsCompleted} / {board.goalCount} goals complete
           </p>
         </div>
-        <div
-          role="progressbar"
-          aria-label="Weekly score"
-          aria-valuemin={0}
-          aria-valuemax={WEEKLY_BOARD_TOTAL_POINTS}
-          aria-valuenow={board.score}
-          aria-valuetext={`${board.score} of ${WEEKLY_BOARD_TOTAL_POINTS} points`}
-          className="h-2.5 w-full overflow-hidden rounded-full bg-border"
-        >
-          <div className="h-full rounded-full bg-accent-strong" style={{ width: `${fraction * 100}%` }} />
-        </div>
+        <MeterBar
+          value={board.score}
+          max={WEEKLY_BOARD_TOTAL_POINTS}
+          label="Weekly score"
+          valueText={`${board.score} of ${WEEKLY_BOARD_TOTAL_POINTS} points`}
+        />
         <p className="text-sm text-muted">The bonus EXP is awarded once, when the week ends.</p>
       </section>
 
       <section aria-labelledby="goals-heading" className="flex flex-col gap-2.5">
-        <h2 id="goals-heading" className="text-xs tracking-[0.3em] text-muted">
-          GOALS
-        </h2>
+        <SectionLabel id="goals-heading">GOALS</SectionLabel>
         <ul aria-label="Weekly goals" className="flex flex-col gap-2.5">
           {board.goals.map((goal) => (
             <WeeklyGoalItem key={goal.id} goal={goal} onSetProgress={onSetProgress} canEdit={canEdit} />
@@ -71,10 +61,8 @@ export function ActiveBoardCard({ board, onSetProgress, canEdit }: ActiveBoardCa
       </section>
 
       <section aria-labelledby="rewards-heading" className="flex flex-col gap-2.5">
-        <h2 id="rewards-heading" className="text-xs tracking-[0.3em] text-muted">
-          REWARDS
-        </h2>
-        <ol aria-label="Reward tiers" className="flex flex-col overflow-hidden rounded-xl border border-border bg-surface">
+        <SectionLabel id="rewards-heading">REWARDS</SectionLabel>
+        <ol aria-label="Reward tiers" className="flex flex-col overflow-hidden system-panel">
           {board.rewardTiers.map((tier) => (
             <li
               key={tier.minScore}
@@ -87,7 +75,7 @@ export function ActiveBoardCard({ board, onSetProgress, canEdit }: ActiveBoardCa
             >
               <span className="shrink-0 font-semibold tabular-nums">{tierLabel(tier.minScore)}</span>
               <span className="min-w-0 flex-1 break-words">{tier.text.trim() === '' ? 'No reward set' : tier.text}</span>
-              {tier.current && <span className="shrink-0 text-xs font-semibold tracking-[0.2em] text-accent">CURRENT</span>}
+              {tier.current && <span className="shrink-0 font-display text-xs font-semibold tracking-[0.14em] text-accent-2">CURRENT</span>}
             </li>
           ))}
         </ol>
@@ -97,7 +85,7 @@ export function ActiveBoardCard({ board, onSetProgress, canEdit }: ActiveBoardCa
       {canEdit && (
         <Link
           to="/weekly/edit"
-          className="inline-flex min-h-12 items-center justify-center rounded-lg border border-accent/60 px-4 font-semibold text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:bg-accent/15"
+          className={BUTTON_PRIMARY + ' min-h-12'}
         >
           Edit goals
         </Link>

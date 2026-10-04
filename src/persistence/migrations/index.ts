@@ -1,6 +1,7 @@
 import { migrateToV1 } from './v1'
 import { migrateToV2 } from './v2'
 import { migrateToV3 } from './v3'
+import { migrateToV4 } from './v4'
 
 /** Receives the open database and the live version-change transaction. */
 export type Migration = (database: IDBDatabase, transaction: IDBTransaction) => void
@@ -17,6 +18,7 @@ export const MIGRATIONS: MigrationMap = {
   1: migrateToV1,
   2: migrateToV2,
   3: migrateToV3,
+  4: migrateToV4,
 }
 
 /** Applies every migration in `(from, to]` in order. */

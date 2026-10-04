@@ -1,5 +1,6 @@
 import {
   expRewardForDifficulty,
+  sortTemplatesByOrder,
   type Category,
   type DateKey,
   type Difficulty,
@@ -10,7 +11,6 @@ import { listTemplates } from '@/persistence'
 import { readClock } from '../clock'
 import type { ApplicationContext } from '../context'
 import { classifyFailure, type FailureReason } from '../errors'
-import { compareQuestOrder } from '../today/questOrder'
 import { isDatePassed } from './questTemplate'
 
 /** One row of the quest-management list. Display data only; the editable truth is the template. */
@@ -32,7 +32,7 @@ export interface QuestListItem {
 export type ListQuestTemplatesResult =
   | {
       readonly status: 'ok'
-      /** Active quests in Home order: the six defaults first, then user quests by creation time. */
+      /** Active quests in the player's manual order (the order Home uses). */
       readonly active: readonly QuestListItem[]
       readonly archived: readonly QuestListItem[]
     }
@@ -53,19 +53,11 @@ function toItem(template: QuestTemplate, today: DateKey): QuestListItem {
   }
 }
 
-const orderKey = (template: QuestTemplate) => ({
-  seedKey: template.seedKey,
-  templateCreatedAt: template.createdAt,
-  templateId: template.id,
-})
-
-/** Lists every quest template, split into active and archived, in the order Home uses. */
+/** Lists every quest template, split into active and archived, in the player's manual order (the order Home uses). */
 export async function listQuestTemplates(context: ApplicationContext): Promise<ListQuestTemplatesResult> {
   try {
     const { dateKey: today } = readClock(context.clock)
-    const templates = [...(await listTemplates(context.database))].sort((a, b) =>
-      compareQuestOrder(orderKey(a), orderKey(b)),
-    )
+    const templates = sortTemplatesByOrder(await listTemplates(context.database))
     return {
       status: 'ok',
       active: templates.filter((template) => template.status === 'active').map((template) => toItem(template, today)),

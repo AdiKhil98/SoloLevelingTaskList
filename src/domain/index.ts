@@ -98,6 +98,15 @@ export {
   type RecurrenceError,
 } from './quests/recurrence'
 export {
+  compareQuestOrder,
+  hasUniqueSortOrders,
+  isSortOrder,
+  questOrderKeyOf,
+  renumberInOrder,
+  sortTemplatesByOrder,
+  type QuestOrderKey,
+} from './quests/order'
+export {
   validateQuestTemplate,
   type TemplateValidationError,
 } from './quests/template'

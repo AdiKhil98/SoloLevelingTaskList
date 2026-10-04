@@ -6,12 +6,12 @@ import { WeeklyBoardForm, type WeeklyFormOutcome } from './WeeklyBoardForm'
 import { saveRejectionText, weeklyFailureText } from './weeklyMessages'
 
 const BACK_LINK =
-  'mt-2 inline-flex min-h-11 w-fit items-center rounded-lg border border-border px-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent'
+  'mt-2 inline-flex min-h-11 w-fit items-center rounded-[3px] border border-border px-4 system-focus'
 
 function Unavailable({ heading, children }: { heading: string; children: string }) {
   return (
     <section className="flex flex-col gap-2">
-      <h1 className="text-2xl font-semibold">{heading}</h1>
+      <h1 className="font-display text-2xl font-semibold">{heading}</h1>
       <p className="text-muted">{children}</p>
       <Link to="/weekly" className={BACK_LINK}>
         Back to Weekly

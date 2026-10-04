@@ -32,6 +32,13 @@ export interface QuestTemplate {
   readonly activeFrom: DateKey
   readonly activeUntil: DateKey | null
   readonly status: 'active' | 'archived'
+  /**
+   * Manual order (Phase 09): a unique non-negative safe integer, one sequence
+   * over every template, active or archived (see `order.ts`). Not part of the
+   * quest's definition: changing it never bumps `revision` and an occurrence
+   * snapshot never stores it.
+   */
+  readonly sortOrder: number
   readonly revision: number
   readonly createdAt: EpochMs
   readonly updatedAt: EpochMs

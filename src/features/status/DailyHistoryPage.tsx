@@ -6,6 +6,7 @@ import { dayQualityLabel, daysLabel, formatDateKey } from '../displayLabels'
 import { LoadFailure } from './StatBlocks'
 import { BUTTON } from './styles'
 import { useLoadedData } from './useLoadedData'
+import { SectionLabel } from '@/components/ui/SectionLabel'
 
 /** How many days the list shows before "Show more". */
 const PAGE_SIZE = 30
@@ -13,7 +14,7 @@ const PAGE_SIZE = 30
 function DayItem({ day }: { day: DailyHistoryEntry }) {
   const empty = day.quality === 'no_active_quests'
   return (
-    <li className="flex flex-col gap-1 rounded-xl border border-border bg-surface p-3">
+    <li className="flex flex-col gap-1 system-panel p-3">
       <div className="flex items-baseline justify-between gap-3">
         <p className="min-w-0 font-semibold break-words">{formatDateKey(day.dateKey)}</p>
         <p className={`shrink-0 text-right text-sm font-medium ${day.quality === 'perfect' ? 'text-accent' : 'text-muted'}`}>{dayQualityLabel(day.quality)}</p>
@@ -45,7 +46,7 @@ export function DailyHistoryPage() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-sm font-semibold tracking-[0.4em] text-accent">DAILY HISTORY</h1>
+        <SectionLabel as="h1" className="text-sm tracking-[0.3em] text-accent">DAILY HISTORY</SectionLabel>
         <Link to="/status" className={BUTTON}>
           Back
         </Link>
@@ -56,7 +57,7 @@ export function DailyHistoryPage() {
 
       {state.status === 'ok' &&
         (state.value.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-border p-4 text-center text-muted">
+          <p className="rounded-[3px] border border-dashed border-border p-4 text-center text-muted">
             No finished days yet. A day is finalized at midnight.
           </p>
         ) : (

@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils'
  */
 
 const CHIP =
-  'flex min-h-12 cursor-pointer items-center justify-center rounded-lg border border-border bg-surface px-3 py-2 text-center text-sm font-medium transition-colors has-checked:border-accent has-checked:bg-accent/15 has-checked:text-foreground has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-accent'
+  'flex min-h-12 cursor-pointer items-center justify-center rounded-[3px] border border-border bg-surface px-3 py-2 text-center text-sm font-medium transition-colors has-checked:border-accent has-checked:bg-accent/15 has-checked:text-foreground has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-accent'
 
 interface ChipProps {
   name: string
@@ -73,7 +73,7 @@ export function FieldGroup({
 }) {
   return (
     <fieldset className="flex min-w-0 flex-col gap-2"  aria-describedby={error === undefined ? undefined : errorId}>
-      <legend className="mb-1 text-xs tracking-[0.2em] text-muted uppercase">{legend}</legend>
+      <legend className="mb-1 font-display text-xs font-semibold tracking-[0.14em] text-muted uppercase">{legend}</legend>
       {children}
       {hint}
       <FieldError id={errorId} message={error} />
@@ -84,14 +84,14 @@ export function FieldGroup({
 export function FieldError({ id, message }: { id: string; message: string | undefined }) {
   if (message === undefined) return null
   return (
-    <p id={id} className="text-sm text-red-300">
+    <p id={id} className="text-sm text-danger">
       {message}
     </p>
   )
 }
 
 export const INPUT =
-  'min-h-12 w-full rounded-lg border border-border bg-surface px-3 text-base text-foreground placeholder:text-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent aria-[invalid=true]:border-red-400/70'
+  'min-h-12 w-full rounded-[3px] border border-border bg-surface px-3 text-base text-foreground placeholder:text-muted system-focus aria-[invalid=true]:border-danger/70'
 
 /** A labelled single input (text, date, numeric). */
 export function TextField({
@@ -110,7 +110,7 @@ export function TextField({
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <label htmlFor={id} className="text-xs tracking-[0.2em] text-muted uppercase">
+      <label htmlFor={id} className="font-display text-xs font-semibold tracking-[0.14em] text-muted uppercase">
         {label}
       </label>
       {children}

@@ -11,16 +11,17 @@ export const POPULATED_TOTAL_EXP = 55 + 55 + 120 + 55
  * 4 templates (one archived), 7 occurrences over three days, 4 completions.
  */
 export async function populate(database: PersistenceDatabase): Promise<void> {
-  const gym = buildTemplate({ id: 'tpl_gym', title: 'Gym', difficulty: 'B', category: 'fitness' })
-  const read = buildTemplate({ id: 'tpl_read', title: 'Read', difficulty: 'E', category: 'knowledge' })
+  const gym = buildTemplate({ id: 'tpl_gym', title: 'Gym', difficulty: 'B', category: 'fitness', sortOrder: 0 })
+  const read = buildTemplate({ id: 'tpl_read', title: 'Read', difficulty: 'E', category: 'knowledge', sortOrder: 1 })
   const once = buildTemplate({
     id: 'tpl_once',
     title: 'Ship the thing',
     difficulty: 'S',
     category: 'business',
     recurrence: { kind: 'one_time', date: d('2026-10-02') },
+    sortOrder: 2,
   })
-  const fajr = buildTemplate({ id: 'tpl_fajr', title: 'Fajr', difficulty: 'E', seedKey: 'prayer.fajr' })
+  const fajr = buildTemplate({ id: 'tpl_fajr', title: 'Fajr', difficulty: 'E', seedKey: 'prayer.fajr', sortOrder: 3 })
   for (const template of [gym, read, once, fajr]) await createTemplate(database, template)
   await archiveTemplate(database, 'tpl_fajr', { activeUntil: d('2026-10-03'), updatedAt: 3_000 })
 

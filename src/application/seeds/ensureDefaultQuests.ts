@@ -1,10 +1,11 @@
-import type { DateKey, EpochMs, QuestTemplate } from '@/domain'
+import type { DateKey, EpochMs } from '@/domain'
 import {
-  createTemplate,
+  appendTemplate,
   getTemplateBySeedKey,
   PersistenceError,
   type PersistenceDatabase,
 } from '@/persistence'
+import type { UnplacedQuestTemplate } from '../quests/questTemplate'
 import { DEFAULT_QUEST_SEEDS, type DefaultQuestSeed } from './defaultQuests'
 
 export interface EnsureDefaultQuestsInput {
@@ -18,7 +19,7 @@ export interface EnsureDefaultQuestsResult {
   readonly created: readonly string[]
 }
 
-function buildSeedTemplate(seed: DefaultQuestSeed, input: EnsureDefaultQuestsInput): QuestTemplate {
+function buildSeedTemplate(seed: DefaultQuestSeed, input: EnsureDefaultQuestsInput): UnplacedQuestTemplate {
   return {
     id: seed.templateId,
     title: seed.title,
@@ -41,6 +42,10 @@ function buildSeedTemplate(seed: DefaultQuestSeed, input: EnsureDefaultQuestsInp
  * its `seedKey`. Idempotent: an existing template with that key (even one the
  * user later archived or edited) counts as present, so nothing is duplicated
  * and nothing existing is touched.
+ *
+ * Each seed is appended to the manual quest order, so a fresh install lists
+ * them in the array order (Fajr … Sleep) and the player can then move them like
+ * any other quest. A seed created later would simply go to the bottom.
  */
 export async function ensureDefaultQuests(
   database: PersistenceDatabase,
@@ -62,7 +67,7 @@ async function ensureSeed(
   if ((await getTemplateBySeedKey(database, seed.seedKey)) !== null) return false
 
   try {
-    await createTemplate(database, buildSeedTemplate(seed, input))
+    await appendTemplate(database, buildSeedTemplate(seed, input))
     return true
   } catch (error) {
     // Another tab (or a StrictMode remount) may have created it between the

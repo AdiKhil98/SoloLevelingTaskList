@@ -6,7 +6,7 @@ import { QuestForm, type QuestFormOutcome } from './QuestForm'
 import { saveFailureText } from './questMessages'
 
 const BACK_LINK =
-  'mt-2 inline-flex min-h-11 w-fit items-center rounded-lg border border-border px-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent'
+  'mt-2 inline-flex min-h-11 w-fit items-center rounded-[3px] border border-border px-4 system-focus'
 
 function Unavailable({ heading, children }: { heading: string; children: string }) {
   return (

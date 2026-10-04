@@ -1,4 +1,5 @@
 import { BACKUP_SCHEMA_VERSION } from '../config'
+import { assignPhase08SortOrder } from '../migrations/v4'
 
 /** Upgrades the `data` of a backup from schema N-1 to N. Pure; may throw on malformed input. */
 export type BackupDataMigration = (data: unknown) => unknown
@@ -16,6 +17,9 @@ export type BackupDataMigrationMap = Readonly<Record<number, BackupDataMigration
  *    finalizes its past days from its own occurrences and completions.
  *  - 3 (Phase 07): adds `weeklyBoards` and `weeklyRewardClaims`. Earlier backups
  *    predate the Weekly Goal Crusher, so they carry none; nothing is invented.
+ *  - 4 (Phase 09): adds the required `sortOrder` to every quest template. Earlier
+ *    backups have none, so it is assigned exactly as the database upgrade does
+ *    (the version-frozen Phase 08 order: default quests first, then by creation).
  */
 function asRecord(data: unknown): Record<string, unknown> {
   if (typeof data !== 'object' || data === null || Array.isArray(data)) {
@@ -27,6 +31,13 @@ function asRecord(data: unknown): Record<string, unknown> {
 export const BACKUP_DATA_MIGRATIONS: BackupDataMigrationMap = {
   2: (data) => ({ ...asRecord(data), dailySummaries: [] }),
   3: (data) => ({ ...asRecord(data), weeklyBoards: [], weeklyRewardClaims: [] }),
+  4: (data) => {
+    const record = asRecord(data)
+    // A malformed collection is left for the dataset validation to reject.
+    return Array.isArray(record.questTemplates)
+      ? { ...record, questTemplates: assignPhase08SortOrder(record.questTemplates) }
+      : record
+  },
 }
 
 export type BackupUpgrade =
