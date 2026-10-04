@@ -354,7 +354,7 @@ Do not push destructive changes without explicit instruction.
 
 ## Current status
 
-**Phases 00, 01, 02, 03, 04, 05, 06 and 07 are complete and approved.**
+**Phases 00 through 08 are complete and approved.**
 
 - **Phase 00** — the master product / architecture specification is complete and authoritative.
 - **Phase 01** — the application foundation is complete (React/Vite/TypeScript/Tailwind scaffold, placeholder UI, lint-enforced layer boundaries). See `docs/FOUNDATION.md`.
@@ -364,8 +364,11 @@ Do not push destructive changes without explicit instruction.
 - **Phase 05** — Quest Management is complete. Create / Edit / Archive / Restore quest flows exist (`/quests`, `/quests/new`, `/quests/:templateId/edit`) for Daily, selected-weekday, Interval and One-Time recurrence. Normal quest EXP remains difficulty-derived only (no custom override). An occurrence that already exists for the current day is a frozen snapshot: edits never change it, and archiving stops future generation while today's existing occurrence stays visible, completable and in the denominator. The app has Home (`/`), Quests (`/quests`) and Status (`/status`) routes. 805 tests pass as of Phase 05. See `docs/QUEST_MANAGEMENT.md`.
 - **Phase 06** — Daily Lifecycle is complete. IndexedDB schema is now **v2** (adds `dailySummaries`; backup schema 2). Immutable Daily Summaries are the authoritative record of finalized days and of streaks (no streak cache). Days finalize atomically; midnight/resume/startup reconciliation finalizes every missed date in chronological order; Daily Streak, Best Streak, Perfect Day Streak and Total Perfect Days exist. Sleep completion opens the LIVE/PROVISIONAL Daily Report (`/report`). A backward device clock enters a safe paused state, and every mutating action (completion, create, edit, archive, restore) synchronizes the day first. 912 tests pass as of Phase 06. See `docs/DAILY_LIFECYCLE.md`.
 - **Phase 07** — Weekly Goal Crusher is complete. IndexedDB schema is now **v3** (adds `weeklyBoards` and `weeklyRewardClaims`; backup schema 3). One board per Monday→Sunday week (`WeekKey` = the Monday), with weighted goals whose points total exactly 10. Goals are tracked either by a manual numeric count or by the count of one linked quest's completions in the week. Scoring is binary per goal; the weekly bonus EXP is finalized exactly once through the XP ledger, and finalized weekly snapshots (including the exact progress scored) are immutable at the domain, application and persistence levels. Real-life reward claiming exists and awards no EXP. Weekly finalization runs after the daily reconciliation, so catch-up after days or weeks away integrates with the Daily Lifecycle. Navigation is Home / Quests / Weekly / Status (`/weekly`, `/weekly/edit`, `/weekly/history`). 1,244 tests pass as of Phase 07. See `docs/WEEKLY_GOAL_CRUSHER.md`.
+- **Phase 08** — Progression / Stats / Achievements is complete. The database remains **IndexedDB schema v3** (no migration). Achievements are **fully derived** from immutable history (XP ledger, Daily Summaries, finalized weekly boards); **no achievement store or unlock row exists**. V1 has **28 achievements, all awarding 0 EXP**. Level continues indefinitely past 100 and the Level 100+ rank displays `???` (internal id `special_100_plus`). Category, quest (Top 3), daily and weekly statistics exist; the Status dashboard is expanded; `/achievements` and `/status/history` (Daily History) exist. Gym-specific achievements remain deferred (OD-18). 1,396 tests pass as of Phase 08. See `docs/PROGRESSION_STATS_ACHIEVEMENTS.md`.
 
-**Phase 08 has NOT started** and must not start until the owner approves it. Achievements and the progression/stats expansion, the final visual redesign, effects/animation, Player Name onboarding and PWA/offline work are still later phases. Stores for later features are added through versioned database migrations in their owning phases. The `_reference/solo-leveling-effects-pack/` directory remains local, read-only, and git-ignored.
+**Phase 09 has NOT started** and must not start until the owner approves it. The visual SYSTEM redesign (including manual quest ordering), effects/animation, Player Name onboarding and PWA/offline work are still later phases. Stores for later features are added through versioned database migrations in their owning phases. The `_reference/solo-leveling-effects-pack/` directory remains local, read-only, and git-ignored.
+
+**Non-blocking QA note:** the existing Home midnight-timer test (`src/features/home/HomeLifecycle.test.tsx`) showed intermittent timing-related flakiness under load during Phase 08, although the final full suite and the isolated and clean-`HEAD` reruns passed. Revisit during Phase 13 hardening.
 
 **Session handoff:** after `/clear`, read this file and `docs/CURRENT_STATE.md` first. Do not reread every historical specification; open the detailed docs below only when the current phase needs them or an ambiguity/conflict appears.
 
@@ -381,6 +384,7 @@ Do not push destructive changes without explicit instruction.
 - `docs/CORE_UI.md` records the implemented application layer and mobile UI (Phase 04): runtime, seeding, today's load, completion flow, Daily Message, screens and the deliberate Phase 04 limitations.
 - `docs/DAILY_LIFECYCLE.md` records the implemented daily lifecycle (Phase 06): finalization, Daily Summary chain, reconciliation, streaks, midnight/resume sync, Sleep/Daily Report, backward-clock guard, catch-up rule and the v2 migration.
 - `docs/WEEKLY_GOAL_CRUSHER.md` records the implemented Weekly Goal Crusher (Phase 07): rules, OD-10/OD-19 resolutions, data model, schema v3, finalization and catch-up, immutability layers, rewards and screens.
+- `docs/PROGRESSION_STATS_ACHIEVEMENTS.md` records the implemented progression, statistics and achievements (Phase 08): the derived (not persisted) achievement design that replaces the old `achievementUnlocks` store, the statistics and their sources, the 28-achievement catalog, unlock evidence and dating, the OD-01 / OD-03 resolutions, the OD-18 deferral and the new screens.
 - `docs/QUEST_MANAGEMENT.md` records the implemented quest management (Phase 05): routes, form and validation, use cases, the frozen-occurrence rule, archive/restore, the Home loader change, id generation and the deliberate Phase 05 limitations.
 
 Do not duplicate approved values here; read them from `docs/MASTER_SPEC.md`. If this file and the specification documents appear to conflict, stop and report the conflict instead of guessing.
@@ -393,11 +397,12 @@ Do not duplicate approved values here; read them from `docs/MASTER_SPEC.md`. If 
 - daily completion thresholds and day-quality rules (exact-ratio classification)
 - streak behavior (persisted only at day finalization)
 - Weekly Goal Crusher scoring, bonus EXP, and reward-tier rules
+- the 28-achievement V1 catalog (derived from history, 0 EXP) and the Level 100+ rank display `???`
 
 These approved values must live in centralized configuration/domain code when implemented, never scattered through the UI.
 
 ### Still open
 
-Some explicitly listed product decisions remain open (for example the display name of the Level-100+ special rank, the achievement catalog, the final Daily Message catalog content, sounds/haptics/animation timings, and typography). They are tracked in `docs/OPEN_DECISIONS.md`.
+Some explicitly listed product decisions remain open (for example semantic quest identity such as "Gym", deferred beyond V1 under OD-18, the final Daily Message catalog content, sounds/haptics/animation timings, and typography). They are tracked in `docs/OPEN_DECISIONS.md`.
 
 Do not invent answers to open decisions. Keep each behind an isolated decision point until the owner decides.
