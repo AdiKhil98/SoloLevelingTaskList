@@ -1,4 +1,4 @@
-import type { PresentationTimings } from '@/effects/timings'
+import type { AwakeningTimings, PresentationTimings } from '@/effects/timings'
 import { NORMAL_TIMINGS } from '@/effects/timings'
 import type { PresentationKind } from '@/effects/types'
 
@@ -19,6 +19,22 @@ const NO_DELAY: Readonly<Record<PresentationKind, number>> = {
   weekly_result: 0,
 }
 
+/** Awakening in tests: nothing waits, except that the screen's own auto-continue keeps its real value (a test taps through it). */
+export const TEST_AWAKENING_TIMINGS: AwakeningTimings = {
+  bootMs: 0,
+  scrambleMs: 0,
+  typeMs: 0,
+  secondLineMs: 0,
+  thirdLineMs: 0,
+  noticeDoneMs: 0,
+  acceptGuardMs: 0,
+  registerMinMs: 0,
+  welcomeDelayMs: 0,
+  completeAutoMs: NORMAL_TIMINGS.awakening.completeAutoMs,
+  completeGuardMs: 0,
+  exitMs: 0,
+}
+
 export const TEST_TIMINGS: Partial<PresentationTimings> = {
   startDelayMs: NO_DELAY,
   inputGuardMs: 0,
@@ -27,4 +43,5 @@ export const TEST_TIMINGS: Partial<PresentationTimings> = {
   scrambleMs: 0,
   typeMs: 0,
   visibleMs: NORMAL_TIMINGS.visibleMs,
+  awakening: TEST_AWAKENING_TIMINGS,
 }

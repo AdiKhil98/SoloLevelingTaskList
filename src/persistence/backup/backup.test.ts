@@ -55,7 +55,7 @@ describe('exportBackup', () => {
     expect(envelope).toMatchObject({
       format: BACKUP_FORMAT,
       formatVersion: 1,
-      schemaVersion: 4,
+      schemaVersion: 5,
       appVersion: '0.1.0',
       exportedAt: META.exportedAt,
       exportedFromTimeZone: ZONE,
@@ -67,6 +67,7 @@ describe('exportBackup', () => {
         dailySummaries: [],
         weeklyBoards: [],
         weeklyRewardClaims: [],
+        playerProfile: [], // an unawakened database has no profile row
       },
     })
     expect(envelope.checksum.algorithm).toBe('SHA-256')
@@ -80,6 +81,7 @@ describe('exportBackup', () => {
     const envelope = await exportBackup(database, META)
     expect(Object.keys(envelope.data).sort()).toEqual([
       'dailySummaries',
+      'playerProfile',
       'questCompletions',
       'questOccurrences',
       'questTemplates',
@@ -154,6 +156,7 @@ describe('importBackup — round trip and replacement', () => {
           dailySummaries: 0,
           weeklyBoards: 0,
           weeklyRewardClaims: 0,
+          playerProfile: 0,
         },
         progression: { totalExp: POPULATED_TOTAL_EXP, lastSeq: 4 },
       },
@@ -213,6 +216,7 @@ describe('importBackup — round trip and replacement', () => {
       dailySummaries: [],
       weeklyBoards: [],
       weeklyRewardClaims: [],
+      playerProfile: [],
     })
   })
 
@@ -264,7 +268,7 @@ describe('importBackup — rejection', () => {
 
   it('rejects unsupported versions with a dedicated code', async () => {
     const text = await exportText(await populated())
-    expect(await rejection(await tampered(text, (e) => { e.schemaVersion = 5 }))).toMatchObject({ code: 'unsupported_backup_version', issues: [{ code: 'newer_schema' }] })
+    expect(await rejection(await tampered(text, (e) => { e.schemaVersion = 6 }))).toMatchObject({ code: 'unsupported_backup_version', issues: [{ code: 'newer_schema' }] })
     expect(await rejection(await tampered(text, (e) => { e.formatVersion = 2 }))).toMatchObject({ code: 'unsupported_backup_version', issues: [{ code: 'newer_format' }] })
     expect(await rejection(await tampered(text, (e) => { e.schemaVersion = 0 }))).toMatchObject({ code: 'invalid_backup' })
     expect(await rejection(await tampered(text, (e) => { e.schemaVersion = '1' }))).toMatchObject({ code: 'invalid_backup' })
@@ -419,39 +423,40 @@ describe('backup schema upgrades', () => {
     const text = await exportText(await populated())
     const seen: number[] = []
     const result = await parseBackup(text, {
-      currentSchemaVersion: 6,
+      currentSchemaVersion: 7,
       migrations: {
-        5: (data) => { seen.push(5); return data },
         6: (data) => { seen.push(6); return data },
+        7: (data) => { seen.push(7); return data },
       },
     })
-    expect(seen).toEqual([5, 6])
-    expect(result).toMatchObject({ ok: true, value: { envelope: { schemaVersion: 6 } } })
+    expect(seen).toEqual([6, 7])
+    expect(result).toMatchObject({ ok: true, value: { envelope: { schemaVersion: 7 } } })
   })
 
   it('refuses an older backup when an upgrade step is missing, instead of guessing', async () => {
     const text = await exportText(await populated())
-    const result = await parseBackup(text, { currentSchemaVersion: 5, migrations: {} })
+    const result = await parseBackup(text, { currentSchemaVersion: 6, migrations: {} })
     expect(result).toMatchObject({ ok: false, error: { code: 'unsupported_backup_version', issues: [{ code: 'no_upgrade_path' }] } })
   })
 
   it('validates the upgraded data, so a faulty upgrade cannot smuggle bad records in', async () => {
     const text = await exportText(await populated())
     const result = await parseBackup(text, {
-      currentSchemaVersion: 5,
-      migrations: { 5: (data) => ({ ...(data as object), questTemplates: 'oops' }) },
+      currentSchemaVersion: 6,
+      migrations: { 6: (data) => ({ ...(data as object), questTemplates: 'oops' }) },
     })
     expect(result).toMatchObject({ ok: false, error: { code: 'invalid_backup' } })
   })
 })
 
-describe('the real 1 → 2 → 3 → 4 backup upgrade (Phases 06, 07 and 09)', () => {
+describe('the real 1 → 2 → 3 → 4 → 5 backup upgrade (Phases 06, 07, 09 and 11)', () => {
   async function schemaOneText(): Promise<string> {
     return tampered(await exportText(await populated()), (e) => {
       e.schemaVersion = 1
       delete e.data.dailySummaries
       delete e.data.weeklyBoards
       delete e.data.weeklyRewardClaims
+      delete e.data.playerProfile // schema 4 and earlier predate the player profile
       for (const template of e.data.questTemplates) delete template.sortOrder // schema 3 and earlier have no order
     })
   }
@@ -460,11 +465,17 @@ describe('the real 1 → 2 → 3 → 4 backup upgrade (Phases 06, 07 and 09)', (
     const result = await parseBackup(await schemaOneText())
     expect(result).toMatchObject({
       ok: true,
-      value: { envelope: { schemaVersion: 4, data: { dailySummaries: [], weeklyBoards: [], weeklyRewardClaims: [] } } },
+      value: {
+        envelope: {
+          schemaVersion: 5,
+          // Every older backup came from an installation that predates Awakening: a legacy-completed player.
+          data: { dailySummaries: [], weeklyBoards: [], weeklyRewardClaims: [], playerProfile: [{ id: 'player', name: null, awakenedAt: null }] },
+        },
+      },
     })
   })
 
-  it('restores a schema-1 backup into a v4 database without losing any record', async () => {
+  it('restores a schema-1 backup into a v5 database without losing any record', async () => {
     const target = await tracker.open()
     const result = await importBackup(target, await schemaOneText())
     expect(result).toMatchObject({ ok: true, value: { counts: { questOccurrences: 7, dailySummaries: 0 } } })
@@ -478,12 +489,13 @@ describe('the real 1 → 2 → 3 → 4 backup upgrade (Phases 06, 07 and 09)', (
   })
 })
 
-describe('the real 2 → 3 → 4 backup upgrade (Phases 07 and 09)', () => {
+describe('the real 2 → 3 → 4 → 5 backup upgrade (Phases 07, 09 and 11)', () => {
   async function schemaTwoText(): Promise<string> {
     return tampered(await exportText(await populated()), (e) => {
       e.schemaVersion = 2
       delete e.data.weeklyBoards
       delete e.data.weeklyRewardClaims
+      delete e.data.playerProfile // schema 4 and earlier predate the player profile
       for (const template of e.data.questTemplates) delete template.sortOrder // schema 3 and earlier have no order
     })
   }
@@ -493,7 +505,7 @@ describe('the real 2 → 3 → 4 backup upgrade (Phases 07 and 09)', () => {
     const result = await parseBackup(await schemaTwoText())
     expect(result).toMatchObject({
       ok: true,
-      value: { envelope: { schemaVersion: 4, data: { weeklyBoards: [], weeklyRewardClaims: [] } } },
+      value: { envelope: { schemaVersion: 5, data: { weeklyBoards: [], weeklyRewardClaims: [] } } },
     })
     if (!result.ok) throw new Error('expected an upgraded backup')
     // Only the order is added (the frozen Phase 08 order: the archived default Fajr first, then by creation and id).
@@ -505,7 +517,7 @@ describe('the real 2 → 3 → 4 backup upgrade (Phases 07 and 09)', () => {
     expect(result.value.envelope.data.xpTransactions).toEqual(JSON.parse(original).data.xpTransactions)
   })
 
-  it('restores a schema-2 backup into a v4 database without losing any record', async () => {
+  it('restores a schema-2 backup into a v5 database without losing any record', async () => {
     const target = await tracker.open()
     const result = await importBackup(target, await schemaTwoText())
     expect(result).toMatchObject({
@@ -539,6 +551,7 @@ describe('verifyDatabaseIntegrity', () => {
           dailySummaries: 0,
           weeklyBoards: 0,
           weeklyRewardClaims: 0,
+          playerProfile: 0,
         },
         progression: { totalExp: POPULATED_TOTAL_EXP, lastSeq: 4 },
       },

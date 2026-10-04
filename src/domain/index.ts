@@ -258,3 +258,13 @@ export type {
   WeeklyGoalCompletedEvent,
   XPAwardedEvent,
 } from './events/types'
+
+// Player identity (Phase 11): the chosen name's rules. Identity only, never gameplay.
+export {
+  countGraphemes,
+  isStoredPlayerName,
+  parsePlayerName,
+  PLAYER_NAME_MAX_GRAPHEMES,
+  PLAYER_NAME_MAX_UNITS,
+  type PlayerNameErrorCode,
+} from './profile/playerName'

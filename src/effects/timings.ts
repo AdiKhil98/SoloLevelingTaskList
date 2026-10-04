@@ -7,6 +7,37 @@ import type { PresentationEntry, PresentationKind } from './types'
  * Up that never traps the player) and expected to be tuned in Phase 14. They are
  * data, not code paths: tests pass their own.
  */
+/**
+ * The Player Awakening sequence (Phase 11). Times in milliseconds. Like every
+ * timing here these are V1 starting values (tunable in Phase 14) and plain data;
+ * tests pass their own. REDUCED shows every message at once.
+ */
+export interface AwakeningTimings {
+  /** The dark beat before SYSTEM makes contact. */
+  readonly bootMs: number
+  /** Heading scramble (CONNECTION ESTABLISHED, AWAKENING COMPLETE). */
+  readonly scrambleMs: number
+  /** One SYSTEM line typed out. */
+  readonly typeMs: number
+  /** Delay before the 2nd and the 3rd NOTICE line start. */
+  readonly secondLineMs: number
+  readonly thirdLineMs: number
+  /** When the NOTICE lines have all arrived and ACCEPT is shown. */
+  readonly noticeDoneMs: number
+  /** ACCEPT ignores taps this long after it appears, so a stray double-tap cannot accept. */
+  readonly acceptGuardMs: number
+  /** The least time the INITIALIZING beat stays (the save itself is usually faster). */
+  readonly registerMinMs: number
+  /** Delay before "WELCOME, NAME" starts typing under AWAKENING COMPLETE. */
+  readonly welcomeDelayMs: number
+  /** How long AWAKENING COMPLETE stays before it continues by itself (visible time only). */
+  readonly completeAutoMs: number
+  /** Taps are ignored this long after AWAKENING COMPLETE appears. */
+  readonly completeGuardMs: number
+  /** The exit fade into the app. */
+  readonly exitMs: number
+}
+
 export interface PresentationTimings {
   /** Wait before a waiting entry of this kind starts, so the quest row and the EXP bar can play first. */
   readonly startDelayMs: Readonly<Record<PresentationKind, number>>
@@ -24,6 +55,8 @@ export interface PresentationTimings {
   readonly typeMs: number
   /** How long the entry stays before it closes itself. */
   readonly visibleMs: (entry: PresentationEntry) => number
+  /** Player Awakening (the first-launch onboarding screen). */
+  readonly awakening: AwakeningTimings
 }
 
 const NORMAL_START_DELAY: Readonly<Record<PresentationKind, number>> = {
@@ -72,6 +105,37 @@ function reducedVisibleMs(entry: PresentationEntry): number {
   }
 }
 
+const NORMAL_AWAKENING: AwakeningTimings = {
+  bootMs: 600,
+  scrambleMs: 750,
+  typeMs: 600,
+  secondLineMs: 800,
+  thirdLineMs: 1_500,
+  noticeDoneMs: 2_400,
+  acceptGuardMs: 350,
+  registerMinMs: 700,
+  welcomeDelayMs: 600,
+  completeAutoMs: 3_600,
+  completeGuardMs: 500,
+  exitMs: 250,
+}
+
+/** Reduced effects: no waiting for animation, only a read time before the screen moves on by itself. */
+const REDUCED_AWAKENING: AwakeningTimings = {
+  bootMs: 0,
+  scrambleMs: 0,
+  typeMs: 0,
+  secondLineMs: 0,
+  thirdLineMs: 0,
+  noticeDoneMs: 0,
+  acceptGuardMs: 350,
+  registerMinMs: 0,
+  welcomeDelayMs: 0,
+  completeAutoMs: 2_600,
+  completeGuardMs: 500,
+  exitMs: 150,
+}
+
 export const NORMAL_TIMINGS: PresentationTimings = {
   startDelayMs: NORMAL_START_DELAY,
   inputGuardMs: 500,
@@ -81,6 +145,7 @@ export const NORMAL_TIMINGS: PresentationTimings = {
   scrambleMs: 750,
   typeMs: 900,
   visibleMs: normalVisibleMs,
+  awakening: NORMAL_AWAKENING,
 }
 
 export const REDUCED_TIMINGS: PresentationTimings = {
@@ -92,6 +157,7 @@ export const REDUCED_TIMINGS: PresentationTimings = {
   scrambleMs: 0,
   typeMs: 0,
   visibleMs: reducedVisibleMs,
+  awakening: REDUCED_AWAKENING,
 }
 
 export function timingsFor(mode: EffectsMode, overrides: Partial<PresentationTimings> = {}): PresentationTimings {

@@ -12,6 +12,7 @@ import {
   noonOn,
   type TestClock,
 } from '@/application/test-utils/helpers'
+import { AwakenedGate } from './AwakenedGate'
 import { TEST_TIMINGS } from './presentationTimings'
 
 export interface RenderAppOptions {
@@ -26,6 +27,12 @@ export interface RenderAppOptions {
   strictMode?: boolean
   /** Presentation seams (settings, timings, haptics, sound). Defaults to zero delays and no count-up. */
   presentation?: AppRuntimeOptions['presentation']
+  /**
+   * Defaults to true: the database already belongs to a player who has been through Awakening (or predates it, like
+   * an upgraded Phase 10 installation), so the test goes straight to the app. Pass false to leave the database exactly
+   * as it is: a fresh factory is then a brand-new install and plays the real first launch.
+   */
+  awakened?: boolean
 }
 
 /**
@@ -40,14 +47,16 @@ export function renderApp({
   ids = createSequentialIds(),
   strictMode = false,
   presentation = { timings: TEST_TIMINGS },
+  awakened = true,
 }: RenderAppOptions = {}) {
   const options: AppRuntimeOptions = { clock, ids, database: { factory }, presentation }
   const router = createMemoryRouter(appRoutes, { initialEntries: [path] })
-  const tree = (
+  const app = (
     <AppRuntimeProvider options={options}>
       <RouterProvider router={router} />
     </AppRuntimeProvider>
   )
+  const tree = awakened ? <AwakenedGate factory={factory}>{app}</AwakenedGate> : app
   const view = render(strictMode ? <StrictMode>{tree}</StrictMode> : tree)
   return { ...view, router, clock, factory }
 }

@@ -88,7 +88,7 @@ async function buildV2Database(factory: IDBFactory) {
   return before
 }
 
-describe('the real v2 → v3 upgrade (Phase 07; the database is now v4)', () => {
+describe('the real v2 → v3 upgrade (Phase 07; the database is now v5)', () => {
   it('adds the weekly stores and keeps every existing row exactly as it was', async () => {
     const factory = newFactory()
     const before = await buildV2Database(factory)
@@ -105,17 +105,18 @@ describe('the real v2 → v3 upgrade (Phase 07; the database is now v4)', () => 
   it('the upgraded database passes the full integrity check and exports an empty weekly section', async () => {
     const factory = newFactory()
     await buildV2Database(factory)
-    const upgraded = tracker.track(await openV3(factory))
+    // The integrity check and the export read every CURRENT store, so this opens the database at the current version.
+    const upgraded = tracker.track(await openDatabase({ factory }))
 
     const check = await verifyDatabaseIntegrity(upgraded)
     expect(check).toMatchObject({
       ok: true,
       report: {
-        counts: { questTemplates: 1, questOccurrences: 2, questCompletions: 2, xpTransactions: 2, dailySummaries: 1, weeklyBoards: 0, weeklyRewardClaims: 0 },
+        counts: { questTemplates: 1, questOccurrences: 2, questCompletions: 2, xpTransactions: 2, dailySummaries: 1, weeklyBoards: 0, weeklyRewardClaims: 0, playerProfile: 1 },
       },
     })
     const backup = await exportBackup(upgraded, { exportedAt: 9, exportedFromTimeZone: ZONE, appVersion: '0.1.0' })
-    expect(backup.schemaVersion).toBe(4) // an export always carries the current backup schema
+    expect(backup.schemaVersion).toBe(5) // an export always carries the current backup schema
     expect(backup.data.weeklyBoards).toEqual([])
     expect(backup.data.weeklyRewardClaims).toEqual([])
   })
@@ -134,7 +135,7 @@ describe('the real v2 → v3 upgrade (Phase 07; the database is now v4)', () => 
   it('the upgraded ledger continues its chain: the first weekly bonus gets the next seq and total', async () => {
     const factory = newFactory()
     await buildV2Database(factory)
-    const database = tracker.track(await openV3(factory))
+    const database = tracker.track(await openDatabase({ factory })) // current version: the final integrity check reads every current store
 
     // Mid-week on 2026-10-06: create the board for the current week.
     const saved = await saveWeeklyBoardAtomically(database, {
@@ -176,7 +177,7 @@ describe('the real v2 → v3 upgrade (Phase 07; the database is now v4)', () => 
   it('a schema-2 database with weekly data restores through a v3 backup round trip', async () => {
     const factory = newFactory()
     await buildV2Database(factory)
-    const source = tracker.track(await openV3(factory))
+    const source = tracker.track(await openDatabase({ factory })) // current version: the export reads every current store
     await saveWeeklyBoardAtomically(source, { weekKey: WEEK, definition, expectedRevision: null, today: d('2026-10-06'), now: 1 })
 
     const backup = await exportBackup(source, { exportedAt: 9, exportedFromTimeZone: ZONE, appVersion: '0.1.0' })

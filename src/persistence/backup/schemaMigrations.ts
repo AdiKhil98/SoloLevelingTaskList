@@ -20,6 +20,13 @@ export type BackupDataMigrationMap = Readonly<Record<number, BackupDataMigration
  *  - 4 (Phase 09): adds the required `sortOrder` to every quest template. Earlier
  *    backups have none, so it is assigned exactly as the database upgrade does
  *    (the version-frozen Phase 08 order: default quests first, then by creation).
+ *  - 5 (Phase 11): adds the `playerProfile` collection. Every backup older than schema 5
+ *    was made by an installation that existed before Player Awakening, so it
+ *    restores as a LEGACY-completed player: one row `{ id: 'player', name: null, awakenedAt: null }`
+ *    (the same row the database upgrade writes for an existing installation). The row
+ *    existing is what means "Awakening is complete"; `awakenedAt: null` there marks a
+ *    legacy player with no real Awakening timestamp and never means onboarding is required.
+ *    A schema-5 backup carries its own profile (possibly none: made before Awakening finished).
  */
 function asRecord(data: unknown): Record<string, unknown> {
   if (typeof data !== 'object' || data === null || Array.isArray(data)) {
@@ -38,6 +45,7 @@ export const BACKUP_DATA_MIGRATIONS: BackupDataMigrationMap = {
       ? { ...record, questTemplates: assignPhase08SortOrder(record.questTemplates) }
       : record
   },
+  5: (data) => ({ ...asRecord(data), playerProfile: [{ id: 'player', name: null, awakenedAt: null }] }),
 }
 
 export type BackupUpgrade =

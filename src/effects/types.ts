@@ -37,6 +37,8 @@ export type Cue =
   | 'weekly_result'
   | 'rank_up'
   | 'perfect_week'
+  /** Player Awakening complete (Phase 11): played once, by the onboarding screen, never through the queue. */
+  | 'awakening'
 
 /** Where an entry came from. Lifecycle entries (startup, resume, midnight) wait while the page is hidden or a form is open. */
 export type PresentationOrigin = 'action' | 'lifecycle'

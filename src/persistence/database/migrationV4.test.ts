@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it } from 'vitest'
 import { sortTemplatesByOrder, type QuestTemplate } from '@/domain'
-import { DATABASE_NAME, type StoreName } from '../config'
+import { BACKUP_SCHEMA_VERSION, DATABASE_NAME, DATABASE_VERSION, type StoreName } from '../config'
 import { computeBackupChecksum } from '../backup/envelope'
 import { exportBackup, serializeBackup } from '../backup/export'
 import { importBackup, parseBackup } from '../backup/import'
@@ -109,7 +109,7 @@ describe('the real v3 → v4 upgrade (Phase 09: manual quest order)', () => {
 
     const upgraded = tracker.track(await openDatabase({ factory }))
 
-    expect(upgraded.version).toBe(4)
+    expect(upgraded.version).toBe(DATABASE_VERSION) // the current build carries the v3 database all the way up
     const stored = (await readRaw(upgraded, 'questTemplates')) as QuestTemplate[]
     expect(stored.map((template) => template.sortOrder).sort((a, b) => a - b)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8])
     expect(sortTemplatesByOrder(stored).map((template) => template.id)).toEqual(EXPECTED_ORDER)
@@ -139,7 +139,7 @@ describe('the real v3 → v4 upgrade (Phase 09: manual quest order)', () => {
 
     expect(await verifyDatabaseIntegrity(upgraded)).toMatchObject({ ok: true, report: { counts: { questTemplates: 9, questOccurrences: 2 } } })
     const backup = await exportBackup(upgraded, { exportedAt: 9, exportedFromTimeZone: ZONE, appVersion: '0.1.0' })
-    expect(backup.schemaVersion).toBe(4)
+    expect(backup.schemaVersion).toBe(BACKUP_SCHEMA_VERSION)
 
     const target = tracker.track(await openDatabase({ factory: newFactory() }))
     expect(await importBackup(target, serializeBackup(backup))).toMatchObject({ ok: true })
@@ -160,7 +160,7 @@ describe('the real v3 → v4 upgrade (Phase 09: manual quest order)', () => {
 
     const parsed = await parseBackup(JSON.stringify(envelope))
     if (!parsed.ok) throw new Error(`expected an upgrade: ${JSON.stringify(parsed.error)}`)
-    expect(parsed.value.envelope.schemaVersion).toBe(4)
+    expect(parsed.value.envelope.schemaVersion).toBe(BACKUP_SCHEMA_VERSION)
     expect(parsed.value.envelope.data.questTemplates).toEqual(backup.data.questTemplates)
   })
 
@@ -168,13 +168,13 @@ describe('the real v3 → v4 upgrade (Phase 09: manual quest order)', () => {
     const factory = newFactory()
     ;(await openV3(factory)).close()
     const upgraded = tracker.track(await openDatabase({ factory }))
-    expect(upgraded.version).toBe(4)
+    expect(upgraded.version).toBe(DATABASE_VERSION)
     expect(await readRaw(upgraded, 'questTemplates')).toEqual([])
   })
 
-  it('a fresh install runs every migration and starts at version 4', async () => {
+  it('a fresh install runs every migration and starts at the current version', async () => {
     const fresh = tracker.track(await openDatabase({ factory: newFactory() }))
-    expect(fresh.version).toBe(4)
+    expect(fresh.version).toBe(DATABASE_VERSION)
     expect(await readRaw(fresh, 'questTemplates')).toEqual([])
   })
 
@@ -194,7 +194,7 @@ describe('the real v3 → v4 upgrade (Phase 09: manual quest order)', () => {
     const failing = {
       ...MIGRATIONS,
       4: (database: IDBDatabase, transaction: IDBTransaction) => {
-        MIGRATIONS[4]!(database, transaction)
+        MIGRATIONS[4]!(database, transaction, { originalFrom: 3 })
         transaction.objectStore('questTemplates').getAll().onsuccess = () => {
           throw new Error('boom after the backfill was queued')
         }

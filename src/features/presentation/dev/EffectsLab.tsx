@@ -4,6 +4,7 @@ import { planPresentation } from '@/effects/plan'
 import { SectionLabel } from '@/components/ui/SectionLabel'
 import { BUTTON, NOTICE_WARNING } from '@/components/ui/styles'
 import { QuestCard } from '../../home/QuestCard'
+import { AwakeningPreview } from './AwakeningPreview'
 import { usePresentationRuntime, useEffectsSnapshot } from '../usePresentation'
 import { achievements, levelUp, perfectDay, questCompletion, weeklyGoal, weeklyResult } from './syntheticEvents'
 
@@ -124,6 +125,8 @@ export default function EffectsLab() {
           </div>
         </section>
       ))}
+
+      <AwakeningPreview />
 
       <section aria-label="Queue" className="flex flex-col gap-2">
         <SectionLabel>QUEUE</SectionLabel>

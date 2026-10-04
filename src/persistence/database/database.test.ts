@@ -20,23 +20,24 @@ function rawOpen(factory: IDBFactory, name: string, version?: number): Promise<I
   })
 }
 
-describe('current schema (v4)', () => {
+describe('current schema (v5)', () => {
   it('creates a fresh database at the production name and the current version', async () => {
     const factory = newFactory()
     const database = tracker.track(await openDatabase({ factory }))
     expect(database.name).toBe(DATABASE_NAME)
-    expect(database.version).toBe(4)
-    expect(DATABASE_VERSION).toBe(4)
+    expect(database.version).toBe(5)
+    expect(DATABASE_VERSION).toBe(5)
     expect(database.isOpen).toBe(true)
   })
 
-  it('creates exactly the seven stores with the documented key paths', async () => {
+  it('creates exactly the eight stores with the documented key paths', async () => {
     const factory = newFactory()
     tracker.track(await openDatabase({ factory }))
     const raw = await rawOpen(factory, DATABASE_NAME)
     try {
       expect([...raw.objectStoreNames].sort()).toEqual([
         'dailySummaries',
+        'playerProfile',
         'questCompletions',
         'questOccurrences',
         'questTemplates',
@@ -52,6 +53,7 @@ describe('current schema (v4)', () => {
       expect(tx.objectStore('dailySummaries').keyPath).toBe('dateKey')
       expect(tx.objectStore('weeklyBoards').keyPath).toBe('weekKey')
       expect(tx.objectStore('weeklyRewardClaims').keyPath).toBe('weekKey')
+      expect(tx.objectStore('playerProfile').keyPath).toBe('id')
     } finally {
       raw.close()
     }
@@ -74,6 +76,8 @@ describe('current schema (v4)', () => {
       // Boards are found by status (the weeks due for finalization); claims are read by their key only.
       expect(describeIndexes('weeklyBoards')).toEqual(['status:"status":plain'])
       expect(describeIndexes('weeklyRewardClaims')).toEqual([])
+      // The one profile row is read by its key only.
+      expect(describeIndexes('playerProfile')).toEqual([])
       expect(describeIndexes('questTemplates')).toEqual([
         'seedKey:"seedKey":unique',
         'status:"status":plain',
@@ -146,7 +150,7 @@ describe('connection handle', () => {
   })
 })
 
-describe('the real v1 → v4 upgrade (Phases 06, 07 and 09)', () => {
+describe('the real v1 → v5 upgrade (Phases 06, 07, 09 and 11)', () => {
   it('adds dailySummaries and the weekly stores to an existing v1 database and keeps every existing row', async () => {
     const factory = newFactory()
     const v1 = await openVersionedDatabase({ name: DATABASE_NAME, factory, version: 1, migrations: { 1: MIGRATIONS[1]! } })
@@ -156,18 +160,21 @@ describe('the real v1 → v4 upgrade (Phases 06, 07 and 09)', () => {
     v1.close()
 
     const upgraded = tracker.track(await openDatabase({ factory }))
-    expect(upgraded.version).toBe(4)
+    expect(upgraded.version).toBe(5)
     expect(await getTemplate(upgraded, 'tpl_legacy')).toMatchObject({ title: 'From v1', sortOrder: 0 })
     expect(await readRaw(upgraded, 'dailySummaries')).toEqual([])
     expect(await readRaw(upgraded, 'weeklyBoards')).toEqual([])
     expect(await readRaw(upgraded, 'weeklyRewardClaims')).toEqual([])
+    // An installation that existed before Phase 11 is a legacy-completed player (see migrationV5.test.ts).
+    expect(await readRaw(upgraded, 'playerProfile')).toEqual([{ id: 'player', name: null, awakenedAt: null }])
   })
 })
 
 describe('upgrades and versionchange', () => {
-  const v5 = {
+  // A hypothetical FUTURE schema (6) on top of the real migrations.
+  const v6 = {
     ...MIGRATIONS,
-    5: (database: IDBDatabase) => {
+    6: (database: IDBDatabase) => {
       database.createObjectStore('futureStore', { keyPath: 'id' })
     },
   }
@@ -179,9 +186,9 @@ describe('upgrades and versionchange', () => {
     first.close()
 
     const upgraded = tracker.track(
-      await openVersionedDatabase({ name: DATABASE_NAME, factory, version: 5, migrations: v5 }),
+      await openVersionedDatabase({ name: DATABASE_NAME, factory, version: 6, migrations: v6 }),
     )
-    expect(upgraded.version).toBe(5)
+    expect(upgraded.version).toBe(6)
     expect(await readRaw(upgraded, 'questTemplates')).toHaveLength(1)
     const raw = await rawOpen(factory, DATABASE_NAME)
     expect([...raw.objectStoreNames]).toContain('futureStore')
@@ -194,9 +201,9 @@ describe('upgrades and versionchange', () => {
     await createTemplate(oldTab, buildTemplate({ id: 'tpl_1' }))
 
     const newTab = tracker.track(
-      await openVersionedDatabase({ name: DATABASE_NAME, factory, version: 5, migrations: v5 }),
+      await openVersionedDatabase({ name: DATABASE_NAME, factory, version: 6, migrations: v6 }),
     )
-    expect(newTab.version).toBe(5)
+    expect(newTab.version).toBe(6)
     expect(oldTab.isOpen).toBe(false)
     await expect(getTemplate(oldTab, 'tpl_1')).rejects.toMatchObject({ code: 'database_closed' })
     expect(await getTemplate(newTab, 'tpl_1')).not.toBeNull()
@@ -208,13 +215,13 @@ describe('upgrades and versionchange', () => {
     const holdout = await rawOpen(factory, DATABASE_NAME) // ignores versionchange
 
     await expect(
-      openVersionedDatabase({ name: DATABASE_NAME, factory, version: 5, migrations: v5 }),
+      openVersionedDatabase({ name: DATABASE_NAME, factory, version: 6, migrations: v6 }),
     ).rejects.toMatchObject({ code: 'database_blocked' })
 
     holdout.close()
     // The abandoned upgrade must not have been applied once the holdout let go.
     const after = tracker.track(await openDatabase({ factory }))
-    expect(after.version).toBe(4)
+    expect(after.version).toBe(5)
   })
 
   it('reports a failing migration as database_open_failed and does not upgrade', async () => {
@@ -222,14 +229,14 @@ describe('upgrades and versionchange', () => {
     tracker.track(await openDatabase({ factory })).close()
     const broken = {
       ...MIGRATIONS,
-      5: () => {
+      6: () => {
         throw new Error('boom')
       },
     }
     await expect(
-      openVersionedDatabase({ name: DATABASE_NAME, factory, version: 5, migrations: broken }),
+      openVersionedDatabase({ name: DATABASE_NAME, factory, version: 6, migrations: broken }),
     ).rejects.toMatchObject({ code: 'database_open_failed' })
-    expect(tracker.track(await openDatabase({ factory })).version).toBe(4)
+    expect(tracker.track(await openDatabase({ factory })).version).toBe(5)
   })
 
   it('fails clearly when a migration step is missing', async () => {

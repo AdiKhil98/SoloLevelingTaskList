@@ -1,6 +1,7 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { newFactory } from '@/application/test-utils/helpers'
+import { markPlayerAwakened } from '@/test/identity'
 import { renderApp } from '@/test/renderApp'
 
 /**
@@ -34,8 +35,10 @@ afterEach(() => {
 
 describe('AppRuntimeProvider — database ownership', () => {
   it('opens one database handle for the whole session and closes it on dispose', async () => {
-    const tracked = trackConnections(newFactory())
-    const view = renderApp({ factory: tracked.factory })
+    const base = newFactory()
+    await markPlayerAwakened(base) // seeded on the real factory, so only the app's own connections are counted
+    const tracked = trackConnections(base)
+    const view = renderApp({ factory: tracked.factory, awakened: false })
     await screen.findByRole('heading', { name: 'SYSTEM' })
 
     // Using the app (navigating, completing) never opens another connection.
@@ -54,8 +57,10 @@ describe('AppRuntimeProvider — database ownership', () => {
   })
 
   it('leaks no connection under StrictMode’s mount–unmount–mount', async () => {
-    const tracked = trackConnections(newFactory())
-    const view = renderApp({ factory: tracked.factory, strictMode: true })
+    const base = newFactory()
+    await markPlayerAwakened(base)
+    const tracked = trackConnections(base)
+    const view = renderApp({ factory: tracked.factory, strictMode: true, awakened: false })
     await screen.findByRole('heading', { name: 'SYSTEM' })
 
     // Whatever was opened, exactly one connection (the live one) remains open.
@@ -71,6 +76,7 @@ describe('AppRuntimeProvider — startup failure', () => {
   it('shows a recoverable error with Retry, hides raw errors, and recovers', async () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined)
     const working = newFactory()
+    await markPlayerAwakened(working) // once storage works again this is an existing player, not a first launch
     let failing = true
     const flaky = {
       open(name: string, version?: number) {
@@ -79,7 +85,7 @@ describe('AppRuntimeProvider — startup failure', () => {
       },
     } as unknown as IDBFactory
 
-    renderApp({ factory: flaky })
+    renderApp({ factory: flaky, awakened: false })
 
     const alert = await screen.findByRole('alert')
     expect(within(alert).getByRole('heading', { name: 'Local data could not be loaded' })).toBeInTheDocument()
@@ -102,7 +108,7 @@ describe('AppRuntimeProvider — startup failure', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     const unavailable = { open: () => { throw new Error('boom') } } as unknown as IDBFactory
 
-    renderApp({ factory: unavailable })
+    renderApp({ factory: unavailable, awakened: false })
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Local data could not be loaded')
     expect(screen.getByRole('alert')).not.toHaveTextContent('boom')

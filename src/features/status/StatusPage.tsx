@@ -1,5 +1,6 @@
 import { useAppRuntime } from '@/app/runtimeContext'
 import { SystemSettingsPanel } from '../presentation/SystemSettingsPanel'
+import { IdentityPanel } from './IdentityPanel'
 import { PlayerSections, StreaksSection } from './PlayerSections'
 import { AchievementsSection, DaysSection, QuestsSection, WeeklySection } from './ProfileSections'
 import { LoadFailure } from './StatBlocks'
@@ -16,14 +17,15 @@ import { SectionLabel } from '@/components/ui/SectionLabel'
  * changes nothing.
  */
 export function StatusPage() {
-  const { snapshot, profile } = useAppRuntime()
+  const { snapshot, profile, identity } = useAppRuntime()
   const { state, retry } = useLoadedData(profile.loadProfile, snapshot)
 
   return (
     <div className="flex flex-col gap-4">
       <SectionLabel as="h1" className="text-sm tracking-[0.3em] text-accent">STATUS</SectionLabel>
 
-      <PlayerSections player={snapshot.player} />
+      <PlayerSections player={snapshot.player} name={identity.name} />
+      <IdentityPanel />
       <StreaksSection streaks={snapshot.streaks} />
 
       {state.status === 'loading' && <p className="text-muted">Loading statistics…</p>}

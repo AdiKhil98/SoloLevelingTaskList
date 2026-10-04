@@ -15,6 +15,7 @@ import type {
   LoadWeeklyScreenResult,
   PlayerProfile,
   QuestFormValues,
+  RenamePlayerResult,
   ReorderQuestsInput,
   ReorderQuestsResult,
   RestoreQuestResult,
@@ -68,6 +69,17 @@ export interface ProfileActions {
 }
 
 /**
+ * Who the player is (Phase 11). `name` is the chosen name, or null when none was
+ * chosen (the screens then show the generic PLAYER label). Renaming writes only the
+ * profile row, updates `name` at once, never touches progression and does not need
+ * the day synchronized, so it also works while the device clock is behind.
+ */
+export interface IdentityActions {
+  readonly name: string | null
+  rename(name: string): Promise<RenamePlayerResult>
+}
+
+/**
  * The one restrained notice a catch-up may leave (OD-21): how many old days
  * and how many weekly boards were finalized, and the bonus EXP those boards
  * paid. Informational; it carries no events and never replays celebrations.
@@ -96,6 +108,8 @@ export interface AppRuntimeValue {
   readonly weekly: WeeklyActions
   /** The player's statistics, achievements and Daily History (read-only). */
   readonly profile: ProfileActions
+  /** The player's name, and renaming it. */
+  readonly identity: IdentityActions
   /** The catch-up notice to show, or null. */
   readonly lifecycleNotice: LifecycleNotice | null
   dismissLifecycleNotice(): void

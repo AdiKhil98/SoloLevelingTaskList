@@ -1,13 +1,15 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   archiveQuest,
   claimWeeklyReward,
   classifyFailure,
+  completeAwakening,
   completeTodayQuest,
   completionPresentationEvents,
   createQuest,
   listQuestTemplates,
   loadAchievements,
+  loadAwakeningState,
   loadDailyHistory,
   loadPlayerProfile,
   loadQuestForEdit,
@@ -15,6 +17,7 @@ import {
   loadWeeklyHistory,
   loadWeeklyScreen,
   reconciliationPresentationEvents,
+  renamePlayer,
   reorderQuests,
   restoreQuest,
   saveWeeklyBoard,
@@ -28,6 +31,7 @@ import {
   type FinalizedWeekReport,
   type HomeSnapshot,
   type IdSource,
+  type PlayerIdentity,
   type QuestFormValues,
   type ReconciliationPresentationInput,
   type ReorderQuestsInput,
@@ -36,11 +40,13 @@ import {
 } from '@/application'
 import type { DomainEvent, WeekKey } from '@/domain'
 import { planPresentation } from '@/effects/plan'
+import type { AwakeningSaveResult } from '@/features/awakening/types'
 import { PresentationContext, createPresentationRuntime, type PresentationRuntimeOptions } from '@/features/presentation/runtime'
 import { openDatabase, type OpenDatabaseOptions, type PersistenceDatabase } from '@/persistence'
 import {
   AppRuntimeContext,
   type AppRuntimeValue,
+  type IdentityActions,
   type LifecycleNotice,
   type ProfileActions,
   type QuestActions,
@@ -60,8 +66,16 @@ export interface AppRuntimeOptions {
   readonly presentation?: PresentationRuntimeOptions
 }
 
+/** The first-launch screen, loaded only when a new player needs it (it is not part of the main bundle). */
+const AwakeningFlow = lazy(() => import('@/features/awakening/AwakeningFlow'))
+
 type RuntimeState =
   | { readonly status: 'loading' }
+  /**
+   * A brand-new player: the database is open but NOTHING else has been created (no default quests, no
+   * occurrences). The application does not start until Awakening is saved.
+   */
+  | { readonly status: 'awakening'; readonly context: ApplicationContext }
   | {
       readonly status: 'ready'
       /** The one open database handle, the clock and the id source, shared by every use case. */
@@ -129,6 +143,10 @@ export function AppRuntimeProvider({ options, children }: AppRuntimeProviderProp
   const [attempt, setAttempt] = useState(0)
   const [state, setState] = useState<RuntimeState>({ status: 'loading' })
   const [lifecycleNotice, setLifecycleNotice] = useState<LifecycleNotice | null>(null)
+  // Who the player is. It is set together with the first ready state, so a name never flashes in after "PLAYER".
+  const [identity, setIdentity] = useState<PlayerIdentity>({ name: null })
+  // The application's startup, begun as soon as Awakening is saved so Home is ready when the player taps through the reveal.
+  const pendingStart = useRef<{ readonly promise: Promise<SynchronizedHome>; readonly identity: PlayerIdentity } | null>(null)
   // The one presentation queue and the player's effect settings, created once for the app's life.
   const [presentation] = useState(() => createPresentationRuntime(options.presentation))
 
@@ -181,11 +199,22 @@ export function AppRuntimeProvider({ options, children }: AppRuntimeProviderProp
         }
         database = opened
         const context: ApplicationContext = { database: opened, clock: options.clock, ids: options.ids }
+        // The player profile decides this before anything is created: a new player is awakened first.
+        const awakening = await loadAwakeningState(context)
+        if (disposed) return
+        if (awakening.status === 'required') {
+          setState({ status: 'awakening', context })
+          return
+        }
+        if (awakening.basis !== 'profile') {
+          console.warn('The player profile is missing or damaged; the generic name is shown until it is renamed', awakening.basis)
+        }
         const { home, finalized, finalizedWeeks } = await startApplication(context)
         if (disposed) return
         // A strict overnight reconciliation may be presented; a longer catch-up stays silent (OD-21).
         await presentReconciliation(context, { finalized, finalizedWeeks })
         if (disposed) return
+        setIdentity(awakening.identity)
         setState({ status: 'ready', context, snapshot: home })
         noticeFor(finalized.length, finalizedWeeks)
       } catch (error) {
@@ -363,6 +392,62 @@ export function AppRuntimeProvider({ options, children }: AppRuntimeProviderProp
     }
   }, [context, present, reload, syncDay])
 
+  const awakeningContext = state.status === 'awakening' ? state.context : null
+
+  /** Saves the identity. Only a saved result lets the screen advance; anything else leaves the player where they are. */
+  const saveAwakening = useCallback(
+    async (name: string | null): Promise<AwakeningSaveResult> => {
+      if (awakeningContext === null) return { status: 'failed' }
+      const result = await completeAwakening(awakeningContext, name)
+      switch (result.status) {
+        case 'awakened':
+        case 'already_awakened': {
+          const promise = startApplication(awakeningContext)
+          promise.catch(() => undefined) // reported when the reveal is finished
+          pendingStart.current = { promise, identity: result.identity }
+          return { status: 'saved', name: result.identity.name }
+        }
+        case 'rejected':
+          return { status: 'rejected', reason: result.reason }
+        case 'failed':
+          console.error('Completing Awakening failed', result.cause)
+          return { status: 'failed' }
+      }
+    },
+    [awakeningContext],
+  )
+
+  /** The reveal is over: show the real application. A startup failure here shows the usual error screen; Retry never replays Awakening. */
+  const finishAwakening = useCallback(async () => {
+    const pending = pendingStart.current
+    if (pending === null || awakeningContext === null) return
+    pendingStart.current = null
+    setState({ status: 'loading' })
+    try {
+      const { home, finalized, finalizedWeeks } = await pending.promise
+      await presentReconciliation(awakeningContext, { finalized, finalizedWeeks })
+      setIdentity(pending.identity)
+      setState({ status: 'ready', context: awakeningContext, snapshot: home })
+      noticeFor(finalized.length, finalizedWeeks)
+    } catch (error) {
+      console.error('Application startup failed', error)
+      setState({ status: 'error', reason: classifyFailure(error) })
+    }
+  }, [awakeningContext, noticeFor, presentReconciliation])
+
+  const identityActions = useMemo<IdentityActions>(
+    () => ({
+      name: identity.name,
+      rename: async (name: string) => {
+        if (context === null) return UNAVAILABLE
+        const result = await renamePlayer(context, name)
+        if (result.status === 'renamed' || result.status === 'unchanged') setIdentity(result.identity)
+        return result
+      },
+    }),
+    [context, identity.name],
+  )
+
   const profile = useMemo<ProfileActions>(() => {
     if (context === null) return UNAVAILABLE_PROFILE_ACTIONS
     return {
@@ -376,11 +461,20 @@ export function AppRuntimeProvider({ options, children }: AppRuntimeProviderProp
     () =>
       snapshot === null
         ? null
-        : { snapshot, completeQuest, quests, weekly, profile, reload, lifecycleNotice, dismissLifecycleNotice },
-    [snapshot, completeQuest, quests, weekly, profile, reload, lifecycleNotice, dismissLifecycleNotice],
+        : { snapshot, completeQuest, quests, weekly, profile, identity: identityActions, reload, lifecycleNotice, dismissLifecycleNotice },
+    [snapshot, completeQuest, quests, weekly, profile, identityActions, reload, lifecycleNotice, dismissLifecycleNotice],
   )
 
   if (state.status === 'error') return <StartupErrorScreen reason={state.reason} onRetry={retry} />
+  if (state.status === 'awakening') {
+    return (
+      <PresentationContext value={presentation}>
+        <Suspense fallback={<LoadingScreen />}>
+          <AwakeningFlow save={saveAwakening} onFinish={finishAwakening} />
+        </Suspense>
+      </PresentationContext>
+    )
+  }
   if (value === null) return <LoadingScreen />
   return (
     <AppRuntimeContext value={value}>

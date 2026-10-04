@@ -25,7 +25,7 @@ import { WeeklyCard } from './WeeklyCard'
  * it does not finalize anything or move the day.
  */
 export function HomePage() {
-  const { snapshot, completeQuest, reload, lifecycleNotice, dismissLifecycleNotice } = useAppRuntime()
+  const { snapshot, completeQuest, reload, lifecycleNotice, dismissLifecycleNotice, identity } = useAppRuntime()
   const { today, player, streaks, clock, dailyMessage, weekly } = snapshot
   const navigate = useNavigate()
 
@@ -79,7 +79,7 @@ export function HomePage() {
 
       {lifecycleNotice !== null && <LifecycleNoticeBanner notice={lifecycleNotice} onDismiss={dismissLifecycleNotice} />}
 
-      <PlayerSummary player={player} />
+      <PlayerSummary player={player} name={identity.name} />
 
       {clock.status === 'behind' ? (
         <ClockBehindNotice clock={clock} />

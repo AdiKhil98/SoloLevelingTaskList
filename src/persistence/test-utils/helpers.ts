@@ -110,6 +110,7 @@ export async function snapshotAll(database: PersistenceDatabase): Promise<Record
     dailySummaries: await readRaw(database, 'dailySummaries'),
     weeklyBoards: await readRaw(database, 'weeklyBoards'),
     weeklyRewardClaims: await readRaw(database, 'weeklyRewardClaims'),
+    playerProfile: await readRaw(database, 'playerProfile'),
   }
 }
 

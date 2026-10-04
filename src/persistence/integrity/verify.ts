@@ -14,6 +14,7 @@ const ALL_STORES = [
   STORE.dailySummaries,
   STORE.weeklyBoards,
   STORE.weeklyRewardClaims,
+  STORE.playerProfile,
 ] as const
 
 /**
@@ -33,7 +34,9 @@ export async function readRawDataset(database: PersistenceDatabase): Promise<Rec
       dailySummaries,
       weeklyBoards,
       weeklyRewardClaims,
+      playerProfile,
     ] = (await allRequests(ALL_STORES.map((name) => () => transaction.objectStore(name).getAll()))) as [
+      unknown[],
       unknown[],
       unknown[],
       unknown[],
@@ -55,6 +58,7 @@ export async function readRawDataset(database: PersistenceDatabase): Promise<Rec
       dailySummaries,
       weeklyBoards,
       weeklyRewardClaims,
+      playerProfile,
     }
   })
 }
@@ -75,6 +79,7 @@ export interface IntegrityReport {
     readonly dailySummaries: number
     readonly weeklyBoards: number
     readonly weeklyRewardClaims: number
+    readonly playerProfile: number
   }
   /** Progression derived from the verified ledger (nothing is read from a cache). */
   readonly progression: PlayerProgression
@@ -89,6 +94,7 @@ export function summarizeRecords(records: DatasetRecords): IntegrityReport['coun
     dailySummaries: records.dailySummaries.length,
     weeklyBoards: records.weeklyBoards.length,
     weeklyRewardClaims: records.weeklyRewardClaims.length,
+    playerProfile: records.playerProfile.length,
   }
 }
 

@@ -236,6 +236,7 @@ export async function importBackup(
         STORE.dailySummaries,
         STORE.weeklyBoards,
         STORE.weeklyRewardClaims,
+        STORE.playerProfile,
       ],
       'readwrite',
       async (transaction) => {
@@ -246,8 +247,9 @@ export async function importBackup(
         const summaries = transaction.objectStore(STORE.dailySummaries)
         const boards = transaction.objectStore(STORE.weeklyBoards)
         const claims = transaction.objectStore(STORE.weeklyRewardClaims)
+        const profile = transaction.objectStore(STORE.playerProfile)
 
-        const stores = [templates, occurrences, completions, ledger, summaries, boards, claims]
+        const stores = [templates, occurrences, completions, ledger, summaries, boards, claims, profile]
         await allRequests(stores.map((store) => () => store.clear()))
         await allRequests([
           ...data.questTemplates.map((record) => () => templates.add(record)),
@@ -257,6 +259,7 @@ export async function importBackup(
           ...data.dailySummaries.map((record) => () => summaries.add(record)),
           ...data.weeklyBoards.map((record) => () => boards.add(record)),
           ...data.weeklyRewardClaims.map((record) => () => claims.add(record)),
+          ...data.playerProfile.map((record) => () => profile.add(record)),
         ])
 
         // Read back before commit: a mismatch aborts and rolls everything back.
@@ -269,6 +272,7 @@ export async function importBackup(
           expected.counts.dailySummaries,
           expected.counts.weeklyBoards,
           expected.counts.weeklyRewardClaims,
+          expected.counts.playerProfile,
         ]
         if (counts.some((count, index) => count !== wanted[index])) {
           throw new PersistenceError('ledger_integrity_failed', 'Restored record counts do not match the backup')

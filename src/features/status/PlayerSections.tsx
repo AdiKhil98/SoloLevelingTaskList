@@ -3,7 +3,7 @@ import { ExpProgressBar } from '@/components/ui/ExpProgressBar'
 import { Panel } from '@/components/ui/Panel'
 import { RankBadge } from '@/components/ui/RankBadge'
 import { SectionLabel } from '@/components/ui/SectionLabel'
-import { daysLabel, PLAYER_LABEL, rankLabel } from '../displayLabels'
+import { daysLabel, playerDisplayName, rankLabel } from '../displayLabels'
 import { Row } from './StatBlocks'
 
 /**
@@ -12,7 +12,7 @@ import { Row } from './StatBlocks'
  * level keeps rising and the rank reads `???` (OD-01), shown only through
  * `rankLabel`.
  */
-export function PlayerSections({ player }: { player: PlayerStatus }) {
+export function PlayerSections({ player, name = null }: { player: PlayerStatus; name?: string | null }) {
   return (
     <>
       <Panel aria-label="Player status" tone="accent" framed className="px-4 pt-4">
@@ -21,7 +21,9 @@ export function PlayerSections({ player }: { player: PlayerStatus }) {
           <SectionLabel as="p">PLAYER STATUS</SectionLabel>
         </div>
         <dl>
-          <Row term="Player">{PLAYER_LABEL}</Row>
+          <Row term="Player" wrap>
+            <bdi>{playerDisplayName(name)}</bdi>
+          </Row>
           <Row term="Level" big>
             <span className="[text-shadow:0_0_14px_rgb(167_139_250/0.55)]">{player.level}</span>
           </Row>

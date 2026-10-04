@@ -6,10 +6,15 @@ import { dateKeyParts, type AchievementGroup, type Category, type DateKey, type 
  */
 
 /**
- * Neutral stand-in until Player Name onboarding exists (a later phase). Never a
- * real name.
+ * The generic player identity: shown when the player skipped the name (or is a
+ * legacy player who never chose one). Never a real name.
  */
 export const PLAYER_LABEL = 'PLAYER'
+
+/** The name to show: the chosen one, or the generic label when none was chosen. */
+export function playerDisplayName(name: string | null | undefined): string {
+  return name ?? PLAYER_LABEL
+}
 
 /**
  * `special_100_plus` shows `???` because its real display name is still open

@@ -16,6 +16,7 @@ import { validateLedger, type LedgerSummary } from '../ledger/validateLedger'
 import { readCompletion } from '../records/completion'
 import { readDailySummary } from '../records/dailySummary'
 import { readOccurrence } from '../records/occurrence'
+import { readPlayerProfile, type PlayerProfileRecord } from '../records/playerProfile'
 import {
   IssueCollector,
   isPlainObject,
@@ -39,6 +40,8 @@ export interface DatasetRecords {
   readonly weeklyBoards: readonly WeeklyGoalBoard[]
   /** At most one per week, each for a finalized board. */
   readonly weeklyRewardClaims: readonly WeeklyRewardClaim[]
+  /** Zero or one row: row existence means Awakening is complete (schema v5). */
+  readonly playerProfile: readonly PlayerProfileRecord[]
 }
 
 export interface ValidatedDataset {
@@ -54,6 +57,7 @@ const COLLECTIONS = [
   'dailySummaries',
   'weeklyBoards',
   'weeklyRewardClaims',
+  'playerProfile',
 ] as const
 
 function readCollection<T>(
@@ -139,6 +143,7 @@ export function validateDataset(
   const summaries = readCollection(collector, raw, 'dailySummaries', path, readDailySummary)
   const boards = readCollection(collector, raw, 'weeklyBoards', path, readWeeklyBoard)
   const claims = readCollection(collector, raw, 'weeklyRewardClaims', path, readWeeklyRewardClaim)
+  const profiles = readCollection(collector, raw, 'playerProfile', path, readPlayerProfile)
   if (
     !collector.isClean ||
     templates === undefined ||
@@ -147,7 +152,8 @@ export function validateDataset(
     transactions === undefined ||
     summaries === undefined ||
     boards === undefined ||
-    claims === undefined
+    claims === undefined ||
+    profiles === undefined
   ) {
     return err(collector.issues)
   }
@@ -163,6 +169,7 @@ export function validateDataset(
   findDuplicates(collector, summaries, (s) => s.dateKey, at('dailySummaries'), 'dateKey', 'duplicate_summary')
   findDuplicates(collector, boards, (b) => b.weekKey, at('weeklyBoards'), 'weekKey', 'duplicate_weekly_board')
   findDuplicates(collector, claims, (c) => c.weekKey, at('weeklyRewardClaims'), 'weekKey', 'duplicate_weekly_claim')
+  findDuplicates(collector, profiles, (p) => p.id, at('playerProfile'), 'id', 'duplicate_id')
 
   const ledger = validateLedger(transactions, at('xpTransactions'))
   if (!ledger.ok) ledger.error.forEach((issue) => collector.add(issue.path, issue.code, issue.message))
@@ -232,6 +239,7 @@ export function validateDataset(
       dailySummaries: summaries,
       weeklyBoards: byWeek(boards),
       weeklyRewardClaims: byWeek(claims),
+      playerProfile: profiles,
     },
     ledger: ledger.value,
   })

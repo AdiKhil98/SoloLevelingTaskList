@@ -9,12 +9,13 @@ import { BUTTON } from './styles'
 /**
  * One label/value line of a stat sheet. The label may wrap; the value never does.
  * `big` makes the value the headline figure of a window (the player's level).
+ * `wrap` lets a long free-text value (the player's name) break instead of pushing the row wider than its window.
  */
-export function Row({ term, big = false, children }: { term: string; big?: boolean; children: ReactNode }) {
+export function Row({ term, big = false, wrap = false, children }: { term: string; big?: boolean; wrap?: boolean; children: ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-4 border-b border-border py-3 last:border-b-0">
       <dt className="min-w-0 text-muted">{term}</dt>
-      <dd className={cn('shrink-0 text-right font-display font-semibold tabular-nums', big && 'text-3xl font-bold')}>{children}</dd>
+      <dd className={cn('text-right font-display font-semibold tabular-nums', wrap ? 'min-w-0 [overflow-wrap:anywhere]' : 'shrink-0', big && 'text-3xl font-bold')}>{children}</dd>
     </div>
   )
 }

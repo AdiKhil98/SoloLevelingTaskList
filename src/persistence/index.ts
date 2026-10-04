@@ -5,7 +5,14 @@
  */
 
 // Configuration
-export { BACKUP_FORMAT, BACKUP_FORMAT_VERSION, BACKUP_SCHEMA_VERSION, DATABASE_NAME, DATABASE_VERSION } from './config'
+export {
+  BACKUP_FORMAT,
+  BACKUP_FORMAT_VERSION,
+  BACKUP_SCHEMA_VERSION,
+  DATABASE_NAME,
+  DATABASE_VERSION,
+  PLAYER_PROFILE_ID,
+} from './config'
 
 // Errors
 export { PersistenceError, type PersistenceErrorCode, type ValidationIssue } from './errors'
@@ -48,6 +55,7 @@ export {
   listXpTransactions,
   listXpTransactionsByEffectiveDate,
 } from './repositories/xpLedger'
+export { countTemplates, getPlayerProfile, type PlayerProfileReading } from './repositories/playerProfile'
 export {
   countCompletionsByTemplate,
   getWeeklyBoard,
@@ -104,6 +112,17 @@ export {
   type ClaimWeeklyRewardResult,
 } from './commands/claimWeeklyReward'
 
+export {
+  completeAwakeningAtomically,
+  type CompleteAwakeningInput,
+  type CompleteAwakeningResult,
+} from './commands/completeAwakening'
+export {
+  renamePlayerAtomically,
+  type RenamePlayerInput,
+  type RenamePlayerResult,
+} from './commands/renamePlayer'
+
 // Ledger and progression
 export { validateLedger, type LedgerSummary } from './ledger/validateLedger'
 export { readProgression, reconstructProgression, type PlayerProgression } from './ledger/ledgerTip'
@@ -112,6 +131,7 @@ export { readProgression, reconstructProgression, type PlayerProgression } from 
 export { parseCompletion } from './records/completion'
 export { parseDailySummary } from './records/dailySummary'
 export { parseOccurrence } from './records/occurrence'
+export { parsePlayerProfile, type PlayerProfileRecord } from './records/playerProfile'
 export { parseTemplate } from './records/template'
 export { parseWeeklyBoard, parseWeeklyRewardClaim } from './records/weeklyBoard'
 export { parseXpTransaction } from './records/xpTransaction'

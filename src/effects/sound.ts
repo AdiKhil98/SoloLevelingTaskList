@@ -67,6 +67,13 @@ export const SOUND_SCORES: Readonly<Record<Cue, readonly Tone[]>> = {
     { at: 0.9, frequency: 1047, duration: 1.1, wave: 'sine', gain: 0.45 },
     { at: 0.9, frequency: 1568, duration: 1.1, wave: 'sine', gain: 0.25 },
   ],
+  // Sound is OFF by default, so a new install's Awakening is silent; this is for a player who turned it on.
+  awakening: [
+    { at: 0, frequency: 110, endFrequency: 196, duration: 0.6, wave: 'sawtooth', gain: 0.14 },
+    { at: 0.35, frequency: 440, duration: 0.3, wave: 'triangle', gain: 0.38 },
+    { at: 0.6, frequency: 659, duration: 0.3, wave: 'triangle', gain: 0.38 },
+    { at: 0.85, frequency: 988, duration: 0.8, wave: 'sine', gain: 0.4 },
+  ],
 }
 
 /** Seconds a cue lasts, including its last note's tail. */

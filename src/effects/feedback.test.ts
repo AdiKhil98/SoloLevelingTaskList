@@ -4,7 +4,7 @@ import { cueDuration, MASTER_VOLUME, scheduleCue, SOUND_SCORES, type AudioContex
 import { easeOutCubic, interpolateWhole, scrambleFrame, typedPrefix } from './text'
 import type { Cue } from './types'
 
-const CUES: readonly Cue[] = ['quest', 'quest_strong', 'achievement', 'perfect_day', 'level_up', 'weekly_result', 'rank_up', 'perfect_week']
+const CUES: readonly Cue[] = ['quest', 'quest_strong', 'achievement', 'perfect_day', 'level_up', 'weekly_result', 'rank_up', 'perfect_week', 'awakening']
 const total = (pattern: readonly number[]) => pattern.reduce((sum, ms) => sum + ms, 0)
 
 describe('haptic patterns (OD-07)', () => {

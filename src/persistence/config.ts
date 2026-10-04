@@ -6,7 +6,7 @@
 export const DATABASE_NAME = 'solo-leveling-task-list'
 
 /** IndexedDB schema version. Raised only together with a new migration. */
-export const DATABASE_VERSION = 4
+export const DATABASE_VERSION = 5
 
 export const STORE = {
   templates: 'questTemplates',
@@ -19,7 +19,12 @@ export const STORE = {
   weeklyBoards: 'weeklyBoards',
   /** Added by schema v3 (Phase 07): one insert-only claim per finalized week. */
   weeklyRewardClaims: 'weeklyRewardClaims',
+  /** Added by schema v5 (Phase 11): the one player profile row (name and Awakening state). */
+  playerProfile: 'playerProfile',
 } as const
+
+/** The key of the single row in `playerProfile`. */
+export const PLAYER_PROFILE_ID = 'player'
 
 export type StoreName = (typeof STORE)[keyof typeof STORE]
 
@@ -64,7 +69,7 @@ export const BACKUP_FORMAT_VERSION = 1
  * Version of the data model carried in `data`. Independent of
  * `DATABASE_VERSION`: both start at 1 but need not stay equal.
  */
-export const BACKUP_SCHEMA_VERSION = 4
+export const BACKUP_SCHEMA_VERSION = 5
 
 /** Backups larger than this (in UTF-16 code units) are rejected unparsed. */
 export const MAX_BACKUP_CHARS = 32 * 1024 * 1024

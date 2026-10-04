@@ -15,6 +15,7 @@ export const HAPTIC_PATTERNS: Readonly<Record<Cue, readonly number[]>> = {
   weekly_result: [30, 50, 30],
   rank_up: [60, 80, 60, 80, 120],
   perfect_week: [60, 70, 60, 70, 60, 70, 160],
+  awakening: [40, 60, 40, 60, 140],
 }
 
 export function hapticPatternFor(cue: Cue): readonly number[] {

@@ -47,6 +47,15 @@ export {
   type WeeklyProfile,
 } from './player/loadPlayerProfile'
 export { loadAchievements, type AchievementsView } from './player/loadAchievements'
+export {
+  completeAwakening,
+  loadAwakeningState,
+  renamePlayer,
+  type AwakeningState,
+  type CompleteAwakeningResult,
+  type PlayerIdentity,
+  type RenamePlayerResult,
+} from './profile/awakening'
 export { loadDailyHistory, type DailyHistoryEntry } from './player/loadDailyHistory'
 
 export {
