@@ -1,9 +1,9 @@
 @import 'tailwindcss';
 
 /*
- * SYSTEM visual language (Phase 09). Static only: no animation lives here, and
- * nothing runs on an ordinary screen. Heavy, earned-event effects belong to the
- * animation phase and will build on these surfaces.
+ * SYSTEM visual language (Phase 09). The base surfaces and tokens are static and
+ * nothing runs on an ordinary screen. The earned-event effects (Phase 10) are the
+ * separate, clearly marked block at the end of this file.
  *
  * Every colour a component may use is a token below; components never hard-code
  * a violet, a cyan or a status colour. Text tokens are chosen for contrast on
@@ -192,5 +192,307 @@
   .system-focus:focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
+  }
+}
+
+/*
+ * Earned-event effects (Phase 10). Nothing below runs on an ordinary screen: every
+ * class is attached only to an element that exists for an earned moment (a
+ * just-completed quest, a SYSTEM popup, a Level / Rank / weekly overlay) and every
+ * animation is FINITE. Motion applies only where the element, or an ancestor,
+ * carries data-fx="normal"; data-fx="reduced" (the player's choice, or the
+ * device's reduced-motion setting) leaves the same content static. Colours come
+ * from the tokens above.
+ */
+@property --fx-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@layer components {
+  /* ---- Quest completion (minor feedback) ---- */
+
+  /* A short violet/cyan pulse around the row that was just completed. */
+  .system-fx-complete:is([data-fx='normal'], [data-fx='normal'] *) {
+    --fx-spread: 18px;
+    --fx-alpha: 0.55;
+    animation: system-fx-pulse 700ms ease-out 1 both;
+  }
+  .system-fx-complete[data-strength='strong']:is([data-fx='normal'], [data-fx='normal'] *) {
+    --fx-spread: 26px;
+    --fx-alpha: 0.7;
+    animation-duration: 850ms;
+  }
+  .system-fx-complete[data-strength='major']:is([data-fx='normal'], [data-fx='normal'] *) {
+    --fx-spread: 34px;
+    --fx-alpha: 0.85;
+    animation-duration: 1000ms;
+  }
+
+  /* "+35 EXP" rising from the completed row. Static in reduced mode (it is removed when its time is up). */
+  .system-fx-chip {
+    position: absolute;
+    top: -0.5rem;
+    right: 0.75rem;
+    z-index: 1;
+    pointer-events: none;
+    font-family: var(--font-display);
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--accent-2);
+    text-shadow: 0 0 10px color-mix(in srgb, var(--accent-2) 55%, transparent);
+  }
+  .system-fx-chip:is([data-fx='normal'], [data-fx='normal'] *) {
+    animation: system-fx-rise 900ms ease-out 1 both;
+  }
+
+  /* The EXP bar's glow while it takes a gain. */
+  .system-fx-bar-gain:is([data-fx='normal'], [data-fx='normal'] *) {
+    animation: system-fx-bar-glow 800ms ease-out 1;
+  }
+
+  /* ---- SYSTEM popup (medium) ---- */
+
+  .system-fx-popup {
+    animation: system-fx-popup-in 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .system-fx-popup[data-state='closing'] {
+    animation: system-fx-popup-out 180ms ease-in both;
+  }
+  .system-fx-popup[data-fx='reduced'] {
+    animation-name: system-fx-fade-in;
+    animation-duration: 150ms;
+  }
+  .system-fx-popup[data-fx='reduced'][data-state='closing'] {
+    animation-name: system-fx-fade-out;
+    animation-duration: 120ms;
+  }
+
+  /* ---- Full-screen overlays (major / critical) ---- */
+
+  .system-fx-overlay {
+    animation: system-fx-fade-in 220ms ease-out both;
+  }
+  .system-fx-overlay[data-state='closing'] {
+    animation: system-fx-fade-out 180ms ease-in both;
+  }
+  .system-fx-overlay[data-fx='reduced'] {
+    animation-duration: 150ms;
+  }
+
+  /* The SYSTEM aura: layered gradients that arrive once (no blur filters, no endless drift). */
+  .system-fx-aura {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    background:
+      radial-gradient(70% 48% at 50% 44%, color-mix(in srgb, var(--accent-strong) 42%, transparent), transparent 72%),
+      radial-gradient(60% 36% at 50% 104%, color-mix(in srgb, var(--accent-2) 16%, transparent), transparent 72%),
+      color-mix(in srgb, var(--background) 97%, transparent);
+  }
+  .system-fx-aura[data-intensity='high'] {
+    background:
+      radial-gradient(76% 54% at 50% 44%, color-mix(in srgb, var(--accent-strong) 56%, transparent), transparent 74%),
+      radial-gradient(64% 40% at 50% 104%, color-mix(in srgb, var(--accent-2) 24%, transparent), transparent 72%),
+      color-mix(in srgb, var(--background) 97%, transparent);
+  }
+  .system-fx-aura::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(color-mix(in srgb, var(--accent) 7%, transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in srgb, var(--accent) 7%, transparent) 1px, transparent 1px);
+    background-size: 32px 32px;
+    mask-image: radial-gradient(60% 50% at 50% 44%, #000, transparent 80%);
+  }
+  .system-fx-aura:is([data-fx='normal'], [data-fx='normal'] *) {
+    animation: system-fx-aura-in 1100ms ease-out both;
+  }
+
+  /* A horizontal light sweep through the middle of the screen. */
+  .system-fx-sweep {
+    position: absolute;
+    top: 42%;
+    left: 50%;
+    width: 150%;
+    height: 2px;
+    margin-left: -75%;
+    pointer-events: none;
+    background: linear-gradient(90deg, transparent, var(--accent), var(--accent-2), var(--accent), transparent);
+    box-shadow: 0 0 28px var(--accent);
+    opacity: 0;
+  }
+  .system-fx-sweep:is([data-fx='normal'], [data-fx='normal'] *) {
+    animation: system-fx-sweep 1200ms ease-out 1 both;
+  }
+
+  /* The headline and the new number arrive once. */
+  .system-fx-reveal:is([data-fx='normal'], [data-fx='normal'] *) {
+    animation: system-fx-reveal 700ms 150ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .system-fx-pop:is([data-fx='normal'], [data-fx='normal'] *) {
+    animation: system-fx-pop 650ms 800ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+
+  /* A light that runs around a frame twice, then fades. Reserved for Rank Up, Perfect Week and achievements. */
+  .system-fx-trail {
+    position: relative;
+  }
+  .system-fx-trail:is([data-fx='normal'], [data-fx='normal'] *)::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 2px;
+    pointer-events: none;
+    background: conic-gradient(from var(--fx-angle), transparent 0 68%, var(--accent) 86%, var(--accent-2) 100%);
+    mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    -webkit-mask-composite: xor;
+    animation:
+      system-fx-spin 2200ms linear 2,
+      system-fx-fade-out 500ms ease-in 4400ms forwards;
+  }
+
+  /* The typing caret, only while a line is being typed. */
+  .system-fx-caret[data-typing='true']::after {
+    content: '▌';
+    margin-left: 1px;
+    color: var(--accent-2);
+    animation: system-fx-blink 700ms steps(1) infinite;
+  }
+}
+
+@keyframes system-fx-pulse {
+  0% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+  35% {
+    box-shadow:
+      0 0 var(--fx-spread) 0 color-mix(in srgb, var(--accent) calc(var(--fx-alpha) * 100%), transparent),
+      inset 0 0 14px 0 color-mix(in srgb, var(--accent-2) 20%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+@keyframes system-fx-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-22px);
+  }
+}
+@keyframes system-fx-bar-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+  40% {
+    box-shadow: 0 0 14px 2px color-mix(in srgb, var(--accent) 70%, transparent);
+  }
+}
+@keyframes system-fx-popup-in {
+  from {
+    opacity: 0;
+    transform: translateY(-14px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes system-fx-popup-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+@keyframes system-fx-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes system-fx-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes system-fx-aura-in {
+  from {
+    opacity: 0;
+    transform: scale(1.12);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes system-fx-sweep {
+  0% {
+    opacity: 0;
+    transform: scaleX(0);
+  }
+  40% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scaleX(0.8);
+  }
+}
+@keyframes system-fx-reveal {
+  from {
+    opacity: 0;
+    transform: scale(0.84);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes system-fx-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.14);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes system-fx-spin {
+  to {
+    --fx-angle: 360deg;
+  }
+}
+@keyframes system-fx-blink {
+  50% {
+    opacity: 0;
   }
 }

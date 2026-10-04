@@ -12,6 +12,7 @@ import {
   noonOn,
   type TestClock,
 } from '@/application/test-utils/helpers'
+import { TEST_TIMINGS } from './presentationTimings'
 
 export interface RenderAppOptions {
   /** Initial route. */
@@ -23,6 +24,8 @@ export interface RenderAppOptions {
   /** Defaults to a deterministic sequence of UUIDs. */
   ids?: IdSource
   strictMode?: boolean
+  /** Presentation seams (settings, timings, haptics, sound). Defaults to zero delays and no count-up. */
+  presentation?: AppRuntimeOptions['presentation']
 }
 
 /**
@@ -36,8 +39,9 @@ export function renderApp({
   factory = newFactory(),
   ids = createSequentialIds(),
   strictMode = false,
+  presentation = { timings: TEST_TIMINGS },
 }: RenderAppOptions = {}) {
-  const options: AppRuntimeOptions = { clock, ids, database: { factory } }
+  const options: AppRuntimeOptions = { clock, ids, database: { factory }, presentation }
   const router = createMemoryRouter(appRoutes, { initialEntries: [path] })
   const tree = (
     <AppRuntimeProvider options={options}>

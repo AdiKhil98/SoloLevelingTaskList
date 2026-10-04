@@ -23,8 +23,12 @@ export interface DaySyncOptions {
   readonly clock: Clock
   /** The Home state currently on screen; the clock is compared with it. */
   readonly shown: HomeSnapshot | null
-  /** Receives the freshly reconciled and loaded state. Must keep its identity between renders. */
-  readonly onSynchronized: (context: ApplicationContext, result: SynchronizedHome) => void
+  /**
+   * Receives the freshly reconciled and loaded state (it may be async: it is awaited before the sync counts as
+   * done, so a screen that was handed the new day can already rely on what it prepared). Must keep its identity
+   * between renders.
+   */
+  readonly onSynchronized: (context: ApplicationContext, result: SynchronizedHome) => void | Promise<void>
   /** Receives a failure of the lifecycle step. Must keep its identity between renders. */
   readonly onFailed: (error: unknown) => void
 }
@@ -70,7 +74,7 @@ export function useDaySync({ context, clock, shown, onSynchronized, onFailed }: 
           ) {
             return // same day, nothing changed
           }
-          onSynchronized(context, await synchronizeAndLoadHome(context, trigger))
+          await onSynchronized(context, await synchronizeAndLoadHome(context, trigger))
         } catch (error) {
           onFailed(error)
         }

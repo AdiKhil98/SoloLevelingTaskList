@@ -136,6 +136,7 @@ export {
   type DailyProgressError,
   type DayQuality,
 } from './daily/dailyProgress'
+export { buildPerfectDayReachedEvent } from './daily/perfectDay'
 export {
   applyDayToStreaks,
   buildDailySummary,
@@ -234,6 +235,7 @@ export { summarizeWeeklyHistory, type WeeklyStats } from './stats/weeklyStats'
 // Achievements (derived trophies; 0 EXP; no stored unlock state)
 export { ACHIEVEMENT_CATALOG } from './achievements/catalog'
 export { evaluateAchievements, summarizeAchievements, type AchievementSummary } from './achievements/evaluate'
+export { buildAchievementUnlockedEvents } from './achievements/unlockEvents'
 export type {
   AchievementCondition,
   AchievementDefinition,
@@ -246,8 +248,10 @@ export type {
 
 // Events
 export type {
+  AchievementUnlockedEvent,
   DomainEvent,
   LevelUpEvent,
+  PerfectDayReachedEvent,
   QuestCompletedEvent,
   RankUpEvent,
   WeeklyBoardFinalizedEvent,

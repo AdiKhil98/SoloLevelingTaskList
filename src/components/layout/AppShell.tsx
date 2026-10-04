@@ -1,10 +1,13 @@
 import { Outlet } from 'react-router'
+import { PresentationHost } from '@/features/presentation/PresentationHost'
 import { BottomNav } from './BottomNav'
 
 /**
  * Architectural frame for every route: full mobile viewport, a single
  * centered content column (so wide screens never stretch it), room above the
- * bottom navigation, and the route outlet. It holds no game state.
+ * bottom navigation, and the route outlet. It holds no game state. The
+ * presentation host sits here, above every route, so an earned moment (a Level
+ * Up, an achievement) survives navigation.
  */
 export function AppShell() {
   return (
@@ -16,6 +19,7 @@ export function AppShell() {
         </main>
       </div>
       <BottomNav />
+      <PresentationHost />
     </>
   )
 }

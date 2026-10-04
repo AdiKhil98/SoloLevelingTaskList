@@ -230,8 +230,13 @@ describe('the Home card', () => {
     await homeReady()
     first.unmount()
     clock.set(noonOn(NEXT_MONDAY))
+    // The app registers its resume listeners in an effect that runs just after Home first paints, and
+    // nothing in the DOM says when. Under load that can come after the heading is found, and a `focus`
+    // fired before then is simply not heard. Wait for the listener itself (a precondition, not a retry of the action).
+    const listeners = vi.spyOn(window, 'addEventListener')
     const second = renderApp({ clock, factory: first.factory })
     await homeReady()
+    await waitFor(() => expect(listeners).toHaveBeenCalledWith('focus', expect.any(Function)))
     clock.set(noonOn(WEDNESDAY))
     await act(async () => {
       window.dispatchEvent(new Event('focus'))

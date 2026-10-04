@@ -291,6 +291,9 @@ interface WeeklyRewardTier {           // user-configurable text; the *threshold
   rewardText: string;                  // e.g. '45 minutes guilt-free gaming' — examples are NOT hardcoded
 }
 
+// Phase 10 note: the three presentation preferences (effects NORMAL|REDUCED, haptics, sound) are NOT stored here.
+// They live in localStorage (`sltl.effects-settings.v1`), are per device, and are intentionally outside backups
+// (see EFFECTS_EVENT_ENGINE.md). The IndexedDB `AppSettings` store below remains a future option for other settings.
 interface AppSettings {                // singleton, id = 'settings'; included in backups (MASTER_SPEC I-7)
   id: 'settings';
   soundEnabled: boolean;

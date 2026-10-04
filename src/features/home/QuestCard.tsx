@@ -1,6 +1,7 @@
 import { Circle, CircleCheck } from 'lucide-react'
 import type { TodayQuest } from '@/application'
 import { cn } from '@/lib/utils'
+import { useFx, useQuestFeedback } from '../presentation/usePresentation'
 import { categoryLabel } from '../displayLabels'
 
 interface QuestCardProps {
@@ -37,21 +38,35 @@ function QuestText({ quest }: { quest: TodayQuest }) {
  * One quest on today's list. An open quest is a real button; a completed quest
  * is a plain, non-interactive row, because completion is final in V1 and a
  * checkbox that looks reversible would be misleading. Completed rows differ
- * clearly (violet fill, left rail, check, muted EXP) without any animation.
+ * clearly (violet fill, left rail, check, muted EXP). Only the quest that was
+ * JUST completed plays a short pulse and a rising "+EXP" chip (about a second,
+ * visual only: the status line above the list carries the same words as text);
+ * a completed row that is merely shown, on load or on return, never animates.
  */
 export function QuestCard({ quest, pending, onComplete }: QuestCardProps) {
+  const feedback = useQuestFeedback(quest.occurrenceId)
+  const { mode } = useFx()
+
   if (quest.completed) {
     return (
-      <li>
+      <li className="relative">
         <div
+          data-fx={feedback === null ? undefined : mode}
+          data-strength={feedback?.strength}
           className={cn(
             ROW,
             'border-border-strong bg-accent/10 text-foreground/85 before:absolute before:inset-y-0 before:left-0 before:w-0.5 before:bg-accent',
+            feedback !== null && 'system-fx-complete',
           )}
         >
           <CircleCheck role="img" aria-label="Completed" className="size-7 shrink-0 text-accent" />
           <QuestText quest={quest} />
         </div>
+        {feedback !== null && feedback.amount > 0 && (
+          <span aria-hidden="true" data-fx={mode} className="system-fx-chip">
+            +{feedback.amount} EXP
+          </span>
+        )}
       </li>
     )
   }

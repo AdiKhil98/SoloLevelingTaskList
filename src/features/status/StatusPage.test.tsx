@@ -37,7 +37,8 @@ describe('Status', () => {
     database.close()
     renderApp({ factory })
     fireEvent.click(await screen.findByRole('button', { name: /^Complete Big quest/ }))
-    await waitFor(() => expect(screen.getByText('LV. 2')).toBeInTheDocument())
+    // The HUD's level (the Level Up overlay also names LV. 2, so the query is scoped to the player window).
+    await waitFor(() => expect(within(screen.getByRole('region', { name: 'PLAYER' })).getByText('LV. 2')).toBeInTheDocument())
 
     fireEvent.click(screen.getByRole('link', { name: 'Status' }))
     const sheet = await statusReady()

@@ -30,6 +30,15 @@ export { buildDailyReport, type DailyReport } from './report/buildDailyReport'
 export { loadStreakStats, type StreakStats } from './player/loadStreakStats'
 export { attemptLoad, type LoadResult } from './loadResult'
 export {
+  completionPresentationEvents,
+  OVERNIGHT_MAX_FINALIZED_BOARDS,
+  OVERNIGHT_MAX_FINALIZED_DAYS,
+  reconciliationPresentationEvents,
+  type CompletionPresentationInput,
+  type PresentationEvents,
+  type ReconciliationPresentationInput,
+} from './presentation/presentationEvents'
+export {
   loadPlayerProfile,
   RECENT_ACHIEVEMENT_COUNT,
   TOP_QUEST_COUNT,

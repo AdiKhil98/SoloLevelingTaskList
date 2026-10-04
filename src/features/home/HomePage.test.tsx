@@ -125,7 +125,8 @@ describe('Home — completing quests', () => {
     expect(screen.getByText('10 / 100')).toBeInTheDocument()
     expect(screen.getByRole('progressbar', { name: /EXP progress/ })).toHaveAttribute('aria-valuenow', '10')
     expect(screen.getAllByRole('img', { name: 'Completed' })).toHaveLength(1)
-    expect(screen.getByRole('status')).toHaveTextContent('Fajr completed. +10 EXP.')
+    // The first completion also unlocks "First Quest", whose popup is a second live region: name the Home one by its text.
+    expect(screen.getByText('Fajr completed. +10 EXP.')).toHaveAttribute('role', 'status')
   })
 
   it('does not let a completed quest be completed again', async () => {
@@ -193,9 +194,11 @@ describe('Home — completing quests', () => {
 
     fireEvent.click(questButton('Big quest'))
 
-    await waitFor(() => expect(screen.getByText('LV. 2')).toBeInTheDocument())
+    // The HUD's level (the Level Up overlay also names LV. 2, so the query is scoped to the player window).
+    await waitFor(() => expect(within(screen.getByRole('region', { name: 'PLAYER' })).getByText('LV. 2')).toBeInTheDocument())
     expect(screen.getByText('20 / 135')).toBeInTheDocument()
-    expect(screen.getByRole('status')).toHaveTextContent('Big quest completed. +120 EXP. LEVEL UP — LV. 2.')
+    expect(screen.getByText(/Big quest completed\./)).toHaveAttribute('role', 'status')
+    expect(screen.getByText(/Big quest completed\./)).toHaveTextContent('Big quest completed. +120 EXP. LEVEL UP — LV. 2.')
   })
 
   it('a tap on a stale screen after midnight reconciles first, shows the new day and completes nothing', async () => {

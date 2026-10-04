@@ -123,7 +123,7 @@ No particles, shaders, BorderTrail, SystemAura or celebration: a plain progress 
 
 - A saved board cannot be deleted; there is no "skip this week" after saving.
 - A linked goal's target can be higher than the quest can be completed in the week (e.g. a 3-day quest with target 5); nothing warns about it.
-- The `WeeklyGoalCompleted` event is not emitted by quest completions (Phase 10 decides the presentation moment, OD-20).
+- The `WeeklyGoalCompleted` event is not emitted by the quest-completion command itself. Phase 10 (OD-20, resolved) derives it in the application layer, for presentation only, as the difference between the week's completion counts with and without the completion just made; it changes nothing stored. The weekly spectacle is the finalization moment (see [EFFECTS_EVENT_ENGINE.md](EFFECTS_EVENT_ENGINE.md)).
 - Backup/Restore still has no UI (a previously known limitation).
 - The weekly rules on completions in the dataset validator are deliberately snapshot-only (see *Schema v3 and backups*).
 

@@ -1,4 +1,5 @@
 import { useAppRuntime } from '@/app/runtimeContext'
+import { SystemSettingsPanel } from '../presentation/SystemSettingsPanel'
 import { PlayerSections, StreaksSection } from './PlayerSections'
 import { AchievementsSection, DaysSection, QuestsSection, WeeklySection } from './ProfileSections'
 import { LoadFailure } from './StatBlocks'
@@ -35,6 +36,8 @@ export function StatusPage() {
           <AchievementsSection achievements={state.value.achievements} />
         </>
       )}
+
+      <SystemSettingsPanel />
     </div>
   )
 }

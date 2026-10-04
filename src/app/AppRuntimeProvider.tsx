@@ -4,6 +4,7 @@ import {
   claimWeeklyReward,
   classifyFailure,
   completeTodayQuest,
+  completionPresentationEvents,
   createQuest,
   listQuestTemplates,
   loadAchievements,
@@ -13,6 +14,7 @@ import {
   loadWeeklyEditor,
   loadWeeklyHistory,
   loadWeeklyScreen,
+  reconciliationPresentationEvents,
   reorderQuests,
   restoreQuest,
   saveWeeklyBoard,
@@ -27,11 +29,14 @@ import {
   type HomeSnapshot,
   type IdSource,
   type QuestFormValues,
+  type ReconciliationPresentationInput,
   type ReorderQuestsInput,
   type SynchronizedHome,
   type WeeklyBoardFormValues,
 } from '@/application'
-import type { WeekKey } from '@/domain'
+import type { DomainEvent, WeekKey } from '@/domain'
+import { planPresentation } from '@/effects/plan'
+import { PresentationContext, createPresentationRuntime, type PresentationRuntimeOptions } from '@/features/presentation/runtime'
 import { openDatabase, type OpenDatabaseOptions, type PersistenceDatabase } from '@/persistence'
 import {
   AppRuntimeContext,
@@ -51,6 +56,8 @@ export interface AppRuntimeOptions {
   readonly ids: IdSource
   /** Database name / IndexedDB factory; defaults to the production database. */
   readonly database?: OpenDatabaseOptions
+  /** Presentation seams (effect settings, timings, haptics, sound); tests pass their own. */
+  readonly presentation?: PresentationRuntimeOptions
 }
 
 type RuntimeState =
@@ -122,6 +129,32 @@ export function AppRuntimeProvider({ options, children }: AppRuntimeProviderProp
   const [attempt, setAttempt] = useState(0)
   const [state, setState] = useState<RuntimeState>({ status: 'loading' })
   const [lifecycleNotice, setLifecycleNotice] = useState<LifecycleNotice | null>(null)
+  // The one presentation queue and the player's effect settings, created once for the app's life.
+  const [presentation] = useState(() => createPresentationRuntime(options.presentation))
+
+  /**
+   * Hands domain events to the presentation queue. It runs BEFORE the new state is adopted, so the HUD can hold
+   * the old level while a Level Up waits to be revealed. Presentation is never worth failing an action that was
+   * already saved: a failure is logged and the action's own events are shown.
+   */
+  const present = useCallback(
+    (events: readonly DomainEvent[], origin: 'action' | 'lifecycle') => {
+      if (events.length > 0) presentation.controller.enqueue(planPresentation(events, { origin }))
+    },
+    [presentation],
+  )
+  const presentReconciliation = useCallback(
+    async (synced: ApplicationContext, input: ReconciliationPresentationInput) => {
+      try {
+        const { events, errors } = await reconciliationPresentationEvents(synced, input)
+        for (const error of errors) console.error('Preparing the presentation failed', error)
+        present(events, 'lifecycle')
+      } catch (error) {
+        console.error('Preparing the presentation failed', error)
+      }
+    },
+    [present],
+  )
 
   // At most ONE notice per reconciliation: the days it caught up and/or the weekly boards it finalized.
   // A finalized week is always mentioned, even overnight, because it paid EXP the player did not just earn.
@@ -150,6 +183,9 @@ export function AppRuntimeProvider({ options, children }: AppRuntimeProviderProp
         const context: ApplicationContext = { database: opened, clock: options.clock, ids: options.ids }
         const { home, finalized, finalizedWeeks } = await startApplication(context)
         if (disposed) return
+        // A strict overnight reconciliation may be presented; a longer catch-up stays silent (OD-21).
+        await presentReconciliation(context, { finalized, finalizedWeeks })
+        if (disposed) return
         setState({ status: 'ready', context, snapshot: home })
         noticeFor(finalized.length, finalizedWeeks)
       } catch (error) {
@@ -163,7 +199,7 @@ export function AppRuntimeProvider({ options, children }: AppRuntimeProviderProp
       disposed = true
       database?.close()
     }
-  }, [attempt, noticeFor, options])
+  }, [attempt, noticeFor, options, presentReconciliation])
 
   const retry = useCallback(() => {
     setState({ status: 'loading' })
@@ -174,11 +210,12 @@ export function AppRuntimeProvider({ options, children }: AppRuntimeProviderProp
   const snapshot = state.status === 'ready' ? state.snapshot : null
 
   const onSynchronized = useCallback(
-    (synced: ApplicationContext, { home, finalized, finalizedWeeks }: SynchronizedHome) => {
+    async (synced: ApplicationContext, { home, finalized, finalizedWeeks }: SynchronizedHome) => {
+      await presentReconciliation(synced, { finalized, finalizedWeeks })
       setState({ status: 'ready', context: synced, snapshot: home })
       noticeFor(finalized.length, finalizedWeeks)
     },
-    [noticeFor],
+    [noticeFor, presentReconciliation],
   )
   const onSyncFailed = useCallback((error: unknown) => {
     console.error('Day synchronization failed', error)
@@ -204,6 +241,18 @@ export function AppRuntimeProvider({ options, children }: AppRuntimeProviderProp
       // Lifecycle first: a stale screen reconciles (and shows the new day) before it may write.
       await syncDay('resume')
       const result = await completeTodayQuest(context, occurrenceId)
+      if (result.status === 'completed') {
+        // Feedback, EXP, level and rank, a live Perfect Day, goals and achievements this completion earned.
+        // `already_completed` reports no events, so a repeat can never replay anything.
+        try {
+          const { events, errors } = await completionPresentationEvents(context, { events: result.events, home: result.home })
+          for (const error of errors) console.error('Preparing the presentation failed', error)
+          present(events, 'action')
+        } catch (error) {
+          console.error('Preparing the presentation failed', error)
+          present(result.events, 'action')
+        }
+      }
       if (result.status === 'completed' || result.status === 'already_completed') {
         if (result.home !== null) {
           setState({ status: 'ready', context, snapshot: result.home })
@@ -221,7 +270,7 @@ export function AppRuntimeProvider({ options, children }: AppRuntimeProviderProp
       }
       return result
     },
-    [context, reload, syncDay],
+    [context, present, reload, syncDay],
   )
 
   const quests = useMemo<QuestActions>(() => {
@@ -301,7 +350,10 @@ export function AppRuntimeProvider({ options, children }: AppRuntimeProviderProp
       setProgress: async (goalId: string, progress: number) => {
         await syncDay('resume')
         const result = await setWeeklyGoalProgress(context, goalId, progress)
-        if (result.status === 'updated') await adopt(result)
+        if (result.status === 'updated') {
+          present(result.events, 'action') // a goal reaching its target while the week is open
+          await adopt(result)
+        }
         return result
       },
       claim: async (weekKey: WeekKey) => {
@@ -309,7 +361,7 @@ export function AppRuntimeProvider({ options, children }: AppRuntimeProviderProp
         return claimWeeklyReward(context, weekKey)
       },
     }
-  }, [context, reload, syncDay])
+  }, [context, present, reload, syncDay])
 
   const profile = useMemo<ProfileActions>(() => {
     if (context === null) return UNAVAILABLE_PROFILE_ACTIONS
@@ -330,5 +382,9 @@ export function AppRuntimeProvider({ options, children }: AppRuntimeProviderProp
 
   if (state.status === 'error') return <StartupErrorScreen reason={state.reason} onRetry={retry} />
   if (value === null) return <LoadingScreen />
-  return <AppRuntimeContext value={value}>{children}</AppRuntimeContext>
+  return (
+    <AppRuntimeContext value={value}>
+      <PresentationContext value={presentation}>{children}</PresentationContext>
+    </AppRuntimeContext>
+  )
 }

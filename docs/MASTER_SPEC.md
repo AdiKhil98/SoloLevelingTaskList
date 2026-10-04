@@ -611,12 +611,12 @@ Pack observations that later phases must account for (observed, not acted on):
 |-------|--------------|
 | Normal quest completion | short glow, checkbox/state animation, +EXP feedback, EXP bar motion, subtle haptic if available |
 | Hard / important quest | slightly stronger effect |
-| Goal Crusher completion | major reward presentation (which moment counts: **[OPEN: OD-20]**) |
+| Goal Crusher completion | major reward presentation at the weekly board's **finalization** (tiered by score; live goal / 10-of-10 moments are small and reversible) **[RESOLVED — OD-20, Phase 10]**, see [EFFECTS_EVENT_ENGINE.md](EFFECTS_EVENT_ENGINE.md) |
 | Level up | full-screen event: aura, particles, strong typography, level transition, haptic/sound where enabled |
 | Rank up | rarer and significantly more dramatic than level up |
 | First-launch Player Awakening | cinematic onboarding event |
 
-Settings eventually support: sound on/off, haptics on/off, effects intensity, reduced-motion compatibility. Sound effects, haptic patterns, and timings: **[OPEN: OD-06, OD-07, OD-08]**.
+Settings eventually support: sound on/off, haptics on/off, effects intensity, reduced-motion compatibility. Sound effects, haptic patterns, effect intensity and timings: **[RESOLVED — OD-06, OD-07, OD-08, Phase 10]** (original synthesized sound, off by default; Vibration-API patterns, on by default; effects NORMAL or REDUCED; V1 timings as tunable data), see [EFFECTS_EVENT_ENGINE.md](EFFECTS_EVENT_ENGINE.md).
 
 ### 17.4 Player Awakening **[APPROVED concept]**
 

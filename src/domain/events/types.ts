@@ -1,3 +1,4 @@
+import type { AchievementEvidence } from '../achievements/types'
 import type { Category } from '../config/categories'
 import type { Difficulty } from '../config/difficulty'
 import type { RankId } from '../config/ranks'
@@ -6,9 +7,10 @@ import type { DateKey, WeekKey } from '../types/scalars'
 
 /**
  * Facts the engine reports about something that already happened. Events
- * never change state. This is the Phase 02 subset of MASTER_SPEC §15; later
- * phases add `DayStatusChanged`, `PerfectDayReached`, `AchievementUnlocked`,
- * `WeeklyGoalCompleted` and `WeeklyBoardFinalized` to the union.
+ * never change state. This is the Phase 02 subset of MASTER_SPEC §15, extended
+ * by Phase 07 (`WeeklyGoalCompleted`, `WeeklyBoardFinalized`) and Phase 10
+ * (`PerfectDayReached`, `AchievementUnlocked`). `DayStatusChanged` is not
+ * emitted yet.
  */
 export interface QuestCompletedEvent {
   readonly type: 'QuestCompleted'
@@ -69,10 +71,39 @@ export interface WeeklyBoardFinalizedEvent {
   readonly rewardTierMinScore: number | null
 }
 
+/**
+ * A live day reached 100 % (every eligible quest done). A fact about the day in
+ * progress, not a finalization: the Perfect Day that counts toward streaks and
+ * achievements is still decided only when the day is finalized.
+ */
+export interface PerfectDayReachedEvent {
+  readonly type: 'PerfectDayReached'
+  readonly dateKey: DateKey
+  readonly completedCount: number
+  readonly eligibleCount: number
+}
+
+/**
+ * An achievement whose unlocking record was written by the action being
+ * reported. Never replayed: it is built only from the evidence the action just
+ * wrote, so history that was already unlocked can never produce it again.
+ */
+export interface AchievementUnlockedEvent {
+  readonly type: 'AchievementUnlocked'
+  readonly achievementId: string
+  readonly title: string
+  readonly description: string
+  readonly evidence: AchievementEvidence
+  /** The history date of the evidence record. */
+  readonly unlockedOn: DateKey
+}
+
 export type DomainEvent =
   | QuestCompletedEvent
   | XPAwardedEvent
   | LevelUpEvent
   | RankUpEvent
+  | PerfectDayReachedEvent
+  | AchievementUnlockedEvent
   | WeeklyGoalCompletedEvent
   | WeeklyBoardFinalizedEvent

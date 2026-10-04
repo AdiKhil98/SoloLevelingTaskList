@@ -12,6 +12,11 @@ export default defineConfig({
     },
   },
   test: {
+    // The UI tests are CPU-bound (jsdom, React, a fake IndexedDB). Vitest's default is one worker per
+    // core, which on a desktop machine oversubscribes the CPU: single UI steps then take seconds instead
+    // of milliseconds and a few tests (Weekly page) timed out in nearly every full run. Half the cores
+    // keeps each test near its unloaded speed; the whole suite was measured to finish no later.
+    maxWorkers: '50%',
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     include: ['src/**/*.test.{ts,tsx}'],
