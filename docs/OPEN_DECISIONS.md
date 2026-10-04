@@ -9,7 +9,7 @@ For each item: **Question** · **Why it matters** · **Needed by** (the latest p
 
 **Foundational blockers:** none. Every item below can be deferred to its "needed by" phase without blocking Phase 01.
 
-**Stable IDs:** decision IDs are never renumbered. **OD-01, OD-02, OD-03, OD-05, OD-10, OD-11, OD-12, OD-13, OD-14, OD-16, OD-17, OD-19, OD-21, and OD-22 are retired** — they were resolved after Phase 00 and now live as approved rules in `MASTER_SPEC.md` (levels after 100 §8.4, normal-quest EXP derived from difficulty only §5.3, zero-eligible days §7.5, completion finality §5.6, same-day quest create/edit/archive/restore semantics §5.7, streak finalization §7.4, no streak freezes §7.4, Perfect Week §11). OD-05 and OD-16 were resolved in Phase 05; the implementation is recorded in [QUEST_MANAGEMENT.md](QUEST_MANAGEMENT.md). OD-21 (multi-day catch-up shows one restrained "N days reconciled." notice, no replayed events) and OD-22 (backward device clock enters a safe paused state, history never rewritten) were resolved in Phase 06; see [DAILY_LIFECYCLE.md](DAILY_LIFECYCLE.md) and MASTER_SPEC §4.4–4.5. OD-10 (Goal Crusher progress modes: manual numeric progress and linked quest completion count only) and OD-19 (weekly board lifecycle: current week only, editable until finalization with derived score, linked goals count from Monday, a week without a board is simply absent, finalization snapshots the exact progress used, claims never expire) were resolved in Phase 07; the rules and their implementation are recorded in [WEEKLY_GOAL_CRUSHER.md](WEEKLY_GOAL_CRUSHER.md) and MASTER_SPEC §12. They are intentionally absent below. OD-01 (the Level 100+ rank displays `???`; Level keeps rising; internal id `special_100_plus`; the label lives in one place) and OD-03 (the 28-achievement V1 catalog, derived from history with no stored unlock state) were resolved in Phase 08; the rules and their implementation are recorded in [PROGRESSION_STATS_ACHIEVEMENTS.md](PROGRESSION_STATS_ACHIEVEMENTS.md) and MASTER_SPEC §9 and §11. **OD-18 is deferred beyond V1 but is not retired** (see below).
+**Stable IDs:** decision IDs are never renumbered. **OD-01, OD-02, OD-03, OD-05, OD-09, OD-10, OD-11, OD-12, OD-13, OD-14, OD-16, OD-17, OD-19, OD-21, and OD-22 are retired** — they were resolved after Phase 00 and now live as approved rules in `MASTER_SPEC.md` or as implemented decisions in the phase documents (levels after 100 §8.4, normal-quest EXP derived from difficulty only §5.3, zero-eligible days §7.5, completion finality §5.6, same-day quest create/edit/archive/restore semantics §5.7, streak finalization §7.4, no streak freezes §7.4, Perfect Week §11). OD-05 and OD-16 were resolved in Phase 05; the implementation is recorded in [QUEST_MANAGEMENT.md](QUEST_MANAGEMENT.md). OD-21 (multi-day catch-up shows one restrained "N days reconciled." notice, no replayed events) and OD-22 (backward device clock enters a safe paused state, history never rewritten) were resolved in Phase 06; see [DAILY_LIFECYCLE.md](DAILY_LIFECYCLE.md) and MASTER_SPEC §4.4–4.5. OD-10 (Goal Crusher progress modes: manual numeric progress and linked quest completion count only) and OD-19 (weekly board lifecycle: current week only, editable until finalization with derived score, linked goals count from Monday, a week without a board is simply absent, finalization snapshots the exact progress used, claims never expire) were resolved in Phase 07; the rules and their implementation are recorded in [WEEKLY_GOAL_CRUSHER.md](WEEKLY_GOAL_CRUSHER.md) and MASTER_SPEC §12. They are intentionally absent below. OD-01 (the Level 100+ rank displays `???`; Level keeps rising; internal id `special_100_plus`; the label lives in one place) and OD-03 (the 28-achievement V1 catalog, derived from history with no stored unlock state) were resolved in Phase 08; the rules and their implementation are recorded in [PROGRESSION_STATS_ACHIEVEMENTS.md](PROGRESSION_STATS_ACHIEVEMENTS.md) and MASTER_SPEC §9 and §11. OD-09 (typography) was resolved in Phase 09: SYSTEM/display typography uses the locally bundled Oxanium variable font; body text and user-entered content use the platform/system font stack; Oxanium is a same-origin, offline-safe asset and no remote font dependency exists; the implementation is recorded in [VISUAL_SYSTEM_AND_ORDERING.md](VISUAL_SYSTEM_AND_ORDERING.md). It is intentionally absent below. **OD-18 is deferred beyond V1 but is not retired** (see below).
 
 ## Index
 
@@ -20,7 +20,6 @@ For each item: **Question** · **Why it matters** · **Needed by** (the latest p
 | OD-06 | Exact sound effects | Phase 10 |
 | OD-07 | Exact haptic patterns | Phase 10 |
 | OD-08 | Final animation timings / effect-intensity levels | Phase 10 (tuned in 14) |
-| OD-09 | Final typography / font | Phase 09 |
 | **B. Items discovered while writing the specification** | | |
 | OD-15 | Seeded quest catalog beyond prayers and Sleep (the six approved seeds are implemented; editability was settled in Phase 05) | Before any further default is seeded |
 | OD-18 | Reliable semantic identification for achievements (e.g., "Gym Sessions"). Deferred beyond V1 in Phase 08 | Only if a quest-specific achievement is wanted |
@@ -52,12 +51,6 @@ For each item: **Question** · **Why it matters** · **Needed by** (the latest p
 - **Why it matters:** Feel, battery, and the earned-event principle.
 - **Needed by:** Phase 10 (initial), tuned in Phase 14.
 - **Until then:** Reference-pack timings are starting points only; do not treat them as approved.
-
-### OD-09 — Final typography / font
-- **Question:** Which typeface(s) for the SYSTEM look (display vs. body vs. numerals), and is a webfont bundled for offline use?
-- **Why it matters:** Visual identity, readability, offline asset size.
-- **Needed by:** Phase 09.
-- **Until then:** Use system fonts / a neutral stack; no font dependency installed.
 
 ---
 
