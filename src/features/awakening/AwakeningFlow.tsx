@@ -15,8 +15,9 @@ import { NAME_HINT, playerNameErrorText } from '../identity/nameText'
 import { usePlayerNameDraft } from '../identity/usePlayerNameDraft'
 import { useFinish, useVisibleTimeout } from '../presentation/useFinish'
 import { useFx, usePresentationRuntime } from '../presentation/usePresentation'
-import { AWAKENING_COPY, welcomeLine } from './copy'
+import { AWAKENING_COPY } from './copy'
 import { awakeningReducer, initialAwakeningState, type AwakeningAction, type AwakeningProblem } from './machine'
+import { welcomeTyping } from './welcomeTyping'
 import type { AwakeningFlowProps, AwakeningSaveResult } from './types'
 
 const NOTICE_PARTICLES = 36
@@ -57,6 +58,33 @@ function Badge() {
       </span>
       <span className="font-display text-[0.6875rem] font-semibold tracking-[0.5em] text-accent">[ {AWAKENING_COPY.badge} ]</span>
     </div>
+  )
+}
+
+/**
+ * "WELCOME, <name>". The static label and the player's name are SEPARATE pieces, and the
+ * name sits in its own `<bdi dir="auto">`: a Hebrew or Arabic name then resolves its own
+ * direction and cannot be reordered by the Latin label in front of it (one `dir="auto"`
+ * paragraph would take its direction from the first strong character, the W). The label
+ * is typed first and the name right after it, sharing the usual typing time, so the
+ * effect reads as one line. Screen readers get the complete natural message once, from
+ * the hidden node; the typed layer is hidden from them.
+ */
+function WelcomeLine({ name, reduced, typeMs, delayMs }: { name: string; reduced: boolean; typeMs: number; delayMs: number }) {
+  const label = AWAKENING_COPY.welcomeLabel
+  const typing = welcomeTyping({ label, name, typeMs, delayMs })
+  return (
+    <p id="awakening-welcome" className="font-display text-lg font-semibold tracking-[0.15em] break-words text-accent-2 uppercase [text-shadow:0_0_20px_rgb(34_211_238/0.6)]">
+      <span className="sr-only">
+        {label} <bdi dir="auto">{name}</bdi>
+      </span>
+      <span aria-hidden="true">
+        <Typewriter text={label} reduced={reduced} durationMs={typing.labelMs} delayMs={delayMs} />{' '}
+        <bdi dir="auto">
+          <Typewriter text={name} reduced={reduced} durationMs={typing.nameMs} delayMs={typing.nameDelayMs} />
+        </bdi>
+      </span>
+    </p>
   )
 }
 
@@ -201,7 +229,7 @@ export default function AwakeningFlow({ save, onFinish, as = 'main' }: Awakening
 
   const Root = as
   const level = levelStateOf(0)
-  const welcome = welcomeLine(playerDisplayName(state.name))
+  const playerName = playerDisplayName(state.name)
   const identifyAlert = state.problem !== null ? problemText(state.problem) : blankTried && draft.blank ? BLANK_NAME_TEXT : null
 
   return (
@@ -316,9 +344,7 @@ export default function AwakeningFlow({ save, onFinish, as = 'main' }: Awakening
               <h1 id="awakening-heading" className="font-display text-3xl font-extrabold tracking-[0.1em] text-foreground [text-shadow:0_0_22px_rgb(167_139_250/0.8)]">
                 <TextScramble text={AWAKENING_COPY.completeHeading} reduced={reduced} durationMs={timings.scrambleMs} />
               </h1>
-              <p id="awakening-welcome" dir="auto" className="font-display text-lg font-semibold tracking-[0.15em] break-words text-accent-2 uppercase [text-shadow:0_0_20px_rgb(34_211_238/0.6)]">
-                <Typewriter text={welcome} reduced={reduced} durationMs={timings.typeMs} delayMs={timings.welcomeDelayMs} />
-              </p>
+              <WelcomeLine name={playerName} reduced={reduced} typeMs={timings.typeMs} delayMs={timings.welcomeDelayMs} />
               <p id="awakening-level" className="font-display text-xs font-semibold tracking-[0.25em] text-muted">
                 LV. {level.level} · {rankLabel(level.rank)}
               </p>

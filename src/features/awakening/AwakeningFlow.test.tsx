@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createSequentialIds, createTestClock, newFactory, noonOn } from '@/application/test-utils/helpers'
 import { startApplication } from '@/application'
@@ -24,6 +24,12 @@ const timingsWith = (awakening: Partial<AwakeningTimings>): RenderAppOptions['pr
 const firstLaunch = (options: RenderAppOptions = {}) => renderApp({ awakened: false, ...options })
 
 const accept = () => screen.findByRole('button', { name: 'ACCEPT' })
+
+/**
+ * The screen attaches its document-level key listener in an effect, which can run a moment after the heading is on screen.
+ * A test that sends a key event right away first lets pending effects run (a precondition, not a retry).
+ */
+const effectsSettled = () => act(async () => undefined)
 const homeReady = () => screen.findByRole('region', { name: 'TODAY' })
 const isHome = () => screen.queryByRole('region', { name: 'TODAY' }) !== null
 
@@ -91,7 +97,7 @@ describe('first launch: a new player is awakened, not dropped into Home', () => 
     fireEvent.click(screen.getByRole('button', { name: 'CONFIRM' }))
 
     expect(await screen.findByRole('heading', { name: 'AWAKENING COMPLETE' })).toBeInTheDocument()
-    expect(screen.getByText('WELCOME, Ada', { selector: '.sr-only' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'BEGIN' })).toHaveAccessibleDescription(/^WELCOME, Ada/)
     expect(screen.getByText('LV. 1 · E-RANK')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'BEGIN' }))
@@ -120,7 +126,7 @@ describe('first launch: a new player is awakened, not dropped into Home', () => 
     fireEvent.click(screen.getByRole('button', { name: 'SKIP' }))
 
     expect(await screen.findByRole('heading', { name: 'AWAKENING COMPLETE' })).toBeInTheDocument()
-    expect(screen.getByText('WELCOME, PLAYER', { selector: '.sr-only' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'BEGIN' })).toHaveAccessibleDescription(/^WELCOME, PLAYER/)
     fireEvent.click(screen.getByRole('button', { name: 'BEGIN' }))
     await homeReady()
     expect(screen.getByRole('region', { name: 'PLAYER' })).toBeInTheDocument()
@@ -224,7 +230,7 @@ describe('the name', () => {
     await toIdentify()
     typeName('   אדי   ')
     fireEvent.click(screen.getByRole('button', { name: 'CONFIRM' }))
-    expect(await screen.findByText('WELCOME, אדי', { selector: '.sr-only' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'BEGIN' })).toHaveAccessibleDescription(/^WELCOME, אדי/)
   })
 
   it('refuses a name that is too long: it says so, saves nothing and stays on the name stage', async () => {
@@ -366,6 +372,7 @@ describe('the notice: a tap finishes the text, only ACCEPT accepts', () => {
   it('a key may finish the text too, and still does not accept', async () => {
     firstLaunch(slow())
     await screen.findByRole('heading', { name: 'CONNECTION ESTABLISHED' })
+    await effectsSettled()
     fireEvent.keyDown(document, { key: 'Enter' })
     expect(await accept()).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'IDENTIFY YOURSELF' })).not.toBeInTheDocument()
@@ -374,19 +381,21 @@ describe('the notice: a tap finishes the text, only ACCEPT accepts', () => {
   it('a key that is held down (repeating) finishes nothing', async () => {
     firstLaunch(slow())
     await screen.findByRole('heading', { name: 'CONNECTION ESTABLISHED' })
+    await effectsSettled() // so the listener really is attached and the repeat is what is ignored
     fireEvent.keyDown(document, { key: 'Enter', repeat: true })
     expect(screen.queryByRole('button', { name: 'ACCEPT' })).not.toBeInTheDocument()
   })
 
   it('ACCEPT ignores a stray double-tap right after it appears, then works', async () => {
-    firstLaunch({ presentation: timingsWith({ noticeDoneMs: 60_000, bootMs: 0, acceptGuardMs: 250 }) })
+    // A wide guard, so a busy machine cannot let the 'stray' tap outlive it.
+    firstLaunch({ presentation: timingsWith({ noticeDoneMs: 60_000, bootMs: 0, acceptGuardMs: 800 }) })
     await screen.findByRole('heading', { name: 'CONNECTION ESTABLISHED' })
     fireEvent.click(screen.getByRole('main')) // skip...
     const button = await accept()
     fireEvent.click(button) // ...and the second tap of a double tap lands on ACCEPT
 
     expect(screen.queryByRole('heading', { name: 'IDENTIFY YOURSELF' })).not.toBeInTheDocument()
-    await new Promise((resolve) => window.setTimeout(resolve, 300))
+    await new Promise((resolve) => window.setTimeout(resolve, 900))
     fireEvent.click(screen.getByRole('button', { name: 'ACCEPT' }))
     expect(await screen.findByRole('heading', { name: 'IDENTIFY YOURSELF' })).toBeInTheDocument()
   })
@@ -495,8 +504,9 @@ describe('reduced motion', () => {
     fireEvent.click(screen.getByRole('button', { name: 'CONFIRM' }))
 
     expect(await screen.findByRole('heading', { name: 'AWAKENING COMPLETE' })).toBeInTheDocument()
-    const welcome = screen.getByRole('main').querySelector('#awakening-welcome [aria-hidden="true"]')
-    expect(welcome).toHaveTextContent('WELCOME, Ada') // typed instantly, not letter by letter
+    // The typed layers (label, then name) are already complete: instantly, not letter by letter.
+    const typed = Array.from(screen.getByRole('main').querySelectorAll('#awakening-welcome span[aria-hidden="true"] span[aria-hidden="true"]'))
+    expect(typed.map((node) => node.textContent)).toEqual(['WELCOME,', 'Ada'])
     expect(document.querySelector('canvas')).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'BEGIN' }))
     await homeReady()

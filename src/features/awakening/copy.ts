@@ -15,11 +15,8 @@ export const AWAKENING_COPY = {
   skipHint: 'Skip to be called PLAYER.',
   registering: 'INITIALIZING PLAYER...',
   completeHeading: 'AWAKENING COMPLETE',
+  /** The static part of the welcome line. The player's name is never joined to it into one string (see `WelcomeLine`). */
+  welcomeLabel: 'WELCOME,',
   begin: 'BEGIN',
   saveFailed: 'Your identity could not be saved, so nothing has changed. Please try again.',
 } as const
-
-/** "WELCOME, ADA": the name is shown as the SYSTEM shows labels, in capitals (screen readers keep the original text). */
-export function welcomeLine(displayName: string): string {
-  return `WELCOME, ${displayName}`
-}

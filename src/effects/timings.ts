@@ -28,7 +28,7 @@ export interface AwakeningTimings {
   readonly acceptGuardMs: number
   /** The least time the INITIALIZING beat stays (the save itself is usually faster). */
   readonly registerMinMs: number
-  /** Delay before "WELCOME, NAME" starts typing under AWAKENING COMPLETE. */
+  /** Delay before "WELCOME," starts typing under AWAKENING COMPLETE (the name is typed right after the label). */
   readonly welcomeDelayMs: number
   /** How long AWAKENING COMPLETE stays before it continues by itself (visible time only). */
   readonly completeAutoMs: number

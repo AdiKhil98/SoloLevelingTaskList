@@ -116,7 +116,7 @@ An action that does not belong to the current stage is ignored (the same state c
 | **notice** | `CONNECTION ESTABLISHED` (scramble), `PLAYER DETECTED` and `AWAKENING AVAILABLE` (typed), one small particle burst, a border-light panel; **ACCEPT** appears at ~2.4 s | all lines at once, 150 ms fade, ACCEPT at once |
 | **identify** | `IDENTIFY YOURSELF` (scramble); PLAYER NAME field with a character counter; CONFIRM and SKIP. No timer. | static |
 | **registering** | `INITIALIZING PLAYER...`; the save happens here; at least 0.7 s so the beat is felt | no minimum |
-| **complete** | `AWAKENING COMPLETE` (scramble), high aura, one ~90-particle burst, `WELCOME, <NAME>` (typed), `LV. 1 · E-RANK` (computed from the domain at 0 EXP, never hard-coded); continues by itself after ~3.6 s (visible time only) or on BEGIN / tap / Escape (after a 0.5 s guard); one haptic cue; a 250 ms exit fade | all at once, auto-continue ~2.6 s, 150 ms fade |
+| **complete** | `AWAKENING COMPLETE` (scramble), high aura, one ~90-particle burst, `WELCOME,` then the name (typed; see below), `LV. 1 · E-RANK` (computed from the domain at 0 EXP, never hard-coded); continues by itself after ~3.6 s (visible time only) or on BEGIN / tap / Escape (after a 0.5 s guard); one haptic cue; a 250 ms exit fade | all at once, auto-continue ~2.6 s, 150 ms fade |
 
 About 7 s unskipped; about 2 s if tapped through; once ever. Every animation is finite: nothing loops.
 
@@ -143,6 +143,7 @@ Rules live in the domain (`domain/profile/playerName.ts`, pure and tested):
 - **Normalization:** Unicode NFC; every whitespace run (spaces, tabs, line breaks, NBSP) collapsed to one space; trimmed. Blank (only whitespace) is **no name** (`null`).
 - **Rejected:** control, private-use and lone-surrogate characters and invisible format characters (zero-width space, soft hyphen, word joiner, BOM, bidi marks and overrides). **ZWJ and ZWNJ are allowed** (emoji sequences; Persian and Indic scripts). A name needs at least one visible character (letter, number, symbol/emoji, punctuation).
 - **Length:** at most **20 grapheme clusters** (`Intl.Segmenter`, code points where it is unavailable) and at most 96 UTF-16 code units (a storage guard). The field validates and counts rather than using native `maxLength` (which silently truncates a paste); a generous native cap of 128 units only bounds what the DOM holds.
+- **The COMPLETE welcome line keeps the label and the name apart.** `WELCOME,` is static text; the name sits alone in its own `<bdi dir="auto">`, so a Hebrew or Arabic name resolves its own direction (one `dir="auto"` paragraph would take the Latin W's direction and could reorder the name and its punctuation). The label is typed first and the name right after it, sharing the usual typing time; screen readers get the complete natural message ("WELCOME, <name>") once from a hidden node, and the typed layer is hidden from them.
 - **Unicode** of any script is accepted. **No HTML interpretation:** `<`, `&` and quotes are ordinary characters; a name is only ever rendered as React text, a `textContent` typewriter or an input value, inside `<bdi dir="auto">`.
 - **Blank and Skip:** in Awakening a blank field never confirms (it asks for a name or an explicit SKIP and saves nothing); SKIP stores `null`, shown as `PLAYER`. On Status, saving a blank name returns to `PLAYER`.
 - The stored form is its own normalized form (`isStoredPlayerName`), so a stored name always re-validates.
@@ -186,7 +187,7 @@ The development-only `/dev/effects` lab has an **AWAKENING (FIRST LAUNCH)** sect
 - Application: `profile/awakening.ts` (`loadAwakeningState`, `completeAwakening`, `renamePlayer`).
 - App: `AppRuntimeProvider.tsx` (the awakening state, identity), `runtimeContext.ts` (`identity`).
 - Effects: `timings.ts` (`awakening`), the `awakening` cue in `types.ts`, `haptics.ts`, `sound.ts`.
-- Features: `awakening/` (`machine.ts`, `AwakeningFlow.tsx`, `copy.ts`, `types.ts`), `identity/` (`NameField`, `usePlayerNameDraft`, `nameText`), `status/IdentityPanel.tsx`, `presentation/dev/AwakeningPreview.tsx`.
+- Features: `awakening/` (`machine.ts`, `AwakeningFlow.tsx`, `copy.ts`, `types.ts`, `welcomeTyping.ts`), `identity/` (`NameField`, `usePlayerNameDraft`, `nameText`), `status/IdentityPanel.tsx`, `presentation/dev/AwakeningPreview.tsx`.
 - Test harness: `src/test/renderApp.tsx` pre-awakens its database by default (`awakened: false` plays the real first launch), with `identity.ts`, `AwakenedGate.tsx`, `flakyWrites.ts`.
 
 ## 10. Verification and limitations
