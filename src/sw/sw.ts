@@ -10,7 +10,7 @@ import { createShellWorker, parseShellManifest, SHELL_MANIFEST_GLOBAL, type Fetc
 interface WorkerScope {
   readonly location: Location
   readonly caches: CacheStorage
-  readonly clients: { claim(): Promise<void> }
+  readonly clients: { claim(): Promise<void>; matchAll(options: { type: 'window'; includeUncontrolled: boolean }): Promise<readonly unknown[]> }
   fetch(request: Request | FetchEventLike['request']): Promise<Response>
   skipWaiting(): Promise<void>
   addEventListener(type: 'install' | 'activate', listener: (event: { waitUntil(promise: Promise<unknown>): void }) => void): void
@@ -30,6 +30,8 @@ const worker = createShellWorker({
   fetch: (request) => scope.fetch(request),
   skipWaiting: () => scope.skipWaiting(),
   claimClients: () => scope.clients.claim(),
+  // Every window of the app, including ones no worker controls yet (a waiting worker controls none).
+  countWindowClients: async () => (await scope.clients.matchAll({ type: 'window', includeUncontrolled: true })).length,
 })
 
 // No `skipWaiting()` here: a new build waits until the player restarts or every page of the old build is gone.

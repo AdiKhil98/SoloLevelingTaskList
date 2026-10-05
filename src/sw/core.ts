@@ -23,6 +23,8 @@ export const SHELL_CACHE_PREFIX = 'sltl-shell-'
 export const SHELL_MANIFEST_GLOBAL = '__SHELL_MANIFEST__'
 /** The message the page posts when the player chooses RESTART. */
 export const SKIP_WAITING_MESSAGE = 'SKIP_WAITING'
+/** The worker's answer when it did NOT activate because another app window is open (see `requestActivation`). */
+export const UPDATE_BLOCKED_MESSAGE = 'UPDATE_BLOCKED'
 /** The document served for every in-app navigation. */
 export const SHELL_PAGE = '/index.html'
 /** Written LAST into a cache: a cache without it is a partial install and is never served from. */
@@ -97,6 +99,8 @@ export interface ShellWorkerEnvironment {
   readonly fetch: (request: Request | RequestLike) => Promise<Response>
   readonly skipWaiting: () => Promise<void>
   readonly claimClients: () => Promise<void>
+  /** How many window clients of this origin exist, controlled or not (the requesting page is one of them). */
+  readonly countWindowClients: () => Promise<number>
 }
 
 /** The subset of `Request` the fetch handler reads (a real navigation request cannot be built by hand in tests). */
@@ -109,6 +113,8 @@ export interface FetchEventLike {
 
 export interface MessageEventLike {
   readonly data: unknown
+  /** The page that posted the message (where a reply goes), or null. */
+  readonly source: { postMessage(message: unknown): void } | null
   waitUntil(promise: Promise<unknown>): void
 }
 
@@ -247,10 +253,38 @@ export function createShellWorker(env: ShellWorkerEnvironment): ShellWorker {
     )
   }
 
+  /**
+   * The player pressed RESTART. Activating this build deletes every older cache and takes control of every open page,
+   * and the application deliberately never reloads a page the player did not ask to reload. So if ANOTHER app window
+   * is open, activating now would leave that window running the old build with its cache gone (a lazy chunk it had not
+   * loaded yet would be missing). Therefore it activates only when the requesting window is the only one; otherwise it
+   * changes nothing and tells the requester, who can try again once the other window is closed.
+   *
+   * If the windows cannot be counted it does not activate either (never on a guess); the page's button recovers by
+   * itself after a short while.
+   */
+  async function requestActivation(source: MessageEventLike['source']): Promise<void> {
+    let windows: number
+    try {
+      windows = await env.countWindowClients()
+    } catch {
+      return
+    }
+    if (windows > 1) {
+      try {
+        source?.postMessage({ type: UPDATE_BLOCKED_MESSAGE, windows })
+      } catch {
+        // the requester is gone: there is nobody to tell
+      }
+      return
+    }
+    await env.skipWaiting()
+  }
+
   function handleMessage(event: MessageEventLike): void {
     const { data } = event
     if (typeof data === 'object' && data !== null && (data as { type?: unknown }).type === SKIP_WAITING_MESSAGE) {
-      event.waitUntil(env.skipWaiting())
+      event.waitUntil(requestActivation(event.source))
     }
   }
 

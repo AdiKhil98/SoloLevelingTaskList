@@ -14,7 +14,9 @@ const NOTICE_SPACE_MARGIN_PX = 8
  * "SYSTEM UPDATE AVAILABLE  [ RESTART ]  [ LATER ]": a newer build has been downloaded and is waiting.
  *
  * It never reloads anything by itself. RESTART is the player's choice; LATER hides the notice for this session
- * (a reload shows it again). On a form route (quest create/edit, weekly edit) it stays out of the way and shows once
+ * (a reload shows it again). If another app window is open when RESTART is pressed, the new build does not switch (that
+ * window would be left running the old build); the notice says so and RESTART can be pressed again after it is closed.
+ * On a form route (quest create/edit, weekly edit) it stays out of the way and shows once
  * the player has left the form, because RESTART would discard unsaved edits.
  *
  * While it is showing it floats above the bottom navigation, so it reserves its own height at the bottom of the page
@@ -23,7 +25,7 @@ const NOTICE_SPACE_MARGIN_PX = 8
  * Like the presentation popups it mounts only while it has something to say (a polite status region).
  */
 export function UpdateNotice({ source = shellUpdates }: { source?: ShellUpdates }) {
-  const { updateReady, applying, dismissed } = useSyncExternalStore(source.subscribe, source.getSnapshot)
+  const { updateReady, applying, blocked, dismissed } = useSyncExternalStore(source.subscribe, source.getSnapshot)
   const { pathname } = useLocation()
   const visible = updateReady && !dismissed && !isUnsavedFormRoute(pathname)
   const panel = useRef<HTMLDivElement>(null)
@@ -54,7 +56,16 @@ export function UpdateNotice({ source = shellUpdates }: { source?: ShellUpdates 
         ref={panel}
         className="system-panel system-panel-accent pointer-events-auto flex w-full max-w-md flex-wrap items-center justify-end gap-x-3 gap-y-1 py-1.5 pr-1.5 pl-3 shadow-glow-soft"
       >
-        <p className="mr-auto font-display text-[0.625rem] font-semibold tracking-[0.1em] text-accent">SYSTEM UPDATE AVAILABLE</p>
+        {blocked && !applying ? (
+          // Another app window is open, so the new build did not switch (nothing was changed). RESTART stays available:
+          // once the other window is closed, pressing it again succeeds.
+          <div className="mr-auto font-display text-[0.625rem] font-semibold tracking-[0.1em]">
+            <p className="text-accent">OTHER SYSTEM WINDOW OPEN</p>
+            <p className="text-muted">CLOSE IT TO RESTART</p>
+          </div>
+        ) : (
+          <p className="mr-auto font-display text-[0.625rem] font-semibold tracking-[0.1em] text-accent">SYSTEM UPDATE AVAILABLE</p>
+        )}
         <div className="flex items-center gap-0.5">
           <button
             type="button"

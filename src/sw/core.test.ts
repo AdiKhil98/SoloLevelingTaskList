@@ -7,6 +7,7 @@ import {
   parseShellManifest,
   SHELL_CACHE_PREFIX,
   type FetchEventLike,
+  type MessageEventLike,
   type RequestLike,
   type ShellManifest,
 } from './core'
@@ -17,11 +18,15 @@ const cacheName = (id = ID) => `${SHELL_CACHE_PREFIX}${id}`
 const abs = (path: string) => new URL(path, ORIGIN).href
 const MARKER = abs('/__sltl-shell-complete__')
 
-function setup(manifest: ShellManifest = sampleManifest(ID)) {
+function setup(manifest: ShellManifest = sampleManifest(ID), { windows = 1 }: { windows?: number } = {}) {
   const caches = new FakeCacheStorage()
   const network = createNetwork(manifest)
-  const skipWaiting = vi.fn(async () => undefined)
+  const state = { windows }
   const claimClients = vi.fn(async () => undefined)
+  const countWindowClients = vi.fn(async () => state.windows)
+  // A stand-in for the browser: once the worker asks to skip waiting, the browser activates it.
+  const holder: { worker: ReturnType<typeof createShellWorker> | null } = { worker: null }
+  const skipWaiting = vi.fn(async () => holder.worker?.activate())
   const worker = createShellWorker({
     manifest,
     origin: ORIGIN,
@@ -29,8 +34,10 @@ function setup(manifest: ShellManifest = sampleManifest(ID)) {
     fetch: network.fetch,
     skipWaiting,
     claimClients,
+    countWindowClients,
   })
-  return { caches, network, worker, skipWaiting, claimClients, manifest }
+  holder.worker = worker
+  return { caches, network, worker, skipWaiting, claimClients, countWindowClients, state, manifest }
 }
 
 /** Runs the worker's fetch handler; returns what it answered with, or null if it left the request alone. */
@@ -379,19 +386,141 @@ describe('fetch: exact shell files', () => {
   })
 })
 
+/** Delivers a message to the worker and waits for whatever it handed to `waitUntil`. */
+async function send(worker: ReturnType<typeof setup>['worker'], data: unknown, source: MessageEventLike['source'] = null): Promise<void> {
+  let pending: Promise<unknown> | null = null
+  worker.handleMessage({ data, source, waitUntil: (promise) => void (pending = promise) })
+  await pending
+}
+
+const restartRequest = { type: 'SKIP_WAITING' }
+const requester = () => ({ postMessage: vi.fn() })
+
 describe('messages', () => {
-  it('SKIP_WAITING asks the browser to activate this worker', async () => {
-    const { worker, skipWaiting } = setup()
-    const waitUntil = vi.fn()
-    worker.handleMessage({ data: { type: 'SKIP_WAITING' }, waitUntil })
+  it('RESTART from the only open window asks the browser to activate this worker, and replies nothing', async () => {
+    const { worker, skipWaiting, countWindowClients } = setup()
+    const source = requester()
+
+    await send(worker, restartRequest, source)
+
+    expect(countWindowClients).toHaveBeenCalledOnce()
     expect(skipWaiting).toHaveBeenCalledOnce()
-    expect(waitUntil).toHaveBeenCalledOnce()
+    expect(source.postMessage).not.toHaveBeenCalled()
   })
 
-  it.each([undefined, null, 'SKIP_WAITING', 42, {}, { type: 'OTHER' }, { type: 'skip_waiting' }])('ignores %j', (data) => {
-    const { worker, skipWaiting } = setup()
-    worker.handleMessage({ data, waitUntil: vi.fn() })
+  it.each([undefined, null, 'SKIP_WAITING', 42, {}, { type: 'OTHER' }, { type: 'skip_waiting' }])('ignores %j (it does not even count windows)', async (data) => {
+    const { worker, skipWaiting, countWindowClients } = setup()
+    await send(worker, data)
+    expect(countWindowClients).not.toHaveBeenCalled()
     expect(skipWaiting).not.toHaveBeenCalled()
+  })
+
+  it('hands the whole decision to the browser: the message handler itself waits on it', async () => {
+    const { worker } = setup()
+    const waitUntil = vi.fn()
+    worker.handleMessage({ data: restartRequest, source: null, waitUntil })
+    expect(waitUntil).toHaveBeenCalledOnce()
+    await waitUntil.mock.calls[0]?.[0]
+  })
+})
+
+describe('RESTART while another app window is open (multi-window update safety)', () => {
+  /** Build A is running with a complete cache; build B (this worker) is installed and waiting beside it. */
+  async function waitingBesideRunning(windows: number) {
+    const context = setup(sampleManifest('bbbbbbbbbbbbbbbb'), { windows })
+    const running = await context.caches.seedComplete(cacheName('aaaaaaaaaaaaaaaa'), ORIGIN, ['/index.html', '/assets/old-lazy-chunk.js'])
+    await context.worker.install()
+    running.writes = 0
+    return { ...context, running }
+  }
+
+  it.each([2, 3, 7])('with %i windows open it does NOT activate, and tells the requesting window', async (windows) => {
+    const { worker, skipWaiting, claimClients } = await waitingBesideRunning(windows)
+    const source = requester()
+
+    await send(worker, restartRequest, source)
+
+    expect(skipWaiting).not.toHaveBeenCalled()
+    expect(claimClients).not.toHaveBeenCalled()
+    expect(source.postMessage).toHaveBeenCalledOnce()
+    expect(source.postMessage).toHaveBeenCalledWith({ type: 'UPDATE_BLOCKED', windows })
+  })
+
+  it('leaves the running build’s cache and the waiting build’s cache exactly as they were', async () => {
+    const { worker, caches, running } = await waitingBesideRunning(2)
+    const before = new Map(running.entries)
+
+    await send(worker, restartRequest, requester())
+
+    expect((await caches.keys()).sort()).toEqual([cacheName('aaaaaaaaaaaaaaaa'), cacheName('bbbbbbbbbbbbbbbb')])
+    expect(running.writes).toBe(0)
+    expect(running.entries).toEqual(before)
+    // the other window can still load a lazy chunk it had not loaded yet: it is still in the old cache
+    expect(await running.match(abs('/assets/old-lazy-chunk.js'))).toBeDefined()
+  })
+
+  it('the old cache is removed only at the safe point: when the requesting window is the only one left', async () => {
+    const { worker, caches, state, claimClients } = await waitingBesideRunning(2)
+
+    await send(worker, restartRequest, requester())
+    expect(await caches.keys()).toContain(cacheName('aaaaaaaaaaaaaaaa')) // blocked: nothing deleted
+
+    state.windows = 1 // the other window was closed
+    await send(worker, restartRequest, requester())
+
+    expect(await caches.keys()).toEqual([cacheName('bbbbbbbbbbbbbbbb')]) // activated: A's cache is gone, B's remains
+    expect(claimClients).toHaveBeenCalledOnce()
+  })
+
+  it('retrying after the other window closes succeeds, and counts the windows afresh each time', async () => {
+    const { worker, skipWaiting, countWindowClients, state } = await waitingBesideRunning(2)
+    const source = requester()
+
+    await send(worker, restartRequest, source)
+    expect(skipWaiting).not.toHaveBeenCalled()
+
+    state.windows = 1
+    await send(worker, restartRequest, source)
+
+    expect(countWindowClients).toHaveBeenCalledTimes(2)
+    expect(skipWaiting).toHaveBeenCalledOnce()
+    expect(source.postMessage).toHaveBeenCalledOnce() // only the first (blocked) attempt was answered
+  })
+
+  it('a requester that is gone (no source, or one that throws) cannot break it', async () => {
+    const { worker, skipWaiting } = await waitingBesideRunning(2)
+    await expect(send(worker, restartRequest, null)).resolves.toBeUndefined()
+    await expect(
+      send(worker, restartRequest, {
+        postMessage: () => {
+          throw new Error('the client is gone')
+        },
+      }),
+    ).resolves.toBeUndefined()
+    expect(skipWaiting).not.toHaveBeenCalled()
+  })
+
+  it('if the windows cannot be counted it does not activate on a guess, and says nothing', async () => {
+    const { worker, skipWaiting, countWindowClients, caches } = await waitingBesideRunning(1)
+    countWindowClients.mockRejectedValueOnce(new Error('clients API unavailable'))
+    const source = requester()
+
+    await expect(send(worker, restartRequest, source)).resolves.toBeUndefined()
+
+    expect(skipWaiting).not.toHaveBeenCalled()
+    expect(source.postMessage).not.toHaveBeenCalled()
+    expect((await caches.keys()).sort()).toEqual([cacheName('aaaaaaaaaaaaaaaa'), cacheName('bbbbbbbbbbbbbbbb')])
+  })
+
+  it('does not change the first install, which never goes through RESTART (no windows are counted, nothing is blocked)', async () => {
+    const { worker, caches, claimClients, countWindowClients } = setup(sampleManifest(ID), { windows: 5 })
+
+    await worker.install()
+    await worker.activate()
+
+    expect(countWindowClients).not.toHaveBeenCalled()
+    expect(claimClients).toHaveBeenCalledOnce()
+    expect(await caches.keys()).toEqual([cacheName()])
   })
 })
 
@@ -414,7 +543,7 @@ describe('the worker never touches player data (INDEXEDDB / BOUNDARY)', () => {
       await worker.activate()
       await dispatch(worker, navigation('/status'))
       await dispatch(worker, subresource('/assets/index-aaa.js'))
-      worker.handleMessage({ data: { type: 'SKIP_WAITING' }, waitUntil: vi.fn() })
+      await send(worker, { type: 'SKIP_WAITING' })
     } finally {
       for (const name of names) Reflect.deleteProperty(globalThis, name)
     }

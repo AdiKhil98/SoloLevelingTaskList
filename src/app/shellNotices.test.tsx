@@ -16,7 +16,7 @@ vi.mock('@/platform/shellUpdates', async () => {
 const fake = (shellModule as unknown as { __fake: ReturnType<typeof createFakeShellUpdates> }).__fake
 
 beforeEach(() => {
-  fake.set({ updateReady: false, applying: false, dismissed: false })
+  fake.set({ updateReady: false, applying: false, blocked: false, dismissed: false })
   fake.restart.mockClear()
   fake.later.mockClear()
 })
@@ -90,6 +90,22 @@ describe('the update notice inside the real app shell', () => {
     await screen.findByRole('heading', { name: 'STATUS' })
     expect(notice()).toBeInTheDocument()
     expect(fake.restart).not.toHaveBeenCalled()
+  })
+
+  it('when another app window blocks the restart it says so, keeps the app usable, and RESTART can be pressed again', async () => {
+    fake.set({ updateReady: true, blocked: true })
+    renderApp()
+    await homeReady()
+
+    expect(screen.getByText('OTHER SYSTEM WINDOW OPEN')).toBeInTheDocument()
+    expect(screen.getByText('CLOSE IT TO RESTART')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /^Complete Fajr/ }))
+    await waitFor(() => expect(screen.getByText('1 / 6')).toBeInTheDocument()) // playing is unaffected
+
+    fireEvent.click(screen.getByRole('button', { name: 'RESTART' }))
+
+    expect(fake.restart).toHaveBeenCalledOnce()
+    expect(screen.getByRole('button', { name: 'RESTARTING...' })).toBeDisabled()
   })
 
   it('is hidden on the edit form of an existing quest too', async () => {

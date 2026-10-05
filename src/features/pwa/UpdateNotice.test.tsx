@@ -105,6 +105,68 @@ describe('UpdateNotice', () => {
     })
   })
 
+  describe('blocked by another open app window', () => {
+    it('says so calmly, instead of the plain update line, and keeps RESTART and LATER available', () => {
+      renderNotice({ updateReady: true, blocked: true })
+
+      const status = screen.getByRole('status')
+      expect(status).toHaveTextContent('OTHER SYSTEM WINDOW OPEN')
+      expect(status).toHaveTextContent('CLOSE IT TO RESTART')
+      expect(status).not.toHaveTextContent('SYSTEM UPDATE AVAILABLE')
+      expect(restartButton()).toBeEnabled()
+      expect(screen.getByRole('button', { name: 'LATER' })).toBeEnabled()
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument() // still a polite status, never an alarm
+    })
+
+    it('leaves the RESTARTING state when the worker says it is blocked', () => {
+      const { set } = renderNotice({ updateReady: true })
+      fireEvent.click(restartButton())
+      expect(screen.getByRole('button', { name: 'RESTARTING...' })).toBeDisabled()
+
+      act(() => set({ applying: false, blocked: true })) // what the store does on the worker's answer
+
+      expect(screen.queryByRole('button', { name: 'RESTARTING...' })).not.toBeInTheDocument()
+      expect(restartButton()).toBeEnabled()
+      expect(screen.getByRole('button', { name: 'LATER' })).toBeEnabled()
+      expect(notice()).toHaveTextContent('OTHER SYSTEM WINDOW OPEN')
+    })
+
+    it('pressing RESTART again retries: it asks again and shows RESTARTING with the plain line', () => {
+      const { restart } = renderNotice({ updateReady: true, blocked: true })
+
+      fireEvent.click(restartButton())
+
+      expect(restart).toHaveBeenCalledOnce()
+      expect(screen.getByRole('button', { name: 'RESTARTING...' })).toBeDisabled()
+      expect(notice()).toHaveTextContent('SYSTEM UPDATE AVAILABLE')
+      expect(notice()).not.toHaveTextContent('OTHER SYSTEM WINDOW OPEN')
+    })
+
+    it('LATER still hides it, and nothing restarts', () => {
+      const { restart, later } = renderNotice({ updateReady: true, blocked: true })
+
+      fireEvent.click(screen.getByRole('button', { name: 'LATER' }))
+
+      expect(later).toHaveBeenCalledOnce()
+      expect(restart).not.toHaveBeenCalled()
+      expect(notice()).not.toBeInTheDocument()
+    })
+
+    it('still stays out of the way on a form route, and shows the blocked line once the form is left', async () => {
+      const { router } = renderNotice({ updateReady: true, blocked: true }, '/quests/new')
+      expect(notice()).not.toBeInTheDocument()
+
+      await act(() => router.navigate('/quests'))
+
+      expect(notice()).toHaveTextContent('OTHER SYSTEM WINDOW OPEN')
+    })
+
+    it('still reserves room at the bottom of the page for its (two-line) text', () => {
+      renderNotice({ updateReady: true, blocked: true })
+      expect(document.documentElement.style.getPropertyValue('--notice-space')).toMatch(/^\d+(\.\d+)?px$/)
+    })
+  })
+
   describe('reserved space (the last item can always be scrolled clear of the notice)', () => {
     const space = () => document.documentElement.style.getPropertyValue('--notice-space')
 

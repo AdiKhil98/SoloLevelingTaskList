@@ -3,17 +3,18 @@ import type { ShellUpdateSnapshot, ShellUpdates } from '@/platform/shellUpdates'
 
 /**
  * A stand-in for the service-worker update store, for UI tests. It behaves like the real one where the UI can see
- * it: `later()` dismisses, `restart()` marks the update as applying (and, like the real one, never reloads here).
+ * it: `later()` dismisses, `restart()` marks the update as applying and clears a blocked state (and, like the real one,
+ * never reloads here). Tests make it blocked or not with `set`.
  * Test-only.
  */
 export function createFakeShellUpdates(initial: Partial<ShellUpdateSnapshot> = {}) {
-  let snapshot: ShellUpdateSnapshot = { updateReady: false, applying: false, dismissed: false, ...initial }
+  let snapshot: ShellUpdateSnapshot = { updateReady: false, applying: false, blocked: false, dismissed: false, ...initial }
   const listeners = new Set<() => void>()
   const set = (patch: Partial<ShellUpdateSnapshot>) => {
     snapshot = { ...snapshot, ...patch }
     for (const listener of [...listeners]) listener()
   }
-  const restart = vi.fn(() => set({ applying: true }))
+  const restart = vi.fn(() => set({ applying: true, blocked: false }))
   const later = vi.fn(() => set({ dismissed: true }))
   const updates: ShellUpdates = {
     getSnapshot: () => snapshot,

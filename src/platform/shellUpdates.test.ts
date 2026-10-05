@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
+import { SKIP_WAITING_MESSAGE, UPDATE_BLOCKED_MESSAGE } from '../sw/core'
 import {
   APPLY_TIMEOUT_MS,
   createShellUpdates,
+  RESTART_BLOCKED_MESSAGE,
+  RESTART_REQUEST_MESSAGE,
   SHELL_WORKER_URL,
   UPDATE_CHECK_INTERVAL_MS,
   type ShellContainerLike,
@@ -48,14 +51,22 @@ class FakeContainer implements ShellContainerLike {
   controller: unknown = null
   readonly registration = new FakeRegistration()
   readonly register = vi.fn<ShellContainerLike['register']>(async () => this.registration)
-  private readonly listeners: (() => void)[] = []
-  addEventListener(_type: 'controllerchange', listener: () => void): void {
-    this.listeners.push(listener)
+  private readonly changeListeners: (() => void)[] = []
+  private readonly messageListeners: ((event: { readonly data: unknown }) => void)[] = []
+  addEventListener(type: 'controllerchange', listener: () => void): void
+  addEventListener(type: 'message', listener: (event: { readonly data: unknown }) => void): void
+  addEventListener(type: 'controllerchange' | 'message', listener: (() => void) | ((event: { readonly data: unknown }) => void)): void {
+    if (type === 'controllerchange') this.changeListeners.push(listener as () => void)
+    else this.messageListeners.push(listener as (event: { readonly data: unknown }) => void)
   }
   /** The active worker changed (a new build took over, or the first install claimed this page). */
   takeOver(): void {
     this.controller = {}
-    for (const listener of this.listeners) listener()
+    for (const listener of this.changeListeners) listener()
+  }
+  /** The worker posted a message to this page. */
+  receive(data: unknown): void {
+    for (const listener of this.messageListeners) listener({ data })
   }
 }
 
@@ -134,7 +145,7 @@ describe('registration', () => {
   it('does nothing and does not throw where service workers do not exist (plain HTTP, old browsers)', async () => {
     const { updates } = setup({ supported: false })
     await expect(updates.start()).resolves.toBeUndefined()
-    expect(updates.getSnapshot()).toEqual({ updateReady: false, applying: false, dismissed: false })
+    expect(updates.getSnapshot()).toEqual({ updateReady: false, applying: false, blocked: false, dismissed: false })
     updates.restart()
     updates.later()
     expect(updates.getSnapshot().updateReady).toBe(false)
@@ -152,9 +163,9 @@ describe('registration', () => {
 
   it('a failure while starting (an unexpected throw anywhere) is contained too', async () => {
     const { updates, container, warn } = setup()
-    container.addEventListener = () => {
+    container.addEventListener = (() => {
       throw new Error('boom')
-    }
+    }) as typeof container.addEventListener
     await expect(updates.start()).resolves.toBeUndefined()
     expect(warn).toHaveBeenCalledOnce()
   })
@@ -195,7 +206,7 @@ describe('an update', () => {
     const { updates, registration } = setup()
     registration.waiting = new FakeWorker()
     await updates.start()
-    expect(updates.getSnapshot()).toEqual({ updateReady: true, applying: false, dismissed: false })
+    expect(updates.getSnapshot()).toEqual({ updateReady: true, applying: false, blocked: false, dismissed: false })
   })
 
   it('is announced when a new build finishes installing while the page is open', async () => {
@@ -300,6 +311,128 @@ describe('an update', () => {
   })
 })
 
+describe('RESTART while another app window is open (the worker declines to switch)', () => {
+  const blockedReply = { type: 'UPDATE_BLOCKED', windows: 2 }
+
+  async function pendingRestart() {
+    const context = setup()
+    const waiting = new FakeWorker()
+    context.registration.waiting = waiting
+    await context.updates.start()
+    context.updates.restart()
+    return { ...context, waiting }
+  }
+
+  it('the page and the worker use the same message names', () => {
+    expect(RESTART_REQUEST_MESSAGE).toBe(SKIP_WAITING_MESSAGE)
+    expect(RESTART_BLOCKED_MESSAGE).toBe(UPDATE_BLOCKED_MESSAGE)
+  })
+
+  it('leaves the RESTARTING state, reports that it is blocked, keeps the update ready and reloads nothing', async () => {
+    const { updates, container, reload } = await pendingRestart()
+    expect(updates.getSnapshot()).toMatchObject({ applying: true, blocked: false })
+
+    container.receive(blockedReply)
+
+    expect(updates.getSnapshot()).toEqual({ updateReady: true, applying: false, blocked: true, dismissed: false })
+    expect(reload).not.toHaveBeenCalled()
+  })
+
+  it('pressing RESTART again (after the other window is closed) asks again and clears the blocked state', async () => {
+    const { updates, container, waiting } = await pendingRestart()
+    container.receive(blockedReply)
+
+    updates.restart()
+
+    expect(waiting.postMessage).toHaveBeenCalledTimes(2)
+    expect(waiting.postMessage).toHaveBeenLastCalledWith({ type: 'SKIP_WAITING' })
+    expect(updates.getSnapshot()).toMatchObject({ applying: true, blocked: false })
+  })
+
+  it('and when that second attempt succeeds, the page reloads exactly once', async () => {
+    const { updates, container, reload } = await pendingRestart()
+    container.receive(blockedReply)
+    updates.restart()
+
+    container.takeOver() // the worker activated this time
+    container.takeOver()
+
+    expect(reload).toHaveBeenCalledOnce()
+    expect(updates.getSnapshot().blocked).toBe(false)
+  })
+
+  it('can be blocked again, any number of times, without ever reloading', async () => {
+    const { updates, container, reload } = await pendingRestart()
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      container.receive(blockedReply)
+      expect(updates.getSnapshot()).toMatchObject({ applying: false, blocked: true })
+      updates.restart()
+    }
+    expect(reload).not.toHaveBeenCalled()
+  })
+
+  it('the blocked answer replaces the 10-second recovery: nothing else changes later', async () => {
+    const { updates, container, advance } = await pendingRestart()
+    container.receive(blockedReply)
+    const settled = updates.getSnapshot()
+
+    advance(APPLY_TIMEOUT_MS * 3)
+
+    expect(updates.getSnapshot()).toBe(settled)
+  })
+
+  it('an answer nobody asked for is ignored (no RESTART is pending)', async () => {
+    const { updates, container, registration } = setup()
+    registration.waiting = new FakeWorker()
+    await updates.start()
+    const before = updates.getSnapshot()
+
+    container.receive(blockedReply)
+
+    expect(updates.getSnapshot()).toBe(before)
+  })
+
+  it.each([undefined, null, 'UPDATE_BLOCKED', 42, {}, { type: 'OTHER' }, { type: 'update_blocked' }])('ignores the message %j', async (data) => {
+    const { updates, container } = await pendingRestart()
+    container.receive(data)
+    expect(updates.getSnapshot()).toMatchObject({ applying: true, blocked: false })
+  })
+
+  it('LATER still hides the notice, and nothing reloads', async () => {
+    const { updates, container, reload } = await pendingRestart()
+    container.receive(blockedReply)
+
+    updates.later()
+
+    expect(updates.getSnapshot()).toMatchObject({ updateReady: true, dismissed: true })
+    expect(reload).not.toHaveBeenCalled()
+  })
+
+  it('a NEWER build supersedes the blocked state and is announced afresh', async () => {
+    const { updates, container, registration } = await pendingRestart()
+    container.receive(blockedReply)
+
+    const newer = new FakeWorker()
+    registration.discover(newer)
+    registration.finishInstalling(newer)
+
+    expect(updates.getSnapshot()).toEqual({ updateReady: true, applying: false, blocked: false, dismissed: false })
+  })
+
+  it('a first install never involves it: a stray answer changes nothing', async () => {
+    const { updates, container, registration } = setup({ controlled: false })
+    await updates.start()
+    const first = new FakeWorker()
+    registration.discover(first)
+    registration.finishInstalling(first)
+    container.takeOver()
+
+    container.receive(blockedReply)
+
+    expect(updates.getSnapshot()).toEqual({ updateReady: false, applying: false, blocked: false, dismissed: false })
+  })
+})
+
 describe('LATER', () => {
   it('hides the notice for the session but keeps the update ready', async () => {
     const { updates, registration, reload } = setup()
@@ -308,7 +441,7 @@ describe('LATER', () => {
 
     updates.later()
 
-    expect(updates.getSnapshot()).toEqual({ updateReady: true, applying: false, dismissed: true })
+    expect(updates.getSnapshot()).toEqual({ updateReady: true, applying: false, blocked: false, dismissed: true })
     expect(reload).not.toHaveBeenCalled()
   })
 

@@ -21,6 +21,10 @@ export const SHELL_WORKER_URL = '/sw.js'
 export const UPDATE_CHECK_INTERVAL_MS = 10 * 60_000
 /** If RESTART was pressed and the new worker has not taken over by then, the button works again. */
 export const APPLY_TIMEOUT_MS = 10_000
+/** What this page posts to the waiting worker when the player chooses RESTART (the worker's `SKIP_WAITING_MESSAGE`). */
+export const RESTART_REQUEST_MESSAGE = 'SKIP_WAITING'
+/** What the worker answers when it did not activate because another app window is open (its `UPDATE_BLOCKED_MESSAGE`). */
+export const RESTART_BLOCKED_MESSAGE = 'UPDATE_BLOCKED'
 
 export interface ShellWorkerLike {
   readonly state: string
@@ -39,6 +43,8 @@ export interface ShellContainerLike {
   readonly controller: unknown
   register(url: string, options: { scope: string; updateViaCache: 'none' }): Promise<ShellRegistrationLike>
   addEventListener(type: 'controllerchange', listener: () => void): void
+  /** Messages from the worker (its answer to a restart request). */
+  addEventListener(type: 'message', listener: (event: { readonly data: unknown }) => void): void
 }
 
 export interface ShellUpdateEnvironment {
@@ -61,6 +67,11 @@ export interface ShellUpdateSnapshot {
   readonly updateReady: boolean
   /** RESTART was pressed and the new build is taking over. */
   readonly applying: boolean
+  /**
+   * RESTART was pressed but the build did NOT switch, because another app window is open. Nothing was changed; the
+   * player can close the other window and press RESTART again. Cleared by the next RESTART or a newer build.
+   */
+  readonly blocked: boolean
   /** The player chose LATER (this session only: it lives in memory, so a reload shows the notice again). */
   readonly dismissed: boolean
 }
@@ -83,25 +94,36 @@ export function createShellUpdates(env: ShellUpdateEnvironment): ShellUpdates {
   let controllerReplaced = false
   let hadController = false
   let applying = false
+  let blocked = false
   let dismissed = false
   let reloaded = false
   let lastCheck = Number.NEGATIVE_INFINITY
   let cancelApplyTimer: (() => void) | null = null
 
-  let snapshot: ShellUpdateSnapshot = { updateReady: false, applying: false, dismissed: false }
+  let snapshot: ShellUpdateSnapshot = { updateReady: false, applying: false, blocked: false, dismissed: false }
   const listeners = new Set<() => void>()
 
   function emit(): void {
-    const next: ShellUpdateSnapshot = { updateReady: waiting !== null || controllerReplaced, applying, dismissed }
-    if (next.updateReady === snapshot.updateReady && next.applying === snapshot.applying && next.dismissed === snapshot.dismissed) return
+    const next: ShellUpdateSnapshot = { updateReady: waiting !== null || controllerReplaced, applying, blocked, dismissed }
+    if (
+      next.updateReady === snapshot.updateReady &&
+      next.applying === snapshot.applying &&
+      next.blocked === snapshot.blocked &&
+      next.dismissed === snapshot.dismissed
+    ) {
+      return
+    }
     snapshot = next
     for (const listener of [...listeners]) listener()
   }
 
   function setWaiting(worker: ShellWorkerLike | null): void {
     if (worker === waiting) return
-    // A different (newer) build supersedes the one the player postponed, so it is announced again.
-    if (worker !== null) dismissed = false
+    // A different (newer) build supersedes the one the player postponed (or was blocked on), so it is announced afresh.
+    if (worker !== null) {
+      dismissed = false
+      blocked = false
+    }
     waiting = worker
     if (worker !== null) {
       worker.addEventListener('statechange', () => {
@@ -143,8 +165,18 @@ export function createShellUpdates(env: ShellUpdateEnvironment): ShellUpdates {
     if (container === null) return
     try {
       await new Promise<void>((resolve) => env.whenLoaded(resolve))
-      // Both are set up BEFORE registering, so neither the first claim nor an early update can be missed.
+      // All of these are set up BEFORE registering, so neither the first claim nor an early update can be missed.
       hadController = container.controller !== null
+      container.addEventListener('message', (event) => {
+        // The worker declined to switch because another app window is open. Only a pending RESTART cares.
+        const data = event.data as { type?: unknown } | null
+        if (!applying || typeof data !== 'object' || data === null || data.type !== RESTART_BLOCKED_MESSAGE) return
+        applying = false
+        blocked = true
+        cancelApplyTimer?.()
+        cancelApplyTimer = null
+        emit()
+      })
       container.addEventListener('controllerchange', () => {
         if (!hadController) {
           hadController = true // the first install claimed this page: offline-ready, nothing to reload
@@ -187,9 +219,10 @@ export function createShellUpdates(env: ShellUpdateEnvironment): ShellUpdates {
     }
     if (waiting === null) return
     applying = true
+    blocked = false // a fresh attempt: the player may have closed the other window
     emit()
     try {
-      waiting.postMessage({ type: 'SKIP_WAITING' })
+      waiting.postMessage({ type: RESTART_REQUEST_MESSAGE })
     } catch (error) {
       applying = false
       env.warn('The update could not be started', error)
