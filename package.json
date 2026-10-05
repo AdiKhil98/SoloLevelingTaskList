@@ -10,7 +10,9 @@
     "typecheck": "tsc -b",
     "lint": "eslint .",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "icons": "node tools/icons/generate.ts",
+    "verify:pwa": "npm run build && node scripts/verify-pwa.mjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",

@@ -85,8 +85,38 @@ export default defineConfig([
     },
   },
   {
-    files: ['vite.config.ts', 'eslint.config.js'],
+    files: ['vite.config.ts', 'eslint.config.js', 'tools/**/*.{ts,mjs}'],
     languageOptions: { globals: globals.node },
+  },
+  {
+    // Node scripts outside the application (the PWA output check): plain JavaScript, linted like the rest.
+    files: ['scripts/**/*.mjs'],
+    extends: [js.configs.recommended],
+    languageOptions: { ecmaVersion: 2023, globals: globals.node },
+  },
+  {
+    // The service worker (Phase 12) is its own tiny program. It may import nothing from the application, and it
+    // must never reach player data: no IndexedDB, no storage, no persistence code. A name like these anywhere in
+    // the worker's code (even `scope.indexedDB`) fails lint.
+    files: ['src/sw/**'],
+    ignores: ['src/sw/**/*.test.ts'], // the tests have to NAME these things in order to prove the worker never uses them
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            { group: ['@/**', ...layerPatterns(LAYERS), ...UI_PACKAGES], message: 'The service worker imports nothing from the application.' },
+          ],
+        },
+      ],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'Identifier[name=/^(indexedDB|IDB[A-Za-z]*|openDatabase|localStorage|sessionStorage)$/]',
+          message: 'The service worker must never touch IndexedDB, storage or player data.',
+        },
+      ],
+    },
   },
   boundary(['src/domain/**'], without('domain'), { forbidUiPackages: true }),
   boundary(['src/persistence/**'], without('domain', 'persistence'), {

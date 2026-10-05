@@ -1,0 +1,18 @@
+{
+  "id": "/",
+  "name": "SYSTEM — Quest Tracker",
+  "short_name": "SYSTEM",
+  "description": "A private, mobile-first quest and progression tracker.",
+  "lang": "en",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#07060d",
+  "theme_color": "#07060d",
+  "categories": ["productivity"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

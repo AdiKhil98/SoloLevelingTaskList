@@ -43,6 +43,9 @@ import { planPresentation } from '@/effects/plan'
 import type { AwakeningSaveResult } from '@/features/awakening/types'
 import { PresentationContext, createPresentationRuntime, type PresentationRuntimeOptions } from '@/features/presentation/runtime'
 import { openDatabase, type OpenDatabaseOptions, type PersistenceDatabase } from '@/persistence'
+import { reloadPage } from '@/platform/page'
+import { requestPersistentStorage } from '@/platform/storage'
+import { LazyLoadBoundary } from './LazyLoadBoundary'
 import {
   AppRuntimeContext,
   type AppRuntimeValue,
@@ -52,7 +55,7 @@ import {
   type QuestActions,
   type WeeklyActions,
 } from './runtimeContext'
-import { LoadingScreen, StartupErrorScreen } from './StartupScreens'
+import { LoadingScreen, ScreenLoadFailedScreen, StartupErrorScreen } from './StartupScreens'
 import { useDaySync } from './useDaySync'
 
 export interface AppRuntimeOptions {
@@ -234,6 +237,16 @@ export function AppRuntimeProvider({ options, children }: AppRuntimeProviderProp
     setState({ status: 'loading' })
     setAttempt((current) => current + 1)
   }, [])
+
+  // Ask the browser to protect the stored data from eviction, once, silently, after the app has reached `ready`
+  // (for a new player that is after Awakening is saved). Best effort: a refusal or failure is invisible and harmless.
+  const persistenceRequested = useRef(false)
+  const isReady = state.status === 'ready'
+  useEffect(() => {
+    if (!isReady || persistenceRequested.current) return
+    persistenceRequested.current = true
+    void requestPersistentStorage()
+  }, [isReady])
 
   const context = state.status === 'ready' ? state.context : null
   const snapshot = state.status === 'ready' ? state.snapshot : null
@@ -469,9 +482,12 @@ export function AppRuntimeProvider({ options, children }: AppRuntimeProviderProp
   if (state.status === 'awakening') {
     return (
       <PresentationContext value={presentation}>
-        <Suspense fallback={<LoadingScreen />}>
-          <AwakeningFlow save={saveAwakening} onFinish={finishAwakening} />
-        </Suspense>
+        {/* A failed chunk load shows a calm Reload screen instead of unmounting the app (nothing is saved yet). */}
+        <LazyLoadBoundary fallback={<ScreenLoadFailedScreen onReload={reloadPage} />}>
+          <Suspense fallback={<LoadingScreen />}>
+            <AwakeningFlow save={saveAwakening} onFinish={finishAwakening} />
+          </Suspense>
+        </LazyLoadBoundary>
       </PresentationContext>
     )
   }

@@ -92,6 +92,20 @@
   html {
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
+    /*
+     * Installed-app behaviour (Phase 12): a scroll that overshoots the top must not trigger Chrome's pull-to-refresh,
+     * which would reload the app mid-session, nor the overscroll glow. Scrolling itself is unchanged.
+     */
+    overscroll-behavior-y: none;
+  }
+
+  /* Controls are tapped, not selected: no stray text selection on a long press (body text stays selectable). */
+  button,
+  nav,
+  [role='button'] {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
   }
 
   body {

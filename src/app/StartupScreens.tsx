@@ -42,6 +42,28 @@ export function LoadingScreen() {
   )
 }
 
+/**
+ * A screen's code could not be loaded (for example offline before it was downloaded). Nothing has been saved or
+ * changed. Reload is the player's choice; nothing here reloads by itself, so it can never loop.
+ */
+export function ScreenLoadFailedScreen({ onReload }: { onReload: () => void }) {
+  return (
+    <StartupFrame>
+      <div role="alert" className="flex flex-col items-center gap-3">
+        <h1 className="font-display text-xl font-semibold">This screen could not be loaded</h1>
+        <p className="text-muted">Check your connection, then reload. Nothing has been changed or deleted.</p>
+      </div>
+      <button
+        type="button"
+        onClick={onReload}
+        className="mt-2 inline-flex min-h-12 min-w-32 items-center justify-center rounded-[3px] border border-accent bg-accent/10 px-6 font-medium text-accent system-focus active:bg-accent/20"
+      >
+        Reload
+      </button>
+    </StartupFrame>
+  )
+}
+
 interface StartupErrorScreenProps {
   reason: FailureReason
   onRetry: () => void
