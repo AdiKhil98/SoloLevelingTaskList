@@ -52,7 +52,7 @@ src/test/setup.ts            jest-dom matchers + cleanup
 
 `eslint.config.js` encodes MASTER_SPEC §3.2 via `no-restricted-imports`, for directories that later phases create:
 
-- `src/domain/**` may import from no other layer and not from React, React Router, Framer Motion, or Lucide.
+- `src/domain/**` may import from no other layer and not from React, React Router, or Lucide (the unused Framer Motion dependency was removed in Phase 14).
 - `src/persistence/**` may import `domain` only (and no UI packages).
 - `src/application/**` (added in Phase 04) may import `domain` and `persistence` only (and no UI packages); no lower layer may import it.
 - `src/effects/**` may import `domain` only (plus UI/animation packages).

@@ -17,6 +17,10 @@ if (hasDom) {
   // particle burst already handles (it ends at once), so effects tests assert on the loop's life cycle directly.
   HTMLCanvasElement.prototype.getContext = () => null
 
+  // jsdom has no layout, so `window.scrollTo` only logs "not implemented". The app puts a new screen back at the top
+  // (`usePageChrome`); a spy keeps the output clean and lets a test assert exactly when that happens.
+  Object.defineProperty(window, 'scrollTo', { configurable: true, writable: true, value: vi.fn() })
+
   // Real browsers stamp animation frames on the same clock as `performance.now()`. jsdom stamps them on its own
   // window clock, which starts when the window is created, so in a long-lived test worker the two differ by seconds
   // and an animation that measures elapsed time against `performance.now()` (the count-up, typewriter, scramble)

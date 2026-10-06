@@ -3,6 +3,7 @@ import { PresentationHost } from '@/features/presentation/PresentationHost'
 import { OfflineIndicator } from '@/features/pwa/OfflineIndicator'
 import { UpdateNotice } from '@/features/pwa/UpdateNotice'
 import { BottomNav } from './BottomNav'
+import { usePageChrome } from './pageChrome'
 
 /**
  * Architectural frame for every route: full mobile viewport, a single
@@ -11,9 +12,11 @@ import { BottomNav } from './BottomNav'
  * presentation host sits here, above every route, so an earned moment (a Level
  * Up, an achievement) survives navigation. The two small infrastructure notices
  * (OFFLINE, SYSTEM UPDATE AVAILABLE) sit beside it; they are informational and
- * never block an action.
+ * never block an action. It also keeps the page title and scroll position in
+ * step with the route (`usePageChrome`).
  */
 export function AppShell() {
+  usePageChrome()
   return (
     <>
       <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)]">

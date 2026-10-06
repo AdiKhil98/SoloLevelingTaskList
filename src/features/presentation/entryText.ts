@@ -103,10 +103,6 @@ export function achievementsHeading(entry: AchievementsEntry): string {
   return entry.items.length === 1 ? 'ACHIEVEMENT UNLOCKED' : 'ACHIEVEMENTS UNLOCKED'
 }
 
-export function achievementsSummary(entry: AchievementsEntry): string {
-  return `${achievementsHeading(entry)}. ${entry.items.map((item) => item.title).join(', ')}.`
-}
-
 /** `GOAL COMPLETE · SCORE 3 / 10` (the small toast for a goal reached while the week is still open). */
 export function weeklyGoalToastText(entry: WeeklyGoalFeedbackEntry): string {
   const goals = entry.goalsReached === 1 ? 'GOAL COMPLETE' : `${entry.goalsReached} GOALS COMPLETE`

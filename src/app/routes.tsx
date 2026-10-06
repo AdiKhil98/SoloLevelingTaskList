@@ -1,6 +1,7 @@
 import type { RouteObject } from 'react-router'
 import { RouteErrorScreen } from '@/app/AppErrorBoundary'
 import { AppShell } from '@/components/layout/AppShell'
+import type { RouteHandle } from '@/components/layout/pageChrome'
 import { AchievementsPage } from '@/features/achievements/AchievementsPage'
 import { HomePage } from '@/features/home/HomePage'
 import { CreateQuestPage } from '@/features/quests/CreateQuestPage'
@@ -14,6 +15,9 @@ import { WeeklyHistoryPage } from '@/features/weekly/WeeklyHistoryPage'
 import { WeeklyPage } from '@/features/weekly/WeeklyPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 
+/** The route's screen name, shown in the page title (see `usePageChrome`). */
+const titled = (title: string): RouteHandle => ({ title })
+
 /**
  * The development-only effects lab. `import.meta.env.DEV` is a build-time constant:
  * in a production build this whole expression (the route and its dynamic import)
@@ -24,6 +28,7 @@ const DEV_ROUTES: RouteObject[] = import.meta.env.DEV
   ? [
       {
         path: 'dev/effects',
+        handle: titled('Effects Lab'),
         lazy: async () => ({ Component: (await import('@/features/presentation/dev/EffectsLab')).default }),
       },
     ]
@@ -38,19 +43,19 @@ export function buildAppRoutes({ dev }: { dev: boolean }): RouteObject[] {
       // A screen that fails to render shows the SYSTEM crash screen, not the router's developer error page.
       errorElement: <RouteErrorScreen />,
       children: [
-        { index: true, element: <HomePage /> },
-        { path: 'quests', element: <QuestsPage /> },
-        { path: 'quests/new', element: <CreateQuestPage /> },
-        { path: 'quests/:templateId/edit', element: <EditQuestPage /> },
-        { path: 'weekly', element: <WeeklyPage /> },
-        { path: 'weekly/edit', element: <WeeklyEditPage /> },
-        { path: 'weekly/history', element: <WeeklyHistoryPage /> },
-        { path: 'report', element: <ReportPage /> },
-        { path: 'status', element: <StatusPage /> },
-        { path: 'status/history', element: <DailyHistoryPage /> },
-        { path: 'achievements', element: <AchievementsPage /> },
+        { index: true, element: <HomePage />, handle: titled('Home') },
+        { path: 'quests', element: <QuestsPage />, handle: titled('Quests') },
+        { path: 'quests/new', element: <CreateQuestPage />, handle: titled('New Quest') },
+        { path: 'quests/:templateId/edit', element: <EditQuestPage />, handle: titled('Edit Quest') },
+        { path: 'weekly', element: <WeeklyPage />, handle: titled('Weekly') },
+        { path: 'weekly/edit', element: <WeeklyEditPage />, handle: titled('Weekly Goals') },
+        { path: 'weekly/history', element: <WeeklyHistoryPage />, handle: titled('Weekly History') },
+        { path: 'report', element: <ReportPage />, handle: titled('Daily Report') },
+        { path: 'status', element: <StatusPage />, handle: titled('Status') },
+        { path: 'status/history', element: <DailyHistoryPage />, handle: titled('Daily History') },
+        { path: 'achievements', element: <AchievementsPage />, handle: titled('Achievements') },
         ...(dev ? DEV_ROUTES : []),
-        { path: '*', element: <NotFoundPage /> },
+        { path: '*', element: <NotFoundPage />, handle: titled('Page not found') },
       ],
     },
   ]

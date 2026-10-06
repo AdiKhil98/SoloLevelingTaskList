@@ -35,7 +35,6 @@ const UI_PACKAGES = [
   'react-dom/*',
   'react-router',
   'react-router/*',
-  'framer-motion',
   'lucide-react',
 ]
 

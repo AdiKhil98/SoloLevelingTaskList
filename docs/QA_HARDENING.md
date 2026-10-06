@@ -108,7 +108,7 @@ HTTPS install and a real **WebAPK** (maskable crop, splash, status-bar colour fr
 
 ## Performance (measured before touching anything)
 
-Startup JS about 584 kB (main 524.4 kB / 155.4 gzip, shared 60.6 kB); CSS 45 kB; precache 15 files about 731 KiB raw / 279 KiB gzip. The main chunk by source map: react-dom 202 kB (39.5%), react-router 90 kB (17.6%), persistence 42, weekly 28, quests 27, application 27, domain 16, app 12, presentation 12, status 12, home 10, lucide 8. **Every non-Home screen together is about 72 kB (about 12% of startup JS).** Because the shell is precached, download size is paid once, and the emulator numbers above are small; splitting would add chunk-failure paths for a small gain. **Recommendation: no code splitting now.** `framer-motion` is installed and unused (not bundled), untouched as agreed.
+Startup JS about 584 kB (main 524.4 kB / 155.4 gzip, shared 60.6 kB); CSS 45 kB; precache 15 files about 731 KiB raw / 279 KiB gzip. The main chunk by source map: react-dom 202 kB (39.5%), react-router 90 kB (17.6%), persistence 42, weekly 28, quests 27, application 27, domain 16, app 12, presentation 12, status 12, home 10, lucide 8. **Every non-Home screen together is about 72 kB (about 12% of startup JS).** Because the shell is precached, download size is paid once, and the emulator numbers above are small; splitting would add chunk-failure paths for a small gain. **Recommendation: no code splitting now.** `framer-motion` was installed and unused (not bundled), untouched as agreed; Phase 14 removed it.
 
 ## Repeated-run results
 

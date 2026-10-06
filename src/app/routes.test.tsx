@@ -40,8 +40,10 @@ describe('application routes', () => {
   it('renders the not-found route for unknown paths', async () => {
     renderApp({ path: '/does-not-exist' })
 
-    expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeInTheDocument()
+    // The same screen heading as every other route (a SYSTEM label, the page's one h1), inside the app frame.
+    expect(await screen.findByRole('heading', { level: 1, name: 'Page not found' })).toHaveClass('system-label')
     expect(screen.getByRole('link', { name: 'Back to start' })).toHaveAttribute('href', '/')
+    expect(screen.getByRole('navigation', { name: 'Primary' })).toBeInTheDocument()
   })
 })
 

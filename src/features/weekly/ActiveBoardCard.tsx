@@ -33,12 +33,13 @@ export function ActiveBoardCard({ board, onSetProgress, canEdit }: ActiveBoardCa
 
       <section aria-labelledby="score-heading" className="system-panel system-panel-accent system-frame flex flex-col gap-3 p-4">
         <SectionLabel id="score-heading">THIS WEEK’S SCORE</SectionLabel>
-        <div className="flex items-end justify-between gap-3">
+        {/* Wraps (the goal count drops under the score) instead of squeezing the score onto two lines on the narrowest phones. */}
+        <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-1">
           <p className="font-display text-4xl leading-none font-bold tabular-nums">
             {board.score} / {WEEKLY_BOARD_TOTAL_POINTS}
             <span className="sr-only"> points</span>
           </p>
-          <p className="pb-1 text-right text-sm">
+          <p className="ml-auto pb-1 text-right text-sm">
             {board.goalsCompleted} / {board.goalCount} goals complete
           </p>
         </div>

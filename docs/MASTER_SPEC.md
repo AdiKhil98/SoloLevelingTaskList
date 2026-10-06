@@ -77,7 +77,7 @@ These hold for every phase. Violating one is a defect even if tests pass.
 
 ### 3.1 Approved stack **[APPROVED]**
 
-React · TypeScript (strict) · Vite · Tailwind CSS · shadcn-compatible structure · Framer Motion · Lucide React · PWA · IndexedDB · JSON backup export/import. Dependencies are installed in the phase that first needs them, with justification, per `CLAUDE.md` dependency discipline.
+React · TypeScript (strict) · Vite · Tailwind CSS · shadcn-compatible structure · Lucide React · PWA · IndexedDB · JSON backup export/import. Dependencies are installed in the phase that first needs them, with justification, per `CLAUDE.md` dependency discipline. (Framer Motion was part of the original stack but was never needed: CSS and small hooks cover every effect. It was removed in Phase 14.)
 
 ### 3.2 Five logical layers **[APPROVED]**
 
@@ -86,7 +86,7 @@ React · TypeScript (strict) · Vite · Tailwind CSS · shadcn-compatible struct
 | **A. Domain** | Quest eligibility, recurrence, completion, EXP, levels, ranks, daily completion, streaks, weekly scoring, achievements, date-key arithmetic, event generation. Pure TypeScript, no React, no IndexedDB, no `window`. | nothing (stdlib only) |
 | **B. Persistence** | IndexedDB repositories, schema versions, migrations, atomic transactions, backup export/import, validation. No presentation logic. | Domain types |
 | **C. UI** | React screens/components, view-models, forms. Displays domain results; invokes domain commands. | Domain (read/commands), Persistence (via application services) |
-| **D. Animation/effects** | Framer Motion/canvas presentation of domain events. Consumes events; never produces progression facts. | Domain event types only |
+| **D. Animation/effects** | CSS/canvas presentation of domain events. Consumes events; never produces progression facts. | Domain event types only |
 | **E. Platform/PWA** | Manifest, service worker, install, safe areas, haptics/sound/visibility/resume hooks. | none of the game rules |
 
 Dependency direction is one-way (C → A, B → A, D → A events). Domain must never import from B, C, D, or E. Phase 01 should enforce this with an import-boundary lint rule.

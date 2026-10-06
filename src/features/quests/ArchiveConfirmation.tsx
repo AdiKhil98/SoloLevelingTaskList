@@ -1,4 +1,6 @@
 import { useEffect, useRef, type KeyboardEvent } from 'react'
+import { BUTTON, BUTTON_DANGER } from '@/components/ui/styles'
+import { cn } from '@/lib/utils'
 
 interface ArchiveConfirmationProps {
   title: string
@@ -6,9 +8,6 @@ interface ArchiveConfirmationProps {
   onCancel: () => void
   onConfirm: () => void
 }
-
-const BUTTON =
-  'inline-flex min-h-11 flex-1 items-center justify-center rounded-[3px] border px-4 text-sm font-semibold system-focus disabled:opacity-60'
 
 /**
  * A lightweight inline confirmation (no dialog dependency). It says plainly what
@@ -49,7 +48,7 @@ export function ArchiveConfirmation({ title, pending, onCancel, onConfirm }: Arc
           type="button"
           onClick={onCancel}
           disabled={pending}
-          className={`${BUTTON} border-border active:bg-accent/15`}
+          className={cn(BUTTON, 'flex-1')}
         >
           Cancel
         </button>
@@ -58,7 +57,7 @@ export function ArchiveConfirmation({ title, pending, onCancel, onConfirm }: Arc
           onClick={onConfirm}
           disabled={pending}
           aria-busy={pending}
-          className={`${BUTTON} border-danger/70 bg-danger/15 active:bg-danger/25`}
+          className={cn(BUTTON_DANGER, 'flex-1')}
         >
           Archive Quest
         </button>

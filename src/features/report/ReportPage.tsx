@@ -3,7 +3,7 @@ import { Link } from 'react-router'
 import { buildDailyReport } from '@/application'
 import { useAppRuntime } from '@/app/runtimeContext'
 import { ClockBehindNotice } from '../home/ClockBehindNotice'
-import { dayQualityLabel, daysLabel } from '../displayLabels'
+import { dayQualityLabel, daysLabel, formatDateKey } from '../displayLabels'
 import { SectionLabel } from '@/components/ui/SectionLabel'
 
 function Row({ term, children }: { term: string; children: ReactNode }) {
@@ -38,7 +38,7 @@ export function ReportPage() {
       ) : (
         <>
           <p className="text-sm text-muted">
-            Provisional: {report.dateKey} is still in progress. It becomes final at midnight, and your streak changes only then.
+            Provisional: {formatDateKey(report.dateKey)} is still in progress. It becomes final at midnight, and your streak changes only then.
           </p>
 
           <section aria-label="Today so far" className="system-panel px-4">

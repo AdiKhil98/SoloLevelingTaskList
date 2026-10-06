@@ -40,12 +40,13 @@ export function FinalizedWeekCard({ week, heading, claiming, onClaim, canClaim }
 
       {week.focus !== null && <p className="text-sm text-muted italic">“{week.focus}”</p>}
 
-      <div className="flex items-end justify-between gap-3">
+      {/* Wraps (the goal count drops under the score) instead of squeezing the score onto two lines on the narrowest phones. */}
+      <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-1">
         <p className="font-display text-4xl leading-none font-bold tabular-nums">
           {week.score} / {WEEKLY_BOARD_TOTAL_POINTS}
           <span className="sr-only"> points</span>
         </p>
-        <p className="pb-1 text-right text-sm">
+        <p className="ml-auto pb-1 text-right text-sm">
           {week.goalsCompleted} / {week.goalCount} goals complete
         </p>
       </div>

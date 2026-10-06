@@ -74,6 +74,9 @@ describe('Sleep quest and the Daily Report', () => {
     expect(await screen.findByRole('heading', { name: 'DAILY REPORT' })).toBeInTheDocument()
     expect(screen.getByText('LIVE')).toBeInTheDocument()
     expect(screen.getByText(/Provisional/)).toHaveTextContent('It becomes final at midnight')
+    // The date reads like every other date in the app (`Oct 5, 2026`), not as the stored key.
+    expect(screen.getByText(/Provisional/)).toHaveTextContent('Provisional: Oct 5, 2026 is still in progress.')
+    expect(screen.getByText(/Provisional/)).not.toHaveTextContent('2026-10-05')
     expect(screen.getByText('Quests completed').nextSibling).toHaveTextContent('6 / 6')
     expect(screen.getByText('Completion').nextSibling).toHaveTextContent('100%')
     expect(screen.getByText('Day status').nextSibling).toHaveTextContent('Perfect')

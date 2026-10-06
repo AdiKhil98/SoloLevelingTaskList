@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react'
 import type { FailureReason } from '@/application'
+import { BUTTON, BUTTON_PRIMARY } from '@/components/ui/styles'
+import { cn } from '@/lib/utils'
 
 /** A hint under the generic headline; never raw browser or storage error text. */
 function startupFailureHint(reason: FailureReason): string {
@@ -22,6 +24,11 @@ function startupFailureHint(reason: FailureReason): string {
       return 'Nothing has been changed or deleted.'
   }
 }
+
+/** The recovery actions are the shared SYSTEM buttons, a little larger: they are all there is on these screens. */
+const ACTION_SIZE = 'min-h-12 min-w-32 px-6 text-base'
+const PRIMARY_ACTION = cn(BUTTON_PRIMARY, ACTION_SIZE)
+const SECONDARY_ACTION = cn(BUTTON, ACTION_SIZE)
 
 function StartupFrame({ children }: { children: ReactNode }) {
   return (
@@ -56,7 +63,7 @@ export function ScreenLoadFailedScreen({ onReload }: { onReload: () => void }) {
       <button
         type="button"
         onClick={onReload}
-        className="mt-2 inline-flex min-h-12 min-w-32 items-center justify-center rounded-[3px] border border-accent bg-accent/10 px-6 font-medium text-accent system-focus active:bg-accent/20"
+        className={cn(PRIMARY_ACTION, 'mt-2')}
       >
         Reload
       </button>
@@ -81,13 +88,13 @@ export function AppCrashScreen({ onReload }: { onReload: () => void }) {
         <button
           type="button"
           onClick={onReload}
-          className="inline-flex min-h-12 min-w-32 items-center justify-center rounded-[3px] border border-accent bg-accent/10 px-6 font-medium text-accent system-focus active:bg-accent/20"
+          className={PRIMARY_ACTION}
         >
           Reload
         </button>
         <a
           href="/"
-          className="inline-flex min-h-12 min-w-32 items-center justify-center rounded-[3px] border border-border px-6 font-medium system-focus active:bg-accent/10"
+          className={SECONDARY_ACTION}
         >
           Home
         </a>
@@ -112,7 +119,7 @@ export function StartupErrorScreen({ reason, onRetry }: StartupErrorScreenProps)
       <button
         type="button"
         onClick={onRetry}
-        className="mt-2 inline-flex min-h-12 min-w-32 items-center justify-center rounded-[3px] border border-accent bg-accent/10 px-6 font-medium text-accent system-focus active:bg-accent/20"
+        className={cn(PRIMARY_ACTION, 'mt-2')}
       >
         Retry
       </button>
