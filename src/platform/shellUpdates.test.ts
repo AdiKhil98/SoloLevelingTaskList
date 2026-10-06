@@ -566,3 +566,25 @@ describe('the store contract', () => {
     expect(listener).toHaveBeenCalledTimes(2)
   })
 })
+
+describe('the real instance inside the Android app', () => {
+  it('registers no service worker (the APK holds every file and updates arrive as a new APK)', async () => {
+    const register = vi.fn()
+    const scope = globalThis as { Capacitor?: unknown }
+    Object.defineProperty(navigator, 'serviceWorker', {
+      configurable: true,
+      value: { register, addEventListener: vi.fn(), controller: null },
+    })
+    scope.Capacitor = { isNativePlatform: () => true }
+    try {
+      vi.resetModules()
+      const { shellUpdates } = await import('./shellUpdates')
+      await shellUpdates.start()
+      expect(register).not.toHaveBeenCalled()
+      expect(shellUpdates.getSnapshot().updateReady).toBe(false)
+    } finally {
+      delete scope.Capacitor
+      Reflect.deleteProperty(navigator, 'serviceWorker')
+    }
+  })
+})

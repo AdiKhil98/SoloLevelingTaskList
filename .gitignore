@@ -15,3 +15,8 @@ dist/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Android release signing (Phase 15): never commit a keystore or the file that holds its passwords
+android/keystore.properties
+*.jks
+*.keystore

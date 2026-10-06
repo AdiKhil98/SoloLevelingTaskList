@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The app's near-black background (the web app's background colour token): behind the system bars and before the page paints. -->
+    <color name="system_background">#07060D</color>
+</resources>

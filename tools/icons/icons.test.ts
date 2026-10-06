@@ -4,7 +4,8 @@ import { describe, expect, it } from 'vitest'
 import { COLORS, SHAPES } from './geometry.ts'
 import { FAVICON_FILE, PNG_ICONS } from './generate.ts'
 import { decodePng, encodePng } from './png.ts'
-import { renderIcon, type Raster } from './render.ts'
+import { ANDROID_ICONS } from './generateAndroid.ts'
+import { FOREGROUND_SCALE, renderIcon, type Raster } from './render.ts'
 import { renderFaviconSvg } from './svg.ts'
 
 const publicFile = (file: string) => readFileSync(new URL(`../../public/${file}`, import.meta.url))
@@ -84,5 +85,43 @@ describe('the icon design', () => {
 
   it('uses only the design-token palette', () => {
     expect(Object.values(COLORS)).toEqual(['#07060d', '#0d0b17', '#c4b5fd', '#a78bfa', '#7c3aed', '#ececf4', '#22d3ee'])
+  })
+})
+
+const androidFile = (file: string) => readFileSync(new URL(`../../android/app/src/main/res/${file}`, import.meta.url))
+
+describe('the Android launcher icons (APK)', () => {
+  it.each(ANDROID_ICONS)('$file is a real PNG of $size×$size', ({ file, size }) => {
+    const png = decodePng(androidFile(file))
+    expect(png.width).toBe(size)
+    expect(png.height).toBe(size)
+  })
+
+  // The smallest density of each icon is re-rendered here; `npm run icons:android` regenerates all of them.
+  it.each(ANDROID_ICONS.filter((icon) => icon.size <= 72))('$file is exactly what the generator renders now', ({ file, size, variant }) => {
+    const committed = decodePng(androidFile(file))
+    const fresh = renderIcon(size, variant)
+    expect(Buffer.compare(Buffer.from(committed.data), Buffer.from(fresh.data))).toBe(0)
+  })
+
+  it('the adaptive foreground is transparent artwork that stays inside the 66 dp safe circle of its 108 dp canvas', () => {
+    const size = 108
+    const foreground = renderIcon(size, 'foreground')
+    expect(pixel(foreground, 0, 0)[3]).toBe(0)
+    expect(pixel(foreground, 107, 107)[3]).toBe(0)
+    expect(pixel(foreground, 54, 54)[3]).toBeGreaterThan(200) // the artwork is there
+    for (let y = 0; y < size; y += 1) {
+      for (let x = 0; x < size; x += 1) {
+        if (pixel(foreground, x, y)[3]! >= 128) expect(Math.hypot(x + 0.5 - 54, y + 0.5 - 54)).toBeLessThanOrEqual(33)
+      }
+    }
+    expect(FOREGROUND_SCALE).toBeCloseTo(33 / 108 / 0.4, 10)
+  })
+
+  it('the legacy round icon is a dark circle with transparent corners', () => {
+    const round = renderIcon(96, 'circle')
+    expect(pixel(round, 0, 0)[3]).toBe(0)
+    expect(pixel(round, 95, 0)[3]).toBe(0)
+    expect(pixel(round, 48, 2)[3]).toBeGreaterThan(200)
   })
 })

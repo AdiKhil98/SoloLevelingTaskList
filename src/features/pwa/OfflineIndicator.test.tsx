@@ -53,6 +53,17 @@ describe('OfflineIndicator', () => {
     expect(screen.queryByRole('link')).not.toBeInTheDocument()
   })
 
+  it('is never shown inside the Android app, which needs no network', () => {
+    const scope = globalThis as { Capacitor?: unknown }
+    scope.Capacitor = { isNativePlatform: () => true }
+    try {
+      render(<OfflineIndicator source={fakeConnectivity(false).source} />)
+      expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    } finally {
+      delete scope.Capacitor
+    }
+  })
+
   it('follows the real browser connection by default', () => {
     const onLine = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false)
     render(<OfflineIndicator />)

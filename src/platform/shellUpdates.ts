@@ -14,6 +14,7 @@
  *
  * The environment is injected so the whole life cycle is testable with fakes; `shellUpdates` is the real one.
  */
+import { isNativeApp } from './native'
 import { reloadPage } from './page'
 
 export const SHELL_WORKER_URL = '/sw.js'
@@ -260,7 +261,10 @@ export function createShellUpdates(env: ShellUpdateEnvironment): ShellUpdates {
 
 function browserEnvironment(): ShellUpdateEnvironment {
   return {
-    container: typeof navigator !== 'undefined' && 'serviceWorker' in navigator ? navigator.serviceWorker : null,
+    // Inside the Android app there is no service worker: the APK already holds every file and updates arrive as a new
+    // APK, so a null container (the "no worker here" path) is exactly right.
+    container:
+      typeof navigator !== 'undefined' && 'serviceWorker' in navigator && !isNativeApp() ? navigator.serviceWorker : null,
     now: () => performance.now(),
     reload: reloadPage,
     whenLoaded(callback) {

@@ -74,6 +74,17 @@ function over(target: Premultiplied, [r, g, b]: Rgb, alpha: number): void {
   target[3] = alpha + target[3] * keep
 }
 
+/**
+ * Android-only variants (the launcher icons of the APK, `generateAndroid.ts`). `foreground` is the artwork alone on a
+ * transparent canvas, scaled so everything sits inside Android's adaptive-icon safe zone (the system draws the dark
+ * background itself and masks the canvas; only the central 66 dp of its 108 dp is guaranteed to stay visible).
+ * `circle` is the legacy round launcher icon.
+ */
+export type RenderVariant = IconVariant | 'foreground' | 'circle'
+
+/** The artwork's own safe radius is 0.4 of its square; the adaptive safe radius is 33/108 of the canvas. */
+export const FOREGROUND_SCALE = 33 / 108 / 0.4
+
 const BACKGROUND = hexToRgb(COLORS.background)
 const SURFACE = hexToRgb(COLORS.surface)
 const VIOLET_LIGHT = hexToRgb(COLORS.violetLight)
@@ -87,11 +98,18 @@ function mix(from: Rgb, to: Rgb, t: number): Rgb {
 }
 
 /** The colour of one point of the icon, premultiplied; the layers are the SVG's, in the same order. */
-function sample(x: number, y: number, variant: IconVariant): Premultiplied {
+function sample(x: number, y: number, variant: RenderVariant): Premultiplied {
   const pixel: Premultiplied = [0, 0, 0, 0]
-  if (variant === 'rounded' && !insideRoundedSquare(x, y)) return pixel
-
-  over(pixel, BACKGROUND, 1)
+  if (variant === 'foreground') {
+    // Shrink the artwork towards the centre; anything the shrunken square does not cover stays transparent.
+    x = 0.5 + (x - 0.5) / FOREGROUND_SCALE
+    y = 0.5 + (y - 0.5) / FOREGROUND_SCALE
+    if (x < 0 || x > 1 || y < 0 || y > 1) return pixel
+  } else {
+    if (variant === 'rounded' && !insideRoundedSquare(x, y)) return pixel
+    if (variant === 'circle' && (x - 0.5) * (x - 0.5) + (y - 0.5) * (y - 0.5) > 0.25) return pixel
+    over(pixel, BACKGROUND, 1)
+  }
 
   const distance = Math.sqrt((x - 0.5) * (x - 0.5) + (y - 0.5) * (y - 0.5))
   if (distance < GLOW.radius) {
@@ -113,7 +131,7 @@ function sample(x: number, y: number, variant: IconVariant): Premultiplied {
 }
 
 /** Renders the icon at `size` × `size` pixels with fixed 6×6 supersampling (deterministic: plain arithmetic only). */
-export function renderIcon(size: number, variant: IconVariant): Raster {
+export function renderIcon(size: number, variant: RenderVariant): Raster {
   const data = new Uint8Array(size * size * 4)
   const step = 1 / SUPERSAMPLE
   for (let py = 0; py < size; py += 1) {

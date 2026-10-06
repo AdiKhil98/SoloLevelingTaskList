@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import { connectivity } from '@/platform/connectivity'
+import { isNativeApp } from '@/platform/native'
 
 interface ConnectivitySource {
   isOnline(): boolean
@@ -15,7 +16,8 @@ interface ConnectivitySource {
  */
 export function OfflineIndicator({ source = connectivity }: { source?: ConnectivitySource }) {
   const online = useSyncExternalStore(source.subscribe, source.isOnline, () => true)
-  if (online) return null
+  // The Android app holds every file and never needs a network, so "offline" means nothing there.
+  if (online || isNativeApp()) return null
   return (
     <div
       role="status"

@@ -69,7 +69,8 @@ function boundary(files, forbiddenLayers, { forbidUiPackages = false } = {}) {
 const without = (...keep) => LAYERS.filter((layer) => !keep.includes(layer))
 
 export default defineConfig([
-  globalIgnores(['dist', 'coverage', '_reference']),
+  // `android/` is the Capacitor native project (Java, XML, Gradle, and a copy of the web build), not application source.
+  globalIgnores(['dist', 'coverage', '_reference', 'android']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

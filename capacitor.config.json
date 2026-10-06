@@ -1,0 +1,15 @@
+{
+  "appId": "com.adikhil.system",
+  "appName": "SYSTEM",
+  "webDir": "dist",
+  "backgroundColor": "#07060d",
+  "server": {
+    "androidScheme": "https",
+    "hostname": "localhost"
+  },
+  "plugins": {
+    "SystemBars": {
+      "style": "DARK"
+    }
+  }
+}
