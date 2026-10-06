@@ -16,7 +16,7 @@ For each item: **Question** · **Why it matters** · **Needed by** (the latest p
 | ID | Topic | Needed by |
 |----|-------|-----------|
 | **A. Items required by the Phase 00 brief** | | |
-| OD-04 | Final Daily Message catalog content (mechanism resolved in Phase 04) | Phase 14 |
+| OD-04 | Final Daily Message catalog content (mechanism resolved in Phase 04). **Open, deferred by the owner at Phase 14** | No phase assigned (owner decides when) |
 | **B. Items discovered while writing the specification** | | |
 | OD-15 | Seeded quest catalog beyond prayers and Sleep (the six approved seeds are implemented; editability was settled in Phase 05) | Before any further default is seeded |
 | OD-18 | Reliable semantic identification for achievements (e.g., "Gym Sessions"). Deferred beyond V1 in Phase 08 | Only if a quest-specific achievement is wanted |
@@ -28,7 +28,8 @@ For each item: **Question** · **Why it matters** · **Needed by** (the latest p
 ### OD-04 — Final Daily Message catalog content
 - **Resolved in Phase 04 (the mechanism):** the Daily Message comes from a **local catalog of original, unattributed lines** (no external quote API, no network, no quotations). The message for a day is chosen by a **pure, deterministic function of the `DateKey`** (`daysBetween(anchor, dateKey)` modulo the catalog size, so the catalog is walked one entry per day without a repeat until exhausted); no random source and **no persistence** are required. Same date, same message, on every reload. The starter catalog has 40 lines. See [CORE_UI.md](CORE_UI.md).
 - **Still open (the content):** the final catalog — how many messages, the exact wording and polish, and whether any properly attributed / public-domain quotations are ever included. Whether a per-date assignment is ever persisted (DATA_MODEL §13) is also left open; it is not needed for correctness, and editing the catalog may change which message a past date maps to (a Daily Message has no historical role).
-- **Needed by:** Phase 14 (final catalog and polish).
+- **Status:** **open, deferred by the owner at Phase 14** (2026-10-06). Phase 14 shipped without it; the 40-line starter catalog stays as the Daily Message source.
+- **Needed by:** no phase is assigned any more. It was due at Phase 14; the owner deferred it, so it can be decided in any later phase or polish pass.
 - **Until then:** Only original/system-style text in the local catalog. No external quote API. No unverified internet-attributed quotations.
 
 ---

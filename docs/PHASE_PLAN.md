@@ -36,7 +36,7 @@
 | 11 | Player Awakening / First Launch | C/D | — |
 | 12 | PWA / Phone Experience | E | — |
 | 13 | QA / Hardening | all (fix-only) | — |
-| 14 | Performance / Polish | all (tune-only) | OD-04 (final) |
+| 14 | Performance / Polish | all (tune-only) | OD-04 (final; deferred by the owner, see OPEN_DECISIONS) |
 | 15 | Optional Android Packaging | E | — |
 
 ---
@@ -232,6 +232,7 @@
 - **Prerequisites:** Phase 13 approved.
 - **Outputs:** release-quality polish.
 - **Acceptance criteria:** ~60 FPS on a modern phone during earned-event effects; no background animation work while hidden; error/empty/loading states exist; accessibility checklist (contrast, touch targets, semantics, reduced motion) passes; bundle size reviewed.
+- *(Phase 14 as built: a deliberately small phase, complete at commit `01f79ae`. Measured first (an interleaved before/after A/B on a production build with throttled CPU and multi-month datasets; no regression), then: a new screen starts at the top (scroll reset on a path change, browser scroll restoration off, so Back too), per-screen document titles, a SYSTEM-style 404, a formatted Daily Report date, a Weekly score row that wraps at 320 dp, shared button styles reused, dead code removed, and the unused `framer-motion` dependency removed. The bundle was reviewed and **no code splitting** is warranted. Frame rate was verified at about 60 fps under 4× to 6× CPU throttle on a desktop browser, not on a phone; physical-phone profiling and the real-phone / Netlify pass remain pending. **Deferred by the owner:** the quest-tap latency / achievement-derivation optimization (the Phase 10 ordering is untouched), a compact landscape navigation, and **OD-04**, the final Daily Message catalog. **Known follow-up:** the Weekly History overflow at 320 dp with 200% text. No gameplay, schema (IndexedDB v5 / backup 5) or PWA change; no dependency added. See [POLISH_PERFORMANCE.md](POLISH_PERFORMANCE.md).)*
 
 ---
 
