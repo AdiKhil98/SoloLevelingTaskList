@@ -38,7 +38,7 @@ interface WeeklyBoardFormProps {
 }
 
 const STEP =
-  'inline-flex size-11 shrink-0 items-center justify-center rounded-[3px] border border-border bg-surface system-focus active:bg-accent/15 disabled:opacity-40'
+  'inline-flex size-[min(2.75rem,56px)] shrink-0 items-center justify-center rounded-[3px] border border-border bg-surface system-focus active:bg-accent/15 disabled:opacity-40'
 
 const GHOST_BUTTON =
   'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-[3px] border border-border px-4 text-sm font-medium system-focus active:bg-accent/15'

@@ -199,6 +199,40 @@ describe('first launch: restart, refresh and closing halfway', () => {
     expect(within(screen.getByRole('list', { name: /quests/i })).getAllByRole('listitem')).toHaveLength(6)
     expect(await stored(factory)).toMatchObject({ templates: 6 })
   })
+
+  it('pressing CONFIRM and then BEGIN twice in a row saves once, seeds once and enters Home once', async () => {
+    const factory = newFactory()
+    firstLaunch({ factory })
+    await toIdentify()
+    typeName('Ada')
+    const confirm = screen.getByRole('button', { name: 'CONFIRM' })
+    fireEvent.click(confirm)
+    fireEvent.click(confirm)
+    const begin = await screen.findByRole('button', { name: 'BEGIN' })
+    fireEvent.click(begin)
+    fireEvent.click(begin)
+
+    await homeReady()
+    expect(screen.getAllByRole('region', { name: 'TODAY' })).toHaveLength(1)
+    expect(within(screen.getByRole('list', { name: /quests/i })).getAllByRole('listitem')).toHaveLength(6)
+    expect(await stored(factory)).toMatchObject({ profile: { status: 'valid', profile: { name: 'Ada' } }, templates: 6 })
+  })
+
+  it('a page in the background does not advance onboarding: the notice waits, and continues when the player comes back', async () => {
+    const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden')
+    const factory = newFactory()
+    firstLaunch({ factory, presentation: timingsWith({ noticeDoneMs: 150 }) })
+    await screen.findByRole('heading', { name: 'CONNECTION ESTABLISHED' })
+
+    await new Promise((resolve) => setTimeout(resolve, 400)) // well past the notice time, but nobody is looking
+    expect(screen.queryByRole('button', { name: 'ACCEPT' })).not.toBeInTheDocument()
+    expect(await stored(factory)).toMatchObject({ profile: { status: 'absent' }, templates: 0 }) // nothing was accepted or saved
+
+    visibility.mockReturnValue('visible')
+    act(() => void document.dispatchEvent(new Event('visibilitychange')))
+    expect(await accept()).toBeInTheDocument() // the notice now runs its (visible) time and still waits for ACCEPT
+    expect(await stored(factory)).toMatchObject({ profile: { status: 'absent' } })
+  })
 })
 
 describe('first launch: an existing installation is not made to awaken', () => {
@@ -416,13 +450,17 @@ describe('the notice: a tap finishes the text, only ACCEPT accepts', () => {
 
 describe('accessibility', () => {
   it('moves focus to the control that matters on every stage', async () => {
+    // The screen moves focus in an effect that runs just after the control appears, and nothing in the DOM says
+    // when. Finding the control is not the same as focus having arrived, so each stage waits for the focus itself.
+    // The assertion is unchanged: the control must hold focus.
+    const focused = (control: HTMLElement) => waitFor(() => expect(control).toHaveFocus())
     firstLaunch()
-    expect(await accept()).toHaveFocus()
+    await focused(await accept())
     fireEvent.click(screen.getByRole('button', { name: 'ACCEPT' }))
-    expect(await screen.findByLabelText('PLAYER NAME')).toHaveFocus()
+    await focused(await screen.findByLabelText('PLAYER NAME'))
     typeName('Ada')
     fireEvent.click(screen.getByRole('button', { name: 'CONFIRM' }))
-    expect(await screen.findByRole('button', { name: 'BEGIN' })).toHaveFocus()
+    await focused(await screen.findByRole('button', { name: 'BEGIN' }))
   })
 
   it('every control is a real, reachable button or input with a name; nothing is hidden from the keyboard', async () => {

@@ -468,8 +468,9 @@ describe('persistence and the rest of the app', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Dhuhr moved to position 1 of 6.')
     await waitFor(async () => expect((await storedTitles(factory))[0]).toBe('Dhuhr'))
     fireEvent.click(within(screen.getByRole('navigation', { name: 'Primary' })).getByRole('link', { name: 'Home' }))
-    const quests = await screen.findByRole('list', { name: 'Today’s quests' })
-    expect(within(quests).getAllByRole('listitem')[0]).toHaveTextContent('Dhuhr')
+    // The stored order is committed before the app adopts the refreshed Home state, so Home may show the old order for a
+    // moment; wait until it reflects the move (no reload involved).
+    await waitFor(() => expect(within(screen.getByRole('list', { name: 'Today’s quests' })).getAllByRole('listitem')[0]).toHaveTextContent('Dhuhr'))
   })
 })
 

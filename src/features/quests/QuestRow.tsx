@@ -128,7 +128,7 @@ export function QuestRow({
 
       {archived ? (
         item.canRestore ? (
-          <div className="mt-3 flex gap-2">
+          <div className="mt-3 flex flex-wrap gap-2">
             <button
               type="button"
               disabled={pending}
@@ -145,7 +145,7 @@ export function QuestRow({
         )
       ) : (
         <>
-          <div className="mt-3 flex gap-2">
+          <div className="mt-3 flex flex-wrap gap-2">
             {reorder !== undefined && (
               <>
                 <button

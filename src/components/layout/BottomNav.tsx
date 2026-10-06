@@ -32,13 +32,13 @@ export function BottomNav() {
     >
       <ul className="flex">
         {DESTINATIONS.map(({ to, label, Icon, end, alsoFor }) => (
-          <li key={to} className="flex-1">
+          <li key={to} className="min-w-0 flex-1">
             <NavLink
               to={to}
               end={end}
               className={({ isActive }) =>
                 cn(
-                  'relative flex h-(--nav-height) flex-col items-center justify-center gap-0.5 font-display text-[0.6875rem] font-semibold tracking-[0.12em] uppercase focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent',
+                  'relative flex h-(--nav-height) flex-col items-center justify-center gap-0.5 font-display text-[length:min(0.6875rem,1rem)] font-semibold tracking-[0.12em] uppercase focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent',
                   isActive || (alsoFor?.some((path) => pathname.startsWith(path)) ?? false)
                     ? 'bg-accent/10 text-accent before:absolute before:inset-x-4 before:top-0 before:h-0.5 before:bg-accent before:shadow-glow-soft'
                     : 'text-muted active:text-foreground',

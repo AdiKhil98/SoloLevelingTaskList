@@ -1,9 +1,10 @@
-import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { berlinSummerTime, createTestClock, d, newFactory, noonOn } from '@/application/test-utils/helpers'
 import { selectDailyMessage } from '@/application'
 import { listDailySummaries, listXpTransactions, openDatabase } from '@/persistence'
 import { renderApp } from '@/test/renderApp'
+import { appIsListeningForResume, resumeApp } from '@/test/resume'
 
 const MONDAY = '2026-10-05'
 const TUESDAY = '2026-10-06'
@@ -115,6 +116,9 @@ describe('midnight while the app is open', () => {
     await homeReady()
     const mondayMessage = selectDailyMessage(d(MONDAY)).text
     expect(screen.getByRole('region', { name: 'DAILY MESSAGE' })).toHaveTextContent(mondayMessage)
+    // The midnight timer is armed from the clock as it is WHEN ARMED, by the same effect pass that attaches the resume
+    // listeners. Moving the clock before that pass would arm it for the next midnight (about 12 h away), so wait for it.
+    await appIsListeningForResume()
 
     clock.set(noonOn(TUESDAY)) // the device clock crosses midnight
 
@@ -138,9 +142,7 @@ describe('midnight while the app is open', () => {
     await homeReady()
 
     clock.set(noonOn(TUESDAY))
-    await act(async () => {
-      window.dispatchEvent(new Event('focus'))
-    })
+    await resumeApp()
 
     await waitFor(() =>
       expect(screen.getByRole('region', { name: 'DAILY MESSAGE' })).toHaveTextContent(selectDailyMessage(d(TUESDAY)).text),
@@ -158,10 +160,7 @@ describe('midnight while the app is open', () => {
     await completeQuests(['Fajr'])
 
     clock.set(noonOn(MONDAY) + 4 * 3_600_000)
-    await act(async () => {
-      window.dispatchEvent(new Event('focus'))
-      document.dispatchEvent(new Event('visibilitychange'))
-    })
+    await resumeApp({ withVisibilityChange: true }) // waits until the app is listening, so "nothing changed" is a real result
 
     expect(screen.getByText('1 / 6')).toBeInTheDocument()
     expect(await readSummaries(factory)).toEqual([])
@@ -245,9 +244,7 @@ describe('device clock moving backwards (OD-22)', () => {
     await screen.findByRole('alert')
 
     clock.set(noonOn(WEDNESDAY))
-    await act(async () => {
-      window.dispatchEvent(new Event('focus'))
-    })
+    await resumeApp()
 
     await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument())
     expect(within(questList()).getAllByRole('listitem')).toHaveLength(6)

@@ -2,6 +2,7 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createTestClock, newFactory, noonOn } from '@/application/test-utils/helpers'
 import { renderApp } from '@/test/renderApp'
+import { resumeApp } from '@/test/resume'
 import { writeFailingFactory } from '@/test/questUi'
 import { editorReady, fillGoal, goalCard, goalCards, readBoard, readBoards, save, typeInto, WEDNESDAY, weeklyReady } from '@/test/weeklyUi'
 
@@ -260,9 +261,7 @@ describe('editing the current week’s board', () => {
     const second = renderApp({ clock, factory: first.factory, path: '/weekly' })
     await weeklyReady()
     clock.set(noonOn(WEDNESDAY))
-    await act(async () => {
-      window.dispatchEvent(new Event('focus')) // the app resumes and finds the clock behind the recorded days
-    })
+    await resumeApp() // the app resumes and finds the clock behind the recorded days
     await act(async () => {
       await second.router.navigate('/weekly/edit')
     })

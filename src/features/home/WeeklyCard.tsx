@@ -26,7 +26,7 @@ export function WeeklyCard({ weekly }: { weekly: WeeklyHomeSummary }) {
         )}
       </div>
       {weekly.state === 'board' && (
-        <p className="shrink-0 text-right text-sm text-muted">
+        <p className="max-w-[60%] shrink-0 text-right text-sm text-muted">
           {weekly.goalsCompleted} / {weekly.goalCount} goals complete
         </p>
       )}

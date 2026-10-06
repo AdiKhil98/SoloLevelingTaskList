@@ -158,12 +158,16 @@ describe('Level Up through the real app', () => {
 
 describe('the live Perfect Day', () => {
   it('shows ALL DAILY QUESTS COMPLETE when the last quest is done, even though Sleep also opens the Daily Report', async () => {
-    renderApp({ presentation: QUICK })
+    // Popups queue one at a time, so any other stays quick and drains. The Perfect Day popup
+    // under test stays up for the whole test: at QUICK's 80 ms it would be gone again if the test were slow to look for
+    // it after awaiting the Daily Report (a loaded machine easily is), and a transient state cannot be asserted reliably.
+    // Only the LAST completion is under test, so the five prayers are played through the application layer first
+    // (six slow UI round trips of setup made this the test most exposed to a loaded machine).
+    const factory = newFactory()
+    await playDay(factory, 5)
+    renderApp({ factory, presentation: { timings: { ...TEST_TIMINGS, visibleMs: (entry) => (entry.kind === 'perfect_day' ? 60_000 : 80) } } })
     await homeReady()
-    for (const name of ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha']) {
-      fireEvent.click(button(name))
-      await waitFor(() => expect(screen.queryByRole('button', { name: new RegExp(`^Complete ${name}\\b`) })).not.toBeInTheDocument())
-    }
+    expect(screen.getByText('5 / 6')).toBeInTheDocument() // the day is one quest from complete
     fireEvent.click(button('Sleep before 00:00'))
 
     expect(await screen.findByRole('heading', { name: 'DAILY REPORT' })).toBeInTheDocument() // navigation happened…

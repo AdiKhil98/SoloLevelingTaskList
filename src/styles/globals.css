@@ -95,6 +95,8 @@
     /*
      * Installed-app behaviour (Phase 12): a scroll that overshoots the top must not trigger Chrome's pull-to-refresh,
      * which would reload the app mid-session, nor the overscroll glow. Scrolling itself is unchanged.
+     * Phase 13: verified on real Android Chrome 133 (emulator): the rule on `html` ALONE did not stop it (a downward
+     * swipe at the top reloaded the installed app); it must be on `body` as well.
      */
     overscroll-behavior-y: none;
   }
@@ -117,6 +119,8 @@
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     overflow-wrap: anywhere;
+    /* Also on `html` above: Chrome Android needs both to suppress pull-to-refresh (see the note there). */
+    overscroll-behavior-y: none;
   }
 
   /* One fixed, static violet vignette behind everything (no animation, no repaint on scroll). */

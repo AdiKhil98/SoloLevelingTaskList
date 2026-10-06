@@ -1,9 +1,10 @@
 /// <reference types="node" />
-import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { readFileSync } from 'node:fs'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createTestClock, newFactory, noonOn } from '@/application/test-utils/helpers'
 import { renderApp } from '@/test/renderApp'
+import { resumeApp } from '@/test/resume'
 import { writeFailingFactory } from '@/test/questUi'
 import { NEXT_MONDAY, plantBoard, readBoard, scoringDefinition, typeInto, WEDNESDAY, weeklyReady } from '@/test/weeklyUi'
 
@@ -230,17 +231,10 @@ describe('the Home card', () => {
     await homeReady()
     first.unmount()
     clock.set(noonOn(NEXT_MONDAY))
-    // The app registers its resume listeners in an effect that runs just after Home first paints, and
-    // nothing in the DOM says when. Under load that can come after the heading is found, and a `focus`
-    // fired before then is simply not heard. Wait for the listener itself (a precondition, not a retry of the action).
-    const listeners = vi.spyOn(window, 'addEventListener')
     const second = renderApp({ clock, factory: first.factory })
     await homeReady()
-    await waitFor(() => expect(listeners).toHaveBeenCalledWith('focus', expect.any(Function)))
     clock.set(noonOn(WEDNESDAY))
-    await act(async () => {
-      window.dispatchEvent(new Event('focus'))
-    })
+    await resumeApp() // waits until the app is listening: a `focus` sent before that is simply not heard
     await screen.findByText('Clock appears to have moved backwards')
     expect(screen.queryByRole('link', { name: /WEEKLY GOAL CRUSHER/ })).not.toBeInTheDocument()
     second.unmount()

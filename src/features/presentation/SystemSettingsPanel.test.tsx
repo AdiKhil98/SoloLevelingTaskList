@@ -59,9 +59,15 @@ describe('System Settings (effects, haptics, sound)', () => {
     fireEvent.click(switchEl) // off
     expect(stored()).toMatchObject({ haptics: false })
     expect(vibrate).not.toHaveBeenCalled()
+    // The switch is a controlled checkbox that follows the settings store. The panel subscribes to the store in an
+    // effect, which can still be pending when the first click lands; until the panel has re-rendered, the box on screen
+    // is stale, and a second click would toggle that stale state instead of turning haptics back on. Wait until the
+    // switch shows the new state (a precondition: it is also what the player sees), then click again.
+    await waitFor(() => expect(switchEl).not.toBeChecked())
     fireEvent.click(switchEl) // on again
     expect(stored()).toMatchObject({ haptics: true })
     expect(vibrate).toHaveBeenCalledWith([15])
+    await waitFor(() => expect(switchEl).toBeChecked())
   })
 
   it('tells the player when the device itself asks for reduced motion', async () => {

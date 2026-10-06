@@ -1,9 +1,10 @@
-import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createTestClock, d, newFactory, noonOn } from '@/application/test-utils/helpers'
 import { getPlayerProfile, listDailySummaries, listTemplates, listXpTransactions, openDatabase } from '@/persistence'
 import { choose, fillTitle, readTemplates, submit, waitForQuestsPage } from '@/test/questUi'
 import { renderApp } from '@/test/renderApp'
+import { resumeApp } from '@/test/resume'
 import { editorReady, fillGoal, readBoards, save } from '@/test/weeklyUi'
 
 /**
@@ -205,9 +206,7 @@ describe('local actions work, and persist, while offline', () => {
     await homeReady()
 
     clock.set(noonOn(TUESDAY))
-    await act(async () => {
-      window.dispatchEvent(new Event('focus'))
-    })
+    await resumeApp()
 
     await waitFor(async () => {
       const summaries = await withDatabase(factory, listDailySummaries)

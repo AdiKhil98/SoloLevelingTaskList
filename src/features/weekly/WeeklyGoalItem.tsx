@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils'
 import { MeterBar } from '@/components/ui/MeterBar'
 
 const STEP =
-  'inline-flex size-11 shrink-0 items-center justify-center rounded-[3px] border border-border bg-surface-raised system-focus active:bg-accent/15 disabled:opacity-40'
+  'inline-flex size-[min(2.75rem,56px)] shrink-0 items-center justify-center rounded-[3px] border border-border bg-surface-raised system-focus active:bg-accent/15 disabled:opacity-40'
 
 interface WeeklyGoalItemProps {
   goal: WeeklyGoalView
@@ -80,7 +80,7 @@ function ManualProgress({ goal, onSetProgress, canEdit }: WeeklyGoalItemProps) {
           disabled={disabled}
           onChange={(event) => setDraft(event.target.value)}
           onBlur={submitText}
-          className="min-h-11 w-20 rounded-[3px] border border-border bg-background px-2 text-center font-display text-base font-semibold tabular-nums system-focus aria-[invalid=true]:border-danger/70 disabled:opacity-60"
+          className="min-h-11 w-20 min-w-0 rounded-[3px] border border-border bg-background px-2 text-center font-display text-base font-semibold tabular-nums system-focus aria-[invalid=true]:border-danger/70 disabled:opacity-60"
         />
         <button
           type="button"

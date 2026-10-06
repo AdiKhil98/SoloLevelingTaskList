@@ -1,4 +1,5 @@
 import type { RouteObject } from 'react-router'
+import { RouteErrorScreen } from '@/app/AppErrorBoundary'
 import { AppShell } from '@/components/layout/AppShell'
 import { AchievementsPage } from '@/features/achievements/AchievementsPage'
 import { HomePage } from '@/features/home/HomePage'
@@ -34,6 +35,8 @@ export function buildAppRoutes({ dev }: { dev: boolean }): RouteObject[] {
     {
       path: '/',
       element: <AppShell />,
+      // A screen that fails to render shows the SYSTEM crash screen, not the router's developer error page.
+      errorElement: <RouteErrorScreen />,
       children: [
         { index: true, element: <HomePage /> },
         { path: 'quests', element: <QuestsPage /> },

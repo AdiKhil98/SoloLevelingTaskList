@@ -47,7 +47,8 @@ describe('the update notice inside the real app shell', () => {
 
     act(() => fake.set({ updateReady: true }))
 
-    expect(notice()).toBeInTheDocument()
+    // The notice follows the update store through a subscription that attaches in an effect; wait until it shows.
+    await waitFor(() => expect(notice()).toBeInTheDocument())
     expect(screen.getByRole('link', { name: 'Quests' })).toBeInTheDocument() // navigation is still there and usable
   })
 
@@ -57,7 +58,8 @@ describe('the update notice inside the real app shell', () => {
     await homeReady()
 
     fireEvent.click(screen.getByRole('button', { name: 'LATER' }))
-    expect(notice()).not.toBeInTheDocument()
+    // Hiding follows the store through that subscription too: wait until it is gone, then check it stays gone.
+    await waitFor(() => expect(notice()).not.toBeInTheDocument())
 
     fireEvent.click(screen.getByRole('link', { name: 'Status' }))
     await screen.findByRole('heading', { name: 'STATUS' })
@@ -105,7 +107,7 @@ describe('the update notice inside the real app shell', () => {
     fireEvent.click(screen.getByRole('button', { name: 'RESTART' }))
 
     expect(fake.restart).toHaveBeenCalledOnce()
-    expect(screen.getByRole('button', { name: 'RESTARTING...' })).toBeDisabled()
+    await waitFor(() => expect(screen.getByRole('button', { name: 'RESTARTING...' })).toBeDisabled())
   })
 
   it('is hidden on the edit form of an existing quest too', async () => {

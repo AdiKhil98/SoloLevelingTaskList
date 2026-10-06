@@ -64,6 +64,38 @@ export function ScreenLoadFailedScreen({ onReload }: { onReload: () => void }) {
   )
 }
 
+/**
+ * A screen failed while it was being shown (a render error). The error itself is logged by whoever caught it and is
+ * never shown here. Reload is the player's choice (nothing reloads by itself, so it cannot loop). Home is a plain link
+ * that loads the start screen: an installed app has no address bar, so without it a screen that always fails would
+ * trap the player. Nothing here deletes or resets anything.
+ */
+export function AppCrashScreen({ onReload }: { onReload: () => void }) {
+  return (
+    <StartupFrame>
+      <div role="alert" className="flex flex-col items-center gap-3">
+        <h1 className="font-display text-xl font-semibold">Something went wrong</h1>
+        <p className="text-muted">This screen could not be shown. Reloading does not delete or change your saved progress.</p>
+      </div>
+      <div className="mt-2 flex flex-wrap items-center justify-center gap-3">
+        <button
+          type="button"
+          onClick={onReload}
+          className="inline-flex min-h-12 min-w-32 items-center justify-center rounded-[3px] border border-accent bg-accent/10 px-6 font-medium text-accent system-focus active:bg-accent/20"
+        >
+          Reload
+        </button>
+        <a
+          href="/"
+          className="inline-flex min-h-12 min-w-32 items-center justify-center rounded-[3px] border border-border px-6 font-medium system-focus active:bg-accent/10"
+        >
+          Home
+        </a>
+      </div>
+    </StartupFrame>
+  )
+}
+
 interface StartupErrorScreenProps {
   reason: FailureReason
   onRetry: () => void

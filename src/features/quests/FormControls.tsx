@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils'
  */
 
 const CHIP =
-  'flex min-h-12 cursor-pointer items-center justify-center rounded-[3px] border border-border bg-surface px-3 py-2 text-center text-sm font-medium transition-colors has-checked:border-accent has-checked:bg-accent/15 has-checked:text-foreground has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-accent'
+  'flex min-h-12 cursor-pointer items-center justify-center rounded-[3px] border border-border bg-surface px-2 py-2 min-[360px]:px-3 text-center text-sm font-medium transition-colors has-checked:border-accent has-checked:bg-accent/15 has-checked:text-foreground has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-accent'
 
 interface ChipProps {
   name: string

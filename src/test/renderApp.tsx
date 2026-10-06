@@ -1,6 +1,6 @@
 import { render } from '@testing-library/react'
 import { StrictMode } from 'react'
-import { createMemoryRouter } from 'react-router'
+import { createMemoryRouter, type RouteObject } from 'react-router'
 import { RouterProvider } from 'react-router/dom'
 import { AppRuntimeProvider, type AppRuntimeOptions } from '@/app/AppRuntimeProvider'
 import { appRoutes } from '@/app/routes'
@@ -33,6 +33,8 @@ export interface RenderAppOptions {
    * as it is: a fresh factory is then a brand-new install and plays the real first launch.
    */
   awakened?: boolean
+  /** Defaults to the real route table; a test may add a screen of its own (for example one that fails to render). */
+  routes?: RouteObject[]
 }
 
 /**
@@ -48,9 +50,10 @@ export function renderApp({
   strictMode = false,
   presentation = { timings: TEST_TIMINGS },
   awakened = true,
+  routes = appRoutes,
 }: RenderAppOptions = {}) {
   const options: AppRuntimeOptions = { clock, ids, database: { factory }, presentation }
-  const router = createMemoryRouter(appRoutes, { initialEntries: [path] })
+  const router = createMemoryRouter(routes, { initialEntries: [path] })
   const app = (
     <AppRuntimeProvider options={options}>
       <RouterProvider router={router} />
